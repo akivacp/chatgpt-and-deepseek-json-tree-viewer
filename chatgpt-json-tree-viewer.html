@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auto-Convert Multiverse Viewer v4.5</title>
+<title>Multiverse Viewer v5.0 - Supports OpenAI & DeepSeek</title>
 
 <style>
 :root{
@@ -447,7 +447,7 @@ button{
 
 <body>
   <div id="topNav">
-    <button id="loadJsonBtn">Load Multiverse JSON</button>
+    <button id="loadJsonBtn">Load Conversation JSON</button>
     <button id="resetLayoutBtn">Reset Layout</button>
 
     <div id="devToolsContainer">
@@ -457,11 +457,23 @@ button{
           <input type="checkbox" id="toggleSystemNodes">
           <span>Show system nodes</span>
         </label>
+        <label class="devToolsRow">
+          <input type="checkbox" id="toggleFormatDetection" checked>
+          <span>Auto-format detection</span>
+        </label>
       </div>
     </div>
 
     <div id="fileLabel">(no file loaded)</div>
     <div id="conversionStatus"></div>
+    <div id="formatBadge" style="
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: #ddd;
+      color: #333;
+      display: none;
+    "></div>
   </div>
 
   <div id="leftSidebar">
@@ -476,6 +488,7 @@ button{
       <div class="viewerTab active" data-mode="rendered">Rendered</div>
       <div class="viewerTab" data-mode="html">HTML</div>
       <div class="viewerTab" data-mode="raw">Raw</div>
+      <div class="viewerTab" data-mode="original">Original</div>
     </div>
 
     <div id="viewerButtons">
@@ -497,6 +510,155 @@ button{
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
 
   <script>
+  /* =============================== */
+  /*        FORMAT DETECTION         */
+  /* =============================== */
+  
+  const FORMATS = {
+    OPENAI_MULTIVERSE: "openai_multiverse",
+    DEEPSEEK_EXPORTER: "deepseek_exporter",
+    UNKNOWN: "unknown"
+  };
+
+  let currentFormat = FORMATS.UNKNOWN;
+  let originalJSON = null;
+  let convertedJSON = null;
+
+  function detectFormat(json) {
+    // Check for OpenAI multiverse format
+    if (json && 
+        typeof json === 'object' && 
+        json.mapping && 
+        typeof json.mapping === 'object') {
+      return FORMATS.OPENAI_MULTIVERSE;
+    }
+    
+    // Check for DeepSeek exporter format
+    if (json && 
+        typeof json === 'object' && 
+        json.metadata && 
+        json.metadata.platform === "DeepSeek" &&
+        Array.isArray(json.messages)) {
+      return FORMATS.DEEPSEEK_EXPORTER;
+    }
+    
+    // Check for wrapped OpenAI format
+    if (findConversationInJSON(json)) {
+      return FORMATS.OPENAI_MULTIVERSE;
+    }
+    
+    return FORMATS.UNKNOWN;
+  }
+
+  function formatToMultiverse(json, format) {
+    originalJSON = json;
+    
+    if (format === FORMATS.OPENAI_MULTIVERSE) {
+      const found = findConversationInJSON(json);
+      if (!found) throw new Error("Could not find conversation in OpenAI format");
+      convertedJSON = sanitizeConversation(found);
+      return convertedJSON;
+    }
+    
+    if (format === FORMATS.DEEPSEEK_EXPORTER) {
+      return convertDeepSeekToMultiverse(json);
+    }
+    
+    throw new Error(`Unsupported format: ${format}`);
+  }
+
+  function convertDeepSeekToMultiverse(deepseekJson) {
+    const mapping = {};
+    const messages = deepseekJson.messages || [];
+    
+    // Create a simple linear chain for DeepSeek conversations
+    messages.forEach((msg, index) => {
+      const nodeId = `msg_${index}`;
+      const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
+      const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
+      
+      // Extract content
+      let contentText = "";
+      if (msg.role === "user") {
+        contentText = msg.content || "";
+      } else if (msg.role === "assistant") {
+        if (typeof msg.content === "object") {
+          contentText = msg.content.final_answer || 
+                       (msg.content.thinking_chain ? 
+                         `${msg.content.thinking_chain}\n\n${msg.content.final_answer || ""}` : 
+                         "");
+        } else {
+          contentText = msg.content || "";
+        }
+      }
+      
+      mapping[nodeId] = {
+        id: nodeId,
+        parent: prevNodeId,
+        children: nextNodeId ? [nextNodeId] : [],
+        message: {
+          id: nodeId,
+          author: {
+            role: msg.role,
+            name: null,
+            metadata: {}
+          },
+          create_time: msg.timestamp ? new Date(msg.timestamp).getTime() / 1000 : Date.now() / 1000,
+          content: {
+            content_type: "text",
+            parts: [contentText]
+          },
+          status: "finished_successfully",
+          metadata: {},
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "deepseek"
+      };
+    });
+    
+    convertedJSON = {
+      title: deepseekJson.metadata?.title || "DeepSeek Conversation",
+      create_time: deepseekJson.metadata?.extracted_at ? 
+                   new Date(deepseekJson.metadata.extracted_at).getTime() / 1000 : 
+                   Date.now() / 1000,
+      update_time: deepseekJson.metadata?.extracted_at ? 
+                   new Date(deepseekJson.metadata.extracted_at).getTime() / 1000 : 
+                   Date.now() / 1000,
+      mapping: mapping,
+      conversation_id: deepseekJson.metadata?.url?.split('/').pop() || "deepseek_chat",
+      _original_format: "deepseek",
+      _converted_at: new Date().toISOString()
+    };
+    
+    return convertedJSON;
+  }
+
+  function updateFormatBadge(format) {
+    const badge = document.getElementById('formatBadge');
+    currentFormat = format;
+    
+    switch(format) {
+      case FORMATS.OPENAI_MULTIVERSE:
+        badge.textContent = "OpenAI Format";
+        badge.style.background = "#10a37f";
+        badge.style.color = "white";
+        break;
+      case FORMATS.DEEPSEEK_EXPORTER:
+        badge.textContent = "DeepSeek Format";
+        badge.style.background = "#0ea5e9";
+        badge.style.color = "white";
+        break;
+      default:
+        badge.textContent = "Unknown Format";
+        badge.style.background = "#f44336";
+        badge.style.color = "white";
+    }
+    
+    badge.style.display = "inline-block";
+  }
+
   /* =============================== */
   /*        AUTO-CONVERSION LOGIC    */
   /* =============================== */
@@ -582,36 +744,37 @@ button{
   function autoConvertJSON(json) {
     const status = document.getElementById('conversionStatus');
     
-    // Check if already in correct format
-    if (isMultiverseFormat(json)) {
-      status.innerHTML = "✅ File is already in viewer-compatible format";
-      status.style.color = "#10a37f";
+    try {
+      // Detect format
+      const format = detectFormat(json);
+      
+      if (format === FORMATS.UNKNOWN) {
+        status.innerHTML = "❌ Unrecognized file format";
+        status.style.color = "#f44336";
+        updateFormatBadge(FORMATS.UNKNOWN);
+        throw new Error("Unrecognized file format. Supported: OpenAI multiverse JSON, DeepSeek exporter JSON");
+      }
+      
+      // Update badge
+      updateFormatBadge(format);
+      
+      // Convert to multiverse format
+      status.innerHTML = `🔄 Converting ${format}...`;
+      status.style.color = "#ff9800";
       status.style.display = "block";
-      return json;
-    }
-    
-    // Try to find conversation
-    status.innerHTML = "🔄 Detecting conversation structure...";
-    status.style.color = "#ff9800";
-    status.style.display = "block";
-    
-    const found = findConversationInJSON(json);
-    
-    if (!found) {
-      status.innerHTML = "❌ Could not find conversation mapping in this file";
+      
+      const converted = formatToMultiverse(json, format);
+      
+      status.innerHTML = "✅ File loaded successfully";
+      status.style.color = "#10a37f";
+      
+      return converted;
+      
+    } catch (err) {
+      status.innerHTML = "❌ Error: " + err.message;
       status.style.color = "#f44336";
-      throw new Error("Could not find conversation mapping in this file");
+      throw err;
     }
-    
-    status.innerHTML = "🔄 Converting to viewer-compatible format...";
-    
-    // Sanitize the conversation
-    const converted = sanitizeConversation(found);
-    
-    status.innerHTML = "✅ File converted successfully";
-    status.style.color = "#10a37f";
-    
-    return converted;
   }
 
   /* =============================== */
@@ -672,6 +835,44 @@ button{
 
   let lastLoadedJSON = null;
   let showSystemNodes = false;
+
+  /* =============================== */
+  /*     ENHANCED EXTRACT TEXT       */
+  /* =============================== */
+  
+  function extractText(msg) {
+    if (!msg) return "";
+    
+    // Handle DeepSeek format
+    if (msg._original_data) {
+      const data = msg._original_data;
+      if (data.role === "user") {
+        return String(data.content || "").trim();
+      } else if (data.role === "assistant") {
+        if (typeof data.content === "object") {
+          const parts = [];
+          if (data.content.search_hint) parts.push(`**${data.content.search_hint}**`);
+          if (data.content.thinking_chain) parts.push(`> ${data.content.thinking_chain}`);
+          if (data.content.final_answer) parts.push(data.content.final_answer);
+          return parts.join("\n\n");
+        }
+        return String(data.content || "").trim();
+      }
+    }
+    
+    // Handle OpenAI format
+    if (msg.content && Array.isArray(msg.content.parts)) {
+      return msg.content.parts.join("\n");
+    }
+    if (msg.content && msg.content.content_type && msg.content.content_type !== "text") {
+      return "[" + msg.content.content_type + "]";
+    }
+    
+    // Fallback
+    if (msg._viewerText) return msg._viewerText;
+    
+    return "";
+  }
 
   /* DEV TOOLS MENU */
   const devBtn = document.getElementById("devToolsBtn");
@@ -743,18 +944,6 @@ button{
     reader.readAsText(file);
   }
 
-  /* EXTRACT MESSAGE TEXT */
-  function extractText(msg){
-    if (!msg) return "";
-    if (msg.content && Array.isArray(msg.content.parts)) return msg.content.parts.join("\n");
-    if (msg.content && msg.content.content_type && msg.content.content_type !== "text"){
-      return "[" + msg.content.content_type + "]";
-    }
-    // Try the sanitized text from conversion
-    if (msg._viewerText) return msg._viewerText;
-    return "";
-  }
-
   /* SYSTEM NODE DETECTION (DATA LEVEL) */
   function isSystemData(data){
     if (!data) return true;
@@ -785,20 +974,29 @@ button{
     return node;
   }
 
-  /* BUILD TREE */
-  function buildTree(json){
+  /* ENHANCED BUILD TREE TO HANDLE DEEPSEEK FORMAT */
+  function buildTree(json) {
     const map = json.mapping;
+    
+    // Find root nodes (nodes without parents)
     const rootIds = Object.keys(map).filter(id => !map[id].parent);
+    
+    // If no root found in OpenAI format, look for DeepSeek linear chain
+    if (rootIds.length === 0) {
+      // For DeepSeek linear format, find the first message
+      const firstId = Object.keys(map).find(id => map[id].parent === null);
+      if (firstId) rootIds.push(firstId);
+    }
+    
     if (!rootIds.length) return;
 
-    function convert(id){
+    function convert(id) {
       const node = map[id];
-      const msg = node.message;
       return {
         id,
-        role: msg && msg.author ? (msg.author.role || "unknown") : "unknown",
-        text: extractText(msg),
-        rawMessage: msg || null,
+        role: node.message?.author?.role || "unknown",
+        text: extractText(node.message),
+        rawMessage: node.message || null,
         rawChunk: node || null,
         children: (node.children || []).map(convert)
       };
@@ -806,7 +1004,7 @@ button{
 
     let rootData = convert(rootIds[0]);
 
-    if (!showSystemNodes){
+    if (!showSystemNodes) {
       rootData = collapseSystemNodesTree(rootData);
     }
 
@@ -1217,46 +1415,68 @@ button{
     scheduleTooltipHide(TOOLTIP_LINGER_MS);
   }
 
-  /* VIEWER PANEL */
+  /* =============================== */
+  /*     ENHANCED VIEWER PANEL       */
+  /* =============================== */
   let currentMode = "rendered";
   let currentRenderedContent = "";
 
-  function openViewerPanel(n, overrideText){
+  function openViewerPanel(n, overrideText) {
     const data = n && n.data ? n.data : {};
-    let msg = (overrideText !== undefined && overrideText !== null)
-      ? String(overrideText)
-      : String(data.text || "");
-
-    if (!msg.trim()){
-      if (data.rawMessage){
-        msg = "```json\n" + JSON.stringify(data.rawMessage, null, 2) + "\n```";
-      }else{
-        msg = "(empty)";
+    
+    // Get content based on format
+    let msg = "";
+    let originalData = null;
+    
+    if (overrideText !== undefined && overrideText !== null) {
+      msg = String(overrideText);
+    } else if (data._original_data) {
+      // DeepSeek format
+      originalData = data._original_data;
+      if (typeof originalData.content === "object") {
+        // Build comprehensive message
+        const parts = [];
+        if (originalData.content.search_hint) parts.push(`**${originalData.content.search_hint}**`);
+        if (originalData.content.thinking_chain) parts.push(`### Thoughts\n\n> ${originalData.content.thinking_chain}`);
+        if (originalData.content.final_answer) parts.push(`### Answer\n\n${originalData.content.final_answer}`);
+        msg = parts.join("\n\n");
+      } else {
+        msg = String(originalData.content || "");
       }
+    } else {
+      // OpenAI format
+      msg = extractText(data.rawMessage);
     }
 
     const rawMsgObj = data.rawMessage || {};
     const rawChunkObj = data.rawChunk || {};
+    const deepseekData = data._original_data || {};
 
     const rawText =
-      "rawMessage:\n" +
+      "Format: " + (data._format || "openai") + "\n\n" +
+      "Message Data:\n" +
       JSON.stringify(rawMsgObj, null, 2) +
-      "\n\n------------------------------\n\n" +
-      "rawChunk:\n" +
-      JSON.stringify(rawChunkObj, null, 2);
+      "\n\n" +
+      "Node Data:\n" +
+      JSON.stringify(rawChunkObj, null, 2) +
+      (Object.keys(deepseekData).length ? 
+        "\n\n" + "DeepSeek Original:\n" + JSON.stringify(deepseekData, null, 2) : 
+        "");
 
-    switchMode("rendered", msg, rawText);
+    const originalJson = originalData || rawMsgObj;
+
+    switchMode("rendered", msg, rawText, originalJson);
 
     document.getElementById("copyBtn").style.display = "inline-block";
     document.getElementById("exportBtn").style.display = "inline-block";
     document.getElementById("popoutBtn").style.display = "inline-block";
 
     document.querySelectorAll(".viewerTab").forEach(tab => {
-      tab.onclick = () => switchMode(tab.dataset.mode, msg, rawText);
+      tab.onclick = () => switchMode(tab.dataset.mode, msg, rawText, originalJson);
     });
   }
 
-  function switchMode(mode, msg, rawText){
+  function switchMode(mode, msg, rawText, originalData) {
     currentMode = mode;
 
     const content = document.getElementById("viewerContent");
@@ -1264,28 +1484,34 @@ button{
       tab.classList.toggle("active", tab.dataset.mode === mode);
     });
 
-    if (mode === "markdown"){
+    if (mode === "markdown") {
       currentRenderedContent = msg;
       content.innerText = msg;
       return;
     }
 
-    if (mode === "rendered"){
+    if (mode === "rendered") {
       const html = DOMPurify.sanitize(marked.parse(msg));
       currentRenderedContent = html;
       content.innerHTML = html;
       return;
     }
 
-    if (mode === "html"){
+    if (mode === "html") {
       const html = DOMPurify.sanitize(marked.parse(msg));
       currentRenderedContent = html;
       content.innerText = html;
       return;
     }
 
-    if (mode === "raw"){
-      const text = rawText || "";
+    if (mode === "raw") {
+      currentRenderedContent = rawText;
+      content.innerText = rawText;
+      return;
+    }
+
+    if (mode === "original") {
+      const text = JSON.stringify(originalData || {}, null, 2);
       currentRenderedContent = text;
       content.innerText = text;
       return;
@@ -1325,6 +1551,10 @@ button{
       filename = "message.html";
       content = currentRenderedContent;
       type = "text/html";
+    }else if (currentMode === "original"){
+      filename = "message.original.json";
+      content = currentRenderedContent;
+      type = "application/json";
     }else{
       filename = "message.raw.json";
       content = currentRenderedContent;
