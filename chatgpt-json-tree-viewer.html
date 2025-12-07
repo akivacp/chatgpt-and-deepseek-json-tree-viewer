@@ -9,6 +9,15 @@
 :root{
   /* Dynamically replaced by JS */
   --top-nav-height: 75px;
+  /* Color variables for the graph */
+  --color-user: #3B82F6;
+  --color-assistant: #10A37F;
+  --color-system: #666;
+  --color-other: #8B5CF6;
+  --color-highlight: #FFD700;
+  --color-ancestor: #1E90FF;
+  --color-descendant: #32CD32;
+  --color-dim: rgba(0, 0, 0, 0.1);
 }
 
 /* =============================== */
@@ -22,8 +31,8 @@ html, body{
 body{
   margin: 0;
   overflow: hidden;
-  background: #fafafa;
-  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 button{
@@ -39,42 +48,48 @@ button{
   top: 0;
   left: 0;
   width: 100%;
-  background: white;
-  border-bottom: 1px solid #ccc;
+  background: linear-gradient(to right, #2c3e50, #34495e);
+  border-bottom: 1px solid #1a252f;
   padding: 10px 20px;
   display: flex;
   align-items: center;
   gap: 20px;
   z-index: 100000;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 #loadJsonBtn,
 #resetLayoutBtn{
-  background: #10a37f;
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
   color: white;
   border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 #loadJsonBtn:hover,
 #resetLayoutBtn:hover{
-  background: #0e8e6c;
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 #fileLabel{
   font-size: 14px;
-  color: #444;
+  color: #ecf0f1;
   user-select: none;
+  font-weight: 500;
 }
 
 #conversionStatus{
   font-size: 12px;
-  color: #666;
-  padding: 4px 8px;
-  background: #f0f0f0;
+  color: #bdc3c7;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.1);
   border-radius: 6px;
   display: none;
 }
@@ -88,38 +103,46 @@ button{
 }
 
 #devToolsBtn{
-  background: #444;
+  background: rgba(255,255,255,0.1);
   color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  transition: all 0.3s ease;
 }
 
 #devToolsBtn:hover{
-  background: #222;
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.3);
 }
 
 #devToolsMenu{
   position: absolute;
   top: 42px;
   left: 0;
-  background: white;
-  border: 1px solid #ccc;
+  background: #2c3e50;
+  border: 1px solid #34495e;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  padding: 10px 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  padding: 12px;
   display: none;
   z-index: 100001;
-  min-width: 180px;
+  min-width: 200px;
 }
 
 .devToolsRow{
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
+  color: #ecf0f1;
+  margin: 8px 0;
+}
+
+.devToolsRow input[type="checkbox"] {
+  accent-color: #10a37f;
 }
 
 /* =============================== */
@@ -132,37 +155,208 @@ button{
   left: 0;
   width: 260px;
   height: calc(100vh - var(--top-nav-height));
-  background: #ffffff;
-  border-right: 1px solid #ccc;
+  background: linear-gradient(to bottom, #2c3e50, #34495e);
+  border-right: 1px solid #1a252f;
   overflow-y: auto;
   z-index: 9999;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+  transition: width 0.3s ease;
+}
+
+/* Collapsible section headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 15px 10px 15px;
+  cursor: pointer;
+  user-select: none;
+  color: #ecf0f1;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.3s ease;
+  background: rgba(255,255,255,0.05);
+}
+
+.section-header:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.section-header .toggle-icon {
+  font-size: 12px;
+  color: #95a5a6;
+  transition: transform 0.3s ease;
+}
+
+.section-header.collapsed .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.section-content {
+  padding: 0 15px 15px 15px;
+  background: rgba(255,255,255,0.03);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.section-content.collapsed {
+  padding: 0 15px;
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Search section */
+#searchContainer {
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
 }
 
 #searchBar{
-  width: 90%;
-  margin: 12px;
-  padding: 7px 10px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
   font-size: 14px;
-  border-radius: 10px;
-  border: 1px solid #bbb;
+  border-radius: 8px;
+  border: 1px solid #4a5f7a;
+  background: rgba(255,255,255,0.1);
+  color: #ecf0f1;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+#searchBar:focus {
+  outline: none;
+  border-color: #10a37f;
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+}
+
+#searchBar::placeholder {
+  color: #95a5a6;
 }
 
 #leftSearchResults{
-  padding: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
 }
 
 .search-result-item{
-  padding: 10px;
-  background: #f8f8f8;
-  border: 1px solid #ddd;
+  padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
   margin-bottom: 10px;
   cursor: pointer;
   font-size: 13px;
+  color: #ecf0f1;
+  transition: all 0.3s ease;
 }
 .search-result-item:hover{
-  background: #e6f7f1;
+  background: rgba(16, 163, 127, 0.2);
   border-color: #10a37f;
+  transform: translateX(5px);
+}
+
+.search-result-item b {
+  color: #10a37f;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Conversations section */
+.conversation-item {
+  padding: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #ecf0f1;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.conversation-item:hover {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.3);
+  transform: translateX(3px);
+}
+
+.conversation-item.active {
+  background: rgba(16, 163, 127, 0.25);
+  border-color: #10a37f;
+  box-shadow: 0 0 0 1px #10a37f;
+}
+
+.conversation-item.has-search-matches {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.3);
+  border-left: 4px solid #ffc107;
+}
+
+.conversation-item.has-search-matches .search-match-count {
+  display: inline-block;
+  background: #ffc107;
+  color: #2c3e50;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+}
+
+.conversation-item .date {
+  color: #95a5a6;
+  font-size: 11px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.conversation-item .title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+  color: #ecf0f1;
+}
+
+.conversation-item .meta {
+  color: #95a5a6;
+  font-size: 11px;
+  display: block;
+}
+
+.conversations-empty {
+  padding: 15px;
+  text-align: center;
+  color: #95a5a6;
+  font-size: 13px;
+  font-style: italic;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  border: 1px dashed rgba(255,255,255,0.1);
+}
+
+.conversations-loading {
+  padding: 15px;
+  text-align: center;
+  color: #95a5a6;
+  font-size: 13px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  border: 1px dashed rgba(255,255,255,0.1);
+}
+
+.conversations-loading::after {
+  content: '';
+  animation: loading-dots 1.5s infinite;
+}
+
+@keyframes loading-dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
 }
 
 /* =============================== */
@@ -175,62 +369,260 @@ button{
   right: 0;
   width: 420px;
   height: calc(100vh - var(--top-nav-height));
-  background: white;
-  border-left: 1px solid #ccc;
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  border-left: 1px solid #dee2e6;
   overflow-y: auto;
   z-index: 9999;
+  box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Sticky header for viewer */
+#viewerHeader {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
 }
 
 #viewerTabs{
   display: flex;
-  gap: 10px;
-  padding: 10px;
-  background: #f2f2f2;
-  border-bottom: 1px solid #ccc;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(to right, #f1f3f4, #e8eaed);
+  border-bottom: 1px solid #dee2e6;
 }
 
 .viewerTab{
-  padding: 6px 12px;
-  background: #ddd;
-  border-radius: 10px;
+  padding: 8px 16px;
+  background: linear-gradient(to bottom, #e9ecef, #dee2e6);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 600;
   user-select: none;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+.viewerTab:hover {
+  background: linear-gradient(to bottom, #dee2e6, #ced4da);
+  transform: translateY(-2px);
 }
 .viewerTab.active{
-  background: #10a37f;
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
   color: white;
+  border-color: #0c7a5c;
+  box-shadow: 0 2px 8px rgba(16, 163, 127, 0.3);
+}
+
+.viewerSubTab{
+  padding: 6px 12px;
+  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  margin: 2px;
+  transition: all 0.3s ease;
+  border: 1px solid #dee2e6;
+}
+.viewerSubTab:hover {
+  background: linear-gradient(to bottom, #e9ecef, #dee2e6);
+  transform: translateY(-1px);
+}
+.viewerSubTab.active{
+  background: linear-gradient(to right, #4CAF50, #45a049);
+  color: white;
+  border-color: #3d8b40;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
 }
 
 #viewerButtons{
   display: flex;
   gap: 10px;
-  margin: 10px;
+  margin: 15px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 65px;
+  background: white;
+  padding: 12px;
+  z-index: 99;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e9ecef;
 }
 
 #viewerButtons button{
-  background: #10a37f;
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 #viewerButtons button:hover{
-  background: #0e8e6c;
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 #copyBtn,
 #exportBtn,
-#popoutBtn{
-  display: none;
+#popoutBtn,
+#pdfBtn{
+  display: inline-block;
+}
+
+/* Branch index sidebar */
+#branchIndexContainer {
+  position: fixed;
+  top: 120px;
+  right: 425px;
+  width: 250px;
+  background: linear-gradient(to bottom, #2c3e50, #34495e);
+  border: 1px solid #1a252f;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+#branchIndexContainer.collapsed {
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+}
+
+#branchIndexToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
+  border-bottom: 1px solid #0c7a5c;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+#branchIndexToggle:hover {
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c);
+}
+
+#branchIndexContainer.collapsed #branchIndexToggle {
+  border-bottom: none;
+  height: 100%;
+  border-radius: 12px;
+}
+
+#branchIndexSearch {
+  padding: 12px;
+  background: #2c3e50;
+  border-bottom: 1px solid #34495e;
+}
+
+#branchIndexSearch input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #4a5f7a;
+  background: rgba(255,255,255,0.1);
+  color: #ecf0f1;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+#branchIndexSearch input:focus {
+  outline: none;
+  border-color: #10a37f;
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+}
+
+#branchIndexSearch input::placeholder {
+  color: #95a5a6;
+}
+
+#branchIndex {
+  max-height: calc(70vh - 110px);
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.branch-index-item {
+  padding: 10px;
+  margin: 6px 0;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  border-left: 4px solid #4a5f7a;
+  transition: all 0.3s ease;
+  color: #ecf0f1;
+}
+
+.branch-index-item:hover {
+  background: rgba(33, 150, 243, 0.2);
+  border-left-color: #2196F3;
+  transform: translateX(5px);
+}
+
+.branch-index-item.current {
+  background: rgba(76, 175, 80, 0.2);
+  border-left-color: #4CAF50;
+  font-weight: bold;
+  color: white;
+}
+
+.branch-index-item b {
+  color: #10a37f;
+  display: block;
+  margin-bottom: 4px;
 }
 
 #viewerContent{
-  padding: 15px;
+  padding: 20px;
   font-size: 14px;
   white-space: normal;
+  min-height: 200px;
+  background: white;
+  border-radius: 8px;
+  margin: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Message highlight for jumping */
+.message.highlighted {
+  animation: highlight-pulse 2s ease-in-out;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes highlight-pulse {
+  0% { 
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.5);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0.2);
+    transform: scale(1.01);
+  }
+  100% { 
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0);
+    transform: scale(1);
+  }
 }
 
 /* =============================== */
@@ -243,8 +635,23 @@ button{
   top: var(--top-nav-height);
   width: calc(100vw - 260px - 420px);
   height: calc(100vh - var(--top-nav-height));
-  background: #fafafa;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   overflow: hidden;
+}
+
+/* Graph background pattern */
+#graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(255,255,255,0.1) 2px, transparent 2px);
+  background-size: 50px 50px;
+  pointer-events: none;
 }
 
 /* =============================== */
@@ -253,14 +660,16 @@ button{
 
 #minimap{
   position: fixed;
-  bottom: 15px;
-  right: 15px;
+  bottom: 20px;
+  right: 20px;
   width: 200px;
   height: 150px;
-  background: white;
-  border: 1px solid #aaa;
-  border-radius: 8px;
+  background: rgba(255,255,255,0.9);
+  border: 2px solid rgba(0,0,0,0.2);
+  border-radius: 10px;
   z-index: 999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  backdrop-filter: blur(5px);
 }
 
 /* =============================== */
@@ -273,8 +682,13 @@ button{
   cursor: ew-resize;
   top: 0;
   bottom: 0;
-  background: rgba(0,0,0,0);
+  background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
   z-index: 1000000;
+  transition: background 0.3s ease;
+}
+
+.drag-handle:hover {
+  background: linear-gradient(to right, rgba(16, 163, 127, 0.5), rgba(16, 163, 127, 0.7));
 }
 
 #leftDragHandle{
@@ -292,16 +706,18 @@ button{
 #tooltip{
   position: absolute;
   max-width: 320px;
-  background: rgba(255,255,255,0.95);
-  border: 1px solid #ccc;
+  background: linear-gradient(to bottom right, #2c3e50, #34495e);
+  border: 1px solid #1a252f;
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px;
   font-size: 13px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
   z-index: 999999;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.2s ease;
+  color: #ecf0f1;
+  backdrop-filter: blur(10px);
 }
 
 /* =============================== */
@@ -310,49 +726,73 @@ button{
 
 .node-circle{
   cursor: grab;
-  transition: fill .2s, stroke .2s;
+  transition: all 0.3s ease;
   pointer-events: all;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 .node-circle:active{
   cursor: grabbing;
 }
 
+.node-circle:hover {
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+  transform: scale(1.1);
+}
+
 .node-text{
   font-size: 11px;
-  fill: #444;
+  font-weight: 600;
+  fill: white;
   cursor: pointer;
   user-select: none;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.5);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .node-text:hover{
-  fill: #10a37f;
-  text-decoration: underline;
+  fill: var(--color-highlight);
+  text-decoration: none;
+  font-size: 12px;
 }
 
 .match-check{
-  font-size: 18px;
+  font-size: 20px;
   fill: limegreen;
   pointer-events: none;
+  filter: drop-shadow(0 0 8px limegreen);
 }
 
 .selected-node{
-  stroke: gold !important;
-  stroke-width: 4 !important;
+  stroke: var(--color-highlight) !important;
+  stroke-width: 5px !important;
+  filter: drop-shadow(0 0 15px var(--color-highlight)) !important;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 15px var(--color-highlight)); }
+  50% { filter: drop-shadow(0 0 25px var(--color-highlight)); }
 }
 
 .ancestor-node{
-  stroke: dodgerblue !important;
-  stroke-width: 3;
+  stroke: var(--color-ancestor) !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 10px var(--color-ancestor)) !important;
 }
 
 .descendant-node{
-  stroke: limegreen !important;
-  stroke-width: 3;
+  stroke: var(--color-descendant) !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 10px var(--color-descendant)) !important;
 }
 
 .dim-node{
-  opacity: 0.25;
-  transition: opacity .15s;
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
 }
 
 .highlight-faded .selected-node,
@@ -361,25 +801,47 @@ button{
   opacity: 0.4 !important;
 }
 
+.link {
+  stroke: rgba(255,255,255,0.6);
+  stroke-width: 2;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.link:hover {
+  stroke: rgba(255,255,255,0.9);
+  stroke-width: 3;
+}
+
 /* =============================== */
 /*           SEARCH HIGHLIGHT      */
 /* =============================== */
 
 @keyframes pulse{
-  0%{ transform: scale(1); }
-  50%{ transform: scale(1.06); }
-  100%{ transform: scale(1); }
+  0%{ 
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px #ffcc00);
+  }
+  50%{ 
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px #ffcc00);
+  }
+  100%{ 
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px #ffcc00);
+  }
 }
 
 .node.search-match circle{
   stroke: #ffcc00 !important;
-  stroke-width: 5px !important;
-  filter: drop-shadow(0 0 6px #ffcc00) !important;
-  animation: pulse 1.2s infinite ease-in-out;
+  stroke-width: 6px !important;
+  filter: drop-shadow(0 0 10px #ffcc00) !important;
+  animation: pulse 1.5s infinite ease-in-out;
 }
 
 .node.search-match text{
   fill: #ffcc00 !important;
+  font-weight: bold;
 }
 
 /* =============================== */
@@ -388,8 +850,106 @@ button{
 
 .system-node .node-circle{
   fill: none !important;
-  stroke: #666 !important;
-  stroke-width: 2px !important;
+  stroke: var(--color-system) !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 5,5;
+}
+
+/* =============================== */
+/*        BRANCH CONVERSATION      */
+/* =============================== */
+.branch-conversation .user-message {
+  border-left: 6px solid var(--color-user);
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.1));
+}
+
+.branch-conversation .assistant-message {
+  border-left: 6px solid var(--color-assistant);
+  background: linear-gradient(to right, rgba(16, 163, 127, 0.05), rgba(16, 163, 127, 0.1));
+}
+
+.branch-conversation .system-message {
+  border-left: 6px solid var(--color-system);
+  background: linear-gradient(to right, rgba(102, 102, 102, 0.05), rgba(102, 102, 102, 0.1));
+}
+
+.branch-conversation .other-message {
+  border-left: 6px solid var(--color-other);
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), rgba(139, 92, 246, 0.1));
+}
+
+.branch-conversation .message-content pre {
+  background: linear-gradient(to right, #2c3e50, #34495e);
+  padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  position: relative;
+  color: #ecf0f1;
+  border: 1px solid #1a252f;
+}
+
+.branch-conversation .message-content code {
+  background: rgba(44, 62, 80, 0.1);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.branch-conversation .message-content blockquote {
+  border-left: 4px solid #3498db;
+  margin: 15px 0;
+  padding-left: 20px;
+  color: #7f8c8d;
+  font-style: italic;
+  background: rgba(52, 152, 219, 0.05);
+  padding: 10px 15px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Code block copy button */
+.code-block-wrapper {
+  position: relative;
+  margin: 15px 0;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+  border: 1px solid rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #2c3e50;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.code-block-wrapper:hover .code-copy-btn {
+  opacity: 1;
+}
+
+.code-copy-btn:hover {
+  background: linear-gradient(to bottom, rgba(76, 175, 80, 0.9), rgba(76, 175, 80, 0.8));
+  color: white;
+  border-color: rgba(76, 175, 80, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.code-copy-btn.copied {
+  background: linear-gradient(to bottom, #4CAF50, #45a049);
+  color: white;
+  border-color: #3d8b40;
 }
 
 /* =============================== */
@@ -427,7 +987,7 @@ button{
     margin: 0 !important;
   }
 
-  #viewerTabs{
+  #viewerTabs, #subTabsContainer, #viewerButtons, #branchIndexContainer{
     display: none !important;
   }
 
@@ -468,37 +1028,78 @@ button{
     <div id="conversionStatus"></div>
     <div id="formatBadge" style="
       font-size: 12px;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 6px;
-      background: #ddd;
-      color: #333;
+      background: linear-gradient(to right, #10a37f, #0e8e6c);
+      color: white;
+      font-weight: 600;
       display: none;
     "></div>
   </div>
 
   <div id="leftSidebar">
-    <input id="searchBar" type="text" placeholder="Search messages..." />
-    <div id="leftSearchResults"></div>
+    <!-- Search Messages Section -->
+    <div class="section-header" id="searchSectionHeader" data-section="search">
+      <span>Search Messages</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="section-content" id="searchSectionContent">
+      <div id="searchContainer">
+        <input id="searchBar" type="text" placeholder="Search all messages..." />
+      </div>
+      <div id="leftSearchResults"></div>
+    </div>
+    
+    <!-- Conversations Section -->
+    <div class="section-header" id="conversationsSectionHeader" data-section="conversations">
+      <span>Conversations</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="section-content" id="conversationsSectionContent">
+      <div id="conversationsList" class="conversations-empty">
+        Load a conversations.json file to see conversations
+      </div>
+    </div>
+    
     <div id="leftDragHandle" class="drag-handle"></div>
   </div>
 
   <div id="rightViewer">
-    <div id="viewerTabs">
-      <div class="viewerTab" data-mode="markdown">Markdown</div>
-      <div class="viewerTab active" data-mode="rendered">Rendered</div>
-      <div class="viewerTab" data-mode="html">HTML</div>
-      <div class="viewerTab" data-mode="raw">Raw</div>
-      <div class="viewerTab" data-mode="original">Original</div>
+    <div id="viewerHeader">
+      <div id="viewerTabs">
+        <div class="viewerTab active" data-mode="node">Selected Node</div>
+        <div class="viewerTab" data-mode="branch">Branch Conversation</div>
+      </div>
+      
+      <div id="subTabsContainer" style="padding: 10px 15px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-bottom: 1px solid #dee2e6; display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="viewerSubTab active" data-submode="rendered">Rendered</div>
+        <div class="viewerSubTab" data-submode="markdown">Markdown</div>
+        <div class="viewerSubTab" data-submode="html">HTML</div>
+        <div class="viewerSubTab" data-submode="original">Original</div>
+      </div>
+
+      <div id="viewerButtons">
+        <button id="copyBtn">Copy</button>
+        <button id="exportBtn">Export</button>
+        <button id="popoutBtn">Pop-Out</button>
+        <button id="pdfBtn">PDF</button>
+      </div>
     </div>
 
-    <div id="viewerButtons">
-      <button id="copyBtn">Copy</button>
-      <button id="exportBtn">Export</button>
-      <button id="popoutBtn">Pop-Out</button>
-    </div>
-
-    <div id="viewerContent"><div style="color:#777;">Select a node to view its content.</div></div>
+    <div id="viewerContent"><div style="color:#777; text-align: center; padding: 40px; font-style: italic;">Select a node to view its content.</div></div>
     <div id="rightDragHandle" class="drag-handle"></div>
+  </div>
+
+  <!-- Branch Index Sidebar -->
+  <div id="branchIndexContainer" class="collapsed">
+    <div id="branchIndexToggle">📋</div>
+    <div id="branchIndexSearch" style="display: none;">
+      <div style="position: relative;">
+        <input type="text" id="branchSearchInput" placeholder="Search in branch..." style="width: 100%; padding-right: 30px; box-sizing: border-box;" />
+        <button id="clearBranchSearch" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #95a5a6; cursor: pointer; font-size: 16px; padding: 2px 5px;">×</button>
+      </div>
+    </div>
+    <div id="branchIndex"></div>
   </div>
 
   <svg id="graph"></svg>
@@ -508,6 +1109,8 @@ button{
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <script>
   /* =============================== */
@@ -517,15 +1120,28 @@ button{
   const FORMATS = {
     OPENAI_MULTIVERSE: "openai_multiverse",
     DEEPSEEK_EXPORTER: "deepseek_exporter",
+    OPENAI_CONVERSATIONS_ARRAY: "openai_conversations_array",
     UNKNOWN: "unknown"
   };
 
   let currentFormat = FORMATS.UNKNOWN;
   let originalJSON = null;
   let convertedJSON = null;
+  let conversationsList = []; // Store all conversations from conversations.json
+  let currentConversationIndex = -1;
+  let searchResultsAcrossAllConversations = []; // Store search results across all conversations
 
   function detectFormat(json) {
-    // Check for OpenAI multiverse format
+    // Check if it's an array of conversations (OpenAI conversations.json)
+    if (Array.isArray(json) && json.length > 0) {
+      // Check first item to see if it's a conversation object
+      const firstItem = json[0];
+      if (firstItem && typeof firstItem === 'object' && firstItem.mapping) {
+        return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
+      }
+    }
+    
+    // Check for OpenAI multiverse format (single conversation)
     if (json && 
         typeof json === 'object' && 
         json.mapping && 
@@ -553,6 +1169,23 @@ button{
   function formatToMultiverse(json, format) {
     originalJSON = json;
     
+    if (format === FORMATS.OPENAI_CONVERSATIONS_ARRAY) {
+      // Handle conversations array - extract all conversations
+      conversationsList = extractConversationsFromArray(json);
+      updateFormatBadge(FORMATS.OPENAI_CONVERSATIONS_ARRAY);
+      
+      // Load the first conversation by default
+      if (conversationsList.length > 0) {
+        updateConversationsList();
+        const firstConv = sanitizeConversation(conversationsList[0].data);
+        convertedJSON = firstConv;
+        currentConversationIndex = 0;
+        return firstConv;
+      } else {
+        throw new Error("No valid conversations found in array");
+      }
+    }
+    
     if (format === FORMATS.OPENAI_MULTIVERSE) {
       const found = findConversationInJSON(json);
       if (!found) throw new Error("Could not find conversation in OpenAI format");
@@ -566,6 +1199,354 @@ button{
     
     throw new Error(`Unsupported format: ${format}`);
   }
+
+  /* =============================== */
+  /*     CONVERSATIONS ARRAY HANDLING */
+  /* =============================== */
+  
+  function extractConversationsFromArray(jsonArray) {
+    const conversations = [];
+    
+    jsonArray.forEach((conv, index) => {
+      if (!conv || !conv.mapping) return;
+      
+      // Extract conversation info
+      const title = conv.title || `Untitled Conversation ${index + 1}`;
+      const createTime = conv.create_time || Date.now() / 1000;
+      const messageCount = Object.keys(conv.mapping).length;
+      const conversationId = conv.conversation_id || `conv_${index}`;
+      
+      // Format date for display
+      const date = new Date(createTime * 1000);
+      const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      conversations.push({
+        index: index,
+        id: conversationId,
+        title: title,
+        createTime: createTime,
+        formattedDate: formattedDate,
+        messageCount: messageCount,
+        data: conv,
+        raw: conv,
+        searchMatches: 0 // Track search matches per conversation
+      });
+    });
+    
+    // Sort by creation time (newest first)
+    conversations.sort((a, b) => b.createTime - a.createTime);
+    
+    return conversations;
+  }
+  
+  function updateConversationsList(searchQuery = '') {
+    const listContainer = document.getElementById('conversationsList');
+    
+    if (conversationsList.length === 0) {
+      listContainer.innerHTML = '<div class="conversations-empty">Load a conversations.json file to see conversations</div>';
+      return;
+    }
+    
+    let html = '';
+    
+    conversationsList.forEach((conv, index) => {
+      const isActive = index === currentConversationIndex;
+      const activeClass = isActive ? 'active' : '';
+      const hasMatches = conv.searchMatches > 0;
+      const matchesClass = hasMatches ? 'has-search-matches' : '';
+      const date = conv.formattedDate;
+      const title = conv.title.length > 50 ? conv.title.substring(0, 50) + '...' : conv.title;
+      const messageCount = conv.messageCount;
+      
+      html += `
+        <div class="conversation-item ${activeClass} ${matchesClass}" data-index="${index}">
+          <span class="date">${date}</span>
+          <span class="title">${title}</span>
+          <span class="meta">
+            ${messageCount} message${messageCount !== 1 ? 's' : ''}
+            ${hasMatches ? `<span class="search-match-count">${conv.searchMatches}</span>` : ''}
+          </span>
+        </div>
+      `;
+    });
+    
+    listContainer.innerHTML = html;
+    
+    // Add click handlers
+    document.querySelectorAll('.conversation-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const index = parseInt(this.dataset.index);
+        loadConversation(index);
+      });
+    });
+  }
+  
+  function loadConversation(index) {
+    if (index < 0 || index >= conversationsList.length) return;
+    
+    currentConversationIndex = index;
+    
+    // Clear search results in current conversation
+    clearSearchMatches();
+    
+    // Clear viewer panel
+    document.getElementById('viewerContent').innerHTML = '<div style="color:#777; text-align: center; padding: 40px; font-style: italic;">Select a node to view its content.</div>';
+    
+    // Load the conversation
+    const conv = conversationsList[index];
+    convertedJSON = sanitizeConversation(conv.data);
+    lastLoadedJSON = convertedJSON;
+    
+    // Update UI
+    updateConversationsList();
+    buildTree(convertedJSON);
+    
+    // Update file label
+    const fileName = document.getElementById('fileLabel').innerText;
+    if (fileName.includes('conversations.json')) {
+      document.getElementById('fileLabel').innerText = `${fileName} (${index + 1}/${conversationsList.length})`;
+    }
+    
+    // Clear branch index
+    document.getElementById('branchIndex').innerHTML = '';
+    
+    // If there's a search query, apply it to the newly loaded conversation
+    const searchQuery = document.getElementById('searchBar').value.trim();
+    if (searchQuery) {
+      performSearchInCurrentConversation(searchQuery);
+    }
+  }
+
+  /* =============================== */
+  /*     CROSS-CONVERSATION SEARCH   */
+  /* =============================== */
+  
+  function performCrossConversationSearch(query) {
+    searchResultsAcrossAllConversations = [];
+    
+    if (!query) {
+      // Clear all search highlights
+      conversationsList.forEach(conv => {
+        conv.searchMatches = 0;
+      });
+      updateConversationsList();
+      clearSearchMatches();
+      document.getElementById('leftSearchResults').innerHTML = '';
+      return;
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    let totalMatches = 0;
+    
+    // Search through all conversations
+    conversationsList.forEach((conv, convIndex) => {
+      const mapping = conv.data.mapping;
+      let conversationMatches = 0;
+      
+      // Search within this conversation
+      Object.keys(mapping).forEach(nodeId => {
+        const node = mapping[nodeId];
+        const msg = node.message;
+        const text = extractText(msg);
+        
+        if (text && text.toLowerCase().includes(lowerQuery)) {
+          conversationMatches++;
+          totalMatches++;
+          
+          // Store search result
+          searchResultsAcrossAllConversations.push({
+            conversationIndex: convIndex,
+            conversationTitle: conv.title,
+            conversationDate: conv.formattedDate,
+            nodeId: nodeId,
+            nodeRole: msg?.author?.role || 'unknown',
+            nodeText: text.substring(0, 200) + (text.length > 200 ? '...' : ''),
+            fullText: text
+          });
+        }
+      });
+      
+      // Update conversation with match count
+      conv.searchMatches = conversationMatches;
+    });
+    
+    // Update conversation list with highlights
+    updateConversationsList(query);
+    
+    // Update search results panel
+    updateSearchResultsPanel();
+    
+    // If we're viewing a conversation that has matches, highlight them
+    if (currentConversationIndex >= 0 && conversationsList[currentConversationIndex]?.searchMatches > 0) {
+      performSearchInCurrentConversation(query);
+    }
+  }
+  
+  function performSearchInCurrentConversation(query) {
+    if (!query || !allNodes || allNodes.length === 0) {
+      clearSearchMatches();
+      document.getElementById('leftSearchResults').innerHTML = '';
+      return;
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    const leftResults = document.getElementById('leftSearchResults');
+    leftResults.innerHTML = '';
+    
+    clearSearchMatches();
+    
+    // Search within current conversation nodes
+    allNodes.forEach(n => {
+      const text = String(n.data.text || "").toLowerCase();
+      const match = text.includes(lowerQuery);
+      
+      if (match) {
+        // Highlight node on graph
+        g.selectAll(".node")
+          .filter(d => d === n)
+          .select(".match-check")
+          .style("display", "block");
+        
+        g.selectAll(".node")
+          .filter(d => d === n)
+          .classed("search-match", true);
+        
+        // Add to search results panel
+        addSearchResultItem(n);
+      }
+    });
+  }
+  
+  function updateSearchResultsPanel() {
+    const leftResults = document.getElementById('leftSearchResults');
+    
+    if (searchResultsAcrossAllConversations.length === 0) {
+      leftResults.innerHTML = '<div style="padding: 10px; text-align: center; color: #95a5a6; font-size: 12px;">No matches found</div>';
+      return;
+    }
+    
+    let html = `<div style="padding: 10px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 12px; color: #95a5a6;">
+      Found ${searchResultsAcrossAllConversations.length} match${searchResultsAcrossAllConversations.length !== 1 ? 'es' : ''} across ${conversationsList.filter(c => c.searchMatches > 0).length} conversation${conversationsList.filter(c => c.searchMatches > 0).length !== 1 ? 's' : ''}
+    </div>`;
+    
+    // Group results by conversation
+    const resultsByConversation = {};
+    searchResultsAcrossAllConversations.forEach(result => {
+      if (!resultsByConversation[result.conversationIndex]) {
+        resultsByConversation[result.conversationIndex] = {
+          conversation: conversationsList[result.conversationIndex],
+          results: []
+        };
+      }
+      resultsByConversation[result.conversationIndex].results.push(result);
+    });
+    
+    // Display results grouped by conversation
+    Object.keys(resultsByConversation).forEach(convIndex => {
+      const group = resultsByConversation[convIndex];
+      const isCurrentConversation = parseInt(convIndex) === currentConversationIndex;
+      
+      html += `<div style="margin-bottom: 15px; background: rgba(255,255,255,0.03); border-radius: 8px; overflow: hidden;">
+        <div style="padding: 10px; background: rgba(255,255,255,0.05); font-weight: 600; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>${group.conversation.title}</span>
+          <span style="font-size: 11px; color: #95a5a6;">${group.results.length} match${group.results.length !== 1 ? 'es' : ''}</span>
+        </div>
+        <div style="padding: 5px;">`;
+      
+      group.results.forEach(result => {
+        const roleIcon = result.nodeRole === 'user' ? '👤' : result.nodeRole === 'assistant' ? '🤖' : '❓';
+        html += `
+          <div class="search-result-item" data-conversation-index="${convIndex}" data-node-id="${result.nodeId}">
+            <b>${roleIcon} ${result.nodeRole.toUpperCase()}</b>
+            <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">
+              ${result.nodeText}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div></div>`;
+    });
+    
+    leftResults.innerHTML = html;
+    
+    // Add click handlers to search result items
+    document.querySelectorAll('.search-result-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const convIndex = parseInt(this.dataset.conversationIndex);
+        const nodeId = this.dataset.nodeId;
+        
+        // If clicking a result from a different conversation, switch to it
+        if (convIndex !== currentConversationIndex) {
+          loadConversation(convIndex);
+          
+          // Wait for the conversation to load, then find and highlight the node
+          setTimeout(() => {
+            findAndHighlightNode(nodeId, convIndex);
+          }, 300);
+        } else {
+          // Already in the right conversation, just find and highlight the node
+          findAndHighlightNode(nodeId, convIndex);
+        }
+      });
+    });
+  }
+  
+  function findAndHighlightNode(nodeId, convIndex) {
+    // Find the node in the current conversation's allNodes array
+    const node = allNodes.find(n => n.data.id === nodeId);
+    
+    if (node) {
+      // Center on the node and highlight it
+      centerOnNode(node);
+      handleNodeClick(node);
+      openViewerPanel(node);
+      
+      // Also ensure it's highlighted as a search match
+      g.selectAll(".node")
+        .filter(d => d === node)
+        .select(".match-check")
+        .style("display", "block");
+      
+      g.selectAll(".node")
+        .filter(d => d === node)
+        .classed("search-match", true);
+    }
+  }
+
+  /* =============================== */
+  /*     COLLAPSIBLE SECTIONS        */
+  /* =============================== */
+  
+  function initializeCollapsibleSections() {
+    // Initialize both sections as expanded
+    const sections = ['search', 'conversations'];
+    
+    sections.forEach(section => {
+      const header = document.getElementById(`${section}SectionHeader`);
+      const content = document.getElementById(`${section}SectionContent`);
+      
+      // Set initial state (expanded)
+      header.classList.remove('collapsed');
+      content.classList.remove('collapsed');
+      
+      header.addEventListener('click', function() {
+        const isCollapsed = this.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+          this.classList.remove('collapsed');
+          content.classList.remove('collapsed');
+        } else {
+          this.classList.add('collapsed');
+          content.classList.add('collapsed');
+        }
+      });
+    });
+  }
+
+  /* =============================== */
+  /*     REST OF THE FUNCTIONS       */
+  /* =============================== */
 
   function convertDeepSeekToMultiverse(deepseekJson) {
     const mapping = {};
@@ -640,19 +1621,24 @@ button{
     currentFormat = format;
     
     switch(format) {
+      case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
+        badge.textContent = "Multiple Conversations";
+        badge.style.background = "linear-gradient(to right, #8B5CF6, #7C3AED)";
+        badge.style.color = "white";
+        break;
       case FORMATS.OPENAI_MULTIVERSE:
         badge.textContent = "OpenAI Format";
-        badge.style.background = "#10a37f";
+        badge.style.background = "linear-gradient(to right, #10a37f, #0e8e6c)";
         badge.style.color = "white";
         break;
       case FORMATS.DEEPSEEK_EXPORTER:
         badge.textContent = "DeepSeek Format";
-        badge.style.background = "#0ea5e9";
+        badge.style.background = "linear-gradient(to right, #0ea5e9, #0d8fd8)";
         badge.style.color = "white";
         break;
       default:
         badge.textContent = "Unknown Format";
-        badge.style.background = "#f44336";
+        badge.style.background = "linear-gradient(to right, #f44336, #d32f2f)";
         badge.style.color = "white";
     }
     
@@ -921,11 +1907,41 @@ button{
     input.click();
   });
 
+  // Add drag and drop support
+  document.getElementById('loadJsonBtn').addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.background = 'linear-gradient(to right, #0c7a5c, #0a6548)';
+  });
+
+  document.getElementById('loadJsonBtn').addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.background = 'linear-gradient(to right, #10a37f, #0e8e6c)';
+  });
+
+  document.getElementById('loadJsonBtn').addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.background = 'linear-gradient(to right, #10a37f, #0e8e6c)';
+    
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/json') {
+      document.getElementById("fileLabel").innerText = file.name;
+      loadJSON(file);
+    }
+  });
+
   function loadJSON(file){
     const reader = new FileReader();
     reader.onload = (e) => {
       try{
         const rawJSON = JSON.parse(String(e.target.result || ""));
+        
+        // Reset conversations list
+        conversationsList = [];
+        currentConversationIndex = -1;
+        searchResultsAcrossAllConversations = [];
         
         // Auto-convert if needed
         const processedJSON = autoConvertJSON(rawJSON);
@@ -1018,7 +2034,10 @@ button{
 
     zoom = d3.zoom()
       .scaleExtent([0.001, 100])
-      .on("zoom", (e) => g.attr("transform", e.transform));
+      .on("zoom", (e) => {
+        g.attr("transform", e.transform);
+        updateMinimap();
+      });
 
     svg.call(zoom);
 
@@ -1052,8 +2071,8 @@ button{
       .append("path")
       .attr("class", "link")
       .attr("fill", "none")
-      .attr("stroke", "#aaa")
-      .attr("stroke-width", 1.5)
+      .attr("stroke", "rgba(255,255,255,0.6)")
+      .attr("stroke-width", 2)
       .attr("d", d3.linkVertical().x(d => d.x).y(d => d.y));
   }
 
@@ -1063,16 +2082,35 @@ button{
       .data(allNodes)
       .enter()
       .append("g")
-      .attr("class", d => "node" + (isSystemData(d.data) ? " system-node" : ""))
+      .attr("class", d => {
+        let className = "node";
+        if (isSystemData(d.data)) className += " system-node";
+        return className;
+      })
       .attr("transform", d => "translate(" + d.x + "," + d.y + ")");
 
-    // Draw circles first
+    // Draw circles first with beautiful colors
     nodes.append("circle")
       .attr("class", "node-circle")
-      .attr("r", d => isSystemData(d.data) ? 10 : 18)
-      .attr("fill", d => isSystemData(d.data) ? "none" : (d.data.role === "user" ? "#3B82F6" : "#10A37F"))
-      .attr("stroke", d => isSystemData(d.data) ? "#666" : "#fff")
-      .attr("stroke-width", 2)
+      .attr("r", d => {
+        if (isSystemData(d.data)) return 10;
+        if (d.data.role === "user") return 22;
+        if (d.data.role === "assistant") return 20;
+        return 18;
+      })
+      .attr("fill", d => {
+        if (isSystemData(d.data)) return "none";
+        if (d.data.role === "user") return "url(#user-gradient)";
+        if (d.data.role === "assistant") return "url(#assistant-gradient)";
+        return "url(#other-gradient)";
+      })
+      .attr("stroke", d => {
+        if (isSystemData(d.data)) return "#666";
+        if (d.data.role === "user") return "#1e40af";
+        if (d.data.role === "assistant") return "#0c7a5c";
+        return "#6d28d9";
+      })
+      .attr("stroke-width", d => isSystemData(d.data) ? 2 : 3)
       .on("mouseenter", (e, d) => showTooltip(e, d))
       .on("mouseleave", hideTooltip)
       .on("mousedown", () => startDragHighlightFade())
@@ -1088,6 +2126,33 @@ button{
         openViewerPanel(d);
       });
 
+    // Add gradients for beautiful node colors
+    const defs = svg.append("defs");
+    
+    // User gradient (blue)
+    const userGradient = defs.append("linearGradient")
+      .attr("id", "user-gradient")
+      .attr("x1", "0%").attr("y1", "0%")
+      .attr("x2", "100%").attr("y2", "100%");
+    userGradient.append("stop").attr("offset", "0%").attr("stop-color", "#3B82F6");
+    userGradient.append("stop").attr("offset", "100%").attr("stop-color", "#1D4ED8");
+    
+    // Assistant gradient (green)
+    const assistantGradient = defs.append("linearGradient")
+      .attr("id", "assistant-gradient")
+      .attr("x1", "0%").attr("y1", "0%")
+      .attr("x2", "100%").attr("y2", "100%");
+    assistantGradient.append("stop").attr("offset", "0%").attr("stop-color", "#10B981");
+    assistantGradient.append("stop").attr("offset", "100%").attr("stop-color", "#0C7A5C");
+    
+    // Other gradient (purple)
+    const otherGradient = defs.append("linearGradient")
+      .attr("id", "other-gradient")
+      .attr("x1", "0%").attr("y1", "0%")
+      .attr("x2", "100%").attr("y2", "100%");
+    otherGradient.append("stop").attr("offset", "0%").attr("stop-color", "#8B5CF6");
+    otherGradient.append("stop").attr("offset", "100%").attr("stop-color", "#6D28D9");
+
     // Draw text for non-system nodes with content
     const textNodes = nodes.filter(d => !isSystemData(d.data) && d.data.text && String(d.data.text).trim() !== "");
     
@@ -1097,10 +2162,10 @@ button{
       .attr("dy", "0.35em")
       .style("font-size", "11px")
       .style("cursor", "pointer")
-      .style("pointer-events", "all") // ENABLE CLICK EVENTS ON TEXT
+      .style("pointer-events", "all")
       .text(d => {
         const t = String(d.data.text).replace(/\n/g, " ");
-        return t.length > 35 ? t.slice(0, 35) + "..." : t;
+        return t.length > 30 ? t.slice(0, 30) + "..." : t;
       })
       .on("click", function(e, d) {
         e.stopPropagation();
@@ -1118,8 +2183,8 @@ button{
 
     nodes.append("text")
       .attr("class", "match-check")
-      .attr("x", -25)
-      .attr("y", -25)
+      .attr("x", -30)
+      .attr("y", -30)
       .style("display", "none")
       .text("✓");
   }
@@ -1151,16 +2216,18 @@ button{
     // Adjust positions to avoid overlaps
     for (let i = 0; i < textBoxes.length; i++) {
       const current = textBoxes[i];
-      let bestPosition = { x: 26, y: 4 }; // Default position (right side)
+      let bestPosition = { x: 28, y: 4 }; // Default position (right side)
       
       // Try different positions
       const positions = [
-        { x: 26, y: 4 },    // Right side
-        { x: -26, y: 4 },   // Left side (negative x to go left of node)
-        { x: 0, y: -25 },   // Above
-        { x: 0, y: 30 },    // Below
-        { x: 40, y: 4 },    // Further right
-        { x: -40, y: 4 },   // Further left
+        { x: 28, y: 4 },    // Right side
+        { x: -28, y: 4 },   // Left side
+        { x: 0, y: -28 },   // Above
+        { x: 0, y: 32 },    // Below
+        { x: 45, y: 4 },    // Further right
+        { x: -45, y: 4 },   // Further left
+        { x: 28, y: -20 },  // Top-right
+        { x: -28, y: -20 }, // Top-left
       ];
 
       // Find the first position that doesn't overlap
@@ -1184,18 +2251,17 @@ button{
         }
 
         // Also check if text would overlap with node positions
-        // (skip nodes that are very far away for performance)
         const nearbyNodes = allNodes.filter(n => 
-          Math.abs(n.x - current.originalX) < 200 && 
-          Math.abs(n.y - current.originalY) < 200
+          Math.abs(n.x - current.originalX) < 250 && 
+          Math.abs(n.y - current.originalY) < 250
         );
 
         for (const node of nearbyNodes) {
           const nodeBox = {
-            x: node.x - 20, // Node radius + padding
-            y: node.y - 20,
-            width: 40,
-            height: 40
+            x: node.x - 25, // Node radius + padding
+            y: node.y - 25,
+            width: 50,
+            height: 50
           };
           if (boxesOverlap(testBox, nodeBox)) {
             overlaps = true;
@@ -1238,10 +2304,10 @@ button{
       .attr("dy", "0.35em")
       .style("font-size", "11px")
       .style("cursor", "pointer")
-      .style("pointer-events", "all") // ENABLE CLICK EVENTS ON TEXT
+      .style("pointer-events", "all")
       .text(d => {
         const t = String(d.data.text).replace(/\n/g, " ");
-        return t.length > 35 ? t.slice(0, 35) + "..." : t;
+        return t.length > 30 ? t.slice(0, 30) + "..." : t;
       })
       .on("click", function(e, d) {
         e.stopPropagation();
@@ -1273,7 +2339,7 @@ button{
     shiftDescendants(d, dx, dy);
 
     updatePositions();
-    updateTextPositions(); // Update text positions when dragging
+    updateTextPositions();
     updateMinimap();
   }
 
@@ -1331,35 +2397,20 @@ button{
     highlightFadeApplied = false;
   }
 
-  /* SEARCH SYSTEM */
+  /* SEARCH SYSTEM - UPDATED FOR CROSS-CONVERSATION */
   const searchInput = document.getElementById("searchBar");
   const leftResults = document.getElementById("leftSearchResults");
 
   searchInput.addEventListener("input", () => {
-    const q = String(searchInput.value || "").trim().toLowerCase();
-
-    leftResults.innerHTML = "";
-    clearSearchMatches();
-
-    if (q.length === 0) return;
-
-    allNodes.forEach(n => {
-      const text = String(n.data.text || "").toLowerCase();
-      const match = text.includes(q);
-
-      if (match){
-        g.selectAll(".node")
-          .filter(d => d === n)
-          .select(".match-check")
-          .style("display", "block");
-
-        g.selectAll(".node")
-          .filter(d => d === n)
-          .classed("search-match", true);
-
-        addSearchResultItem(n);
-      }
-    });
+    const q = String(searchInput.value || "").trim();
+    
+    if (conversationsList.length > 0) {
+      // Multiple conversations loaded - search across all
+      performCrossConversationSearch(q);
+    } else {
+      // Single conversation - search within current
+      performSearchInCurrentConversation(q);
+    }
   });
 
   function clearSearchMatches(){
@@ -1371,7 +2422,10 @@ button{
     const div = document.createElement("div");
     div.className = "search-result-item";
     const preview = String(n.data.text || "");
-    div.innerHTML = "<b>✓ Node " + String(n.data.id || "") + "</b><br>" + preview.slice(0, 80) + (preview.length > 80 ? "..." : "");
+    const role = n.data.role || "unknown";
+    const roleIcon = role === "user" ? "👤" : role === "assistant" ? "🤖" : "❓";
+    
+    div.innerHTML = `<b>${roleIcon} Node ${String(n.data.id || "")}</b><br>${preview.slice(0, 80)}${preview.length > 80 ? "..." : ""}`;
 
     div.onclick = () => {
       centerOnNode(n);
@@ -1399,7 +2453,10 @@ button{
     clearTooltipHideTimer();
 
     const text = d.data.text || "(empty)";
-    tooltip.innerText = text;
+    const role = d.data.role || "unknown";
+    const roleColor = role === "user" ? "#3B82F6" : role === "assistant" ? "#10A37F" : "#666";
+    
+    tooltip.innerHTML = `<div style="color: ${roleColor}; font-weight: bold; margin-bottom: 5px;">${role.toUpperCase()}</div>${text}`;
 
     tooltip.style.left = (event.pageX + 15) + "px";
     tooltip.style.top = (event.pageY + 15) + "px";
@@ -1416,13 +2473,344 @@ button{
   }
 
   /* =============================== */
+  /*     BRANCH CONVERSATION VIEW    */
+  /* =============================== */
+  
+  // Store branch message references for indexing
+  let branchMessages = [];
+
+  function getBranchConversation(node) {
+    if (!node) return "";
+    
+    // Get all ancestors including current node
+    const ancestors = node.ancestors();
+    
+    // Store references for indexing
+    branchMessages = [];
+    
+    let html = `<div class="branch-conversation" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto;">`;
+    
+    // Reverse order so oldest messages are on top
+    const reversedAncestors = ancestors.slice().reverse();
+    
+    reversedAncestors.forEach((n, index) => {
+      const data = n.data;
+      const msg = extractText(data.rawMessage);
+      
+      if (!msg || msg.trim() === "") return;
+      
+      const role = data.role || "unknown";
+      const isUser = role === "user";
+      const isAssistant = role === "assistant";
+      const isSystem = role === "system";
+      const isCurrent = n === node;
+      
+      // Format timestamp if available
+      let timestamp = "";
+      if (data.rawMessage && data.rawMessage.create_time) {
+        const date = new Date(data.rawMessage.create_time * 1000);
+        timestamp = date.toLocaleString();
+      }
+      
+      // Create message element with ID for jumping
+      const messageId = `branch-msg-${index}`;
+      
+      // Store reference
+      branchMessages.push({
+        id: messageId,
+        node: n,
+        data: data,
+        isCurrent: isCurrent,
+        index: index
+      });
+      
+      // Determine message class based on role
+      let messageClass = "";
+      if (isUser) messageClass = "user-message";
+      else if (isAssistant) messageClass = "assistant-message";
+      else if (isSystem) messageClass = "system-message";
+      else messageClass = "other-message";
+      
+      html += `
+        <div id="${messageId}" class="message ${messageClass}" 
+             style="margin: 20px 0; padding: 18px; border-radius: 12px; 
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.08);">
+          
+          <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="message-author" style="font-weight: 600; color: ${isUser ? '#1976d2' : isAssistant ? '#388e3c' : '#666'};">
+              ${isUser ? '👤 User' : (isAssistant ? '🤖 Assistant' : (isSystem ? '⚙️ System' : '❓ Unknown'))}
+              ${data.id ? `<span style="font-size: 0.8em; color: #666; margin-left: 10px; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;">#${data.id}</span>` : ''}
+            </div>
+            ${timestamp ? `<div class="message-time" style="font-size: 0.8em; color: #666; background: rgba(0,0,0,0.05); padding: 3px 8px; border-radius: 4px;">${timestamp}</div>` : ''}
+          </div>
+          
+          <div class="message-content" style="line-height: 1.6; color: #2c3e50;">
+            ${addCopyButtonsToCodeBlocks(DOMPurify.sanitize(marked.parse(msg)))}
+          </div>
+          
+          ${isCurrent ? 
+            `<div style="margin-top: 12px; padding: 8px 12px; background: linear-gradient(to right, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05)); border-left: 4px solid #ff9800; font-size: 0.9em; border-radius: 4px;">
+              <strong>↳ Current Node</strong> (selected)
+            </div>` : ''}
+        </div>
+      `;
+    });
+    
+    html += `
+      <div class="conversation-summary" style="margin-top: 30px; padding: 20px; background: linear-gradient(to right, #f8f9fa, #e9ecef); border-radius: 12px; font-size: 0.9em; border: 1px solid #dee2e6;">
+        <strong style="color: #2c3e50; display: block; margin-bottom: 10px;">Conversation Summary:</strong>
+        <ul style="margin: 10px 0; padding-left: 20px; color: #495057;">
+          <li>Total messages in branch: <strong>${ancestors.length}</strong></li>
+          <li>User messages: <strong style="color: #1976d2;">${ancestors.filter(n => n.data.role === 'user').length}</strong></li>
+          <li>Assistant messages: <strong style="color: #388e3c;">${ancestors.filter(n => n.data.role === 'assistant').length}</strong></li>
+          <li>Other messages: <strong style="color: #666;">${ancestors.filter(n => !['user', 'assistant'].includes(n.data.role)).length}</strong></li>
+        </ul>
+      </div>
+    </div>`;
+    
+    // Update branch index
+    updateBranchIndex(reversedAncestors, node);
+    
+    return html;
+  }
+
+  /* =============================== */
+  /*     BRANCH INDEX SIDEBAR        */
+  /* =============================== */
+  
+  let branchIndexFilter = "";
+  
+  function updateBranchIndex(ancestors, currentNode) {
+    const branchIndex = document.getElementById('branchIndex');
+    const branchIndexContainer = document.getElementById('branchIndexContainer');
+    
+    branchIndex.innerHTML = '';
+    
+    let filteredCount = 0;
+    
+    ancestors.forEach((n, index) => {
+      const data = n.data;
+      const msg = extractText(data.rawMessage);
+      
+      if (!msg || msg.trim() === "") return;
+      
+      const role = data.role || "unknown";
+      const isCurrent = n === currentNode;
+      const roleIcon = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : '⚙️';
+      
+      // Filter by search text
+      if (branchIndexFilter && !msg.toLowerCase().includes(branchIndexFilter.toLowerCase()) && 
+          !role.toLowerCase().includes(branchIndexFilter.toLowerCase()) &&
+          !data.id?.toLowerCase().includes(branchIndexFilter.toLowerCase())) {
+        return;
+      }
+      
+      filteredCount++;
+      
+      const div = document.createElement('div');
+      div.className = 'branch-index-item' + (isCurrent ? ' current' : '');
+      div.innerHTML = `
+        <div style="font-weight: ${isCurrent ? 'bold' : '600'}; font-size: 12px; margin-bottom: 4px;">
+          ${index + 1}. ${roleIcon} ${data.id || ''}
+        </div>
+        <div style="font-size: 11px; color: #95a5a6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}
+        </div>
+      `;
+      
+      div.onclick = () => {
+        // Switch to branch mode first if we're not already in it
+        if (currentMode !== 'branch') {
+          switchMode('branch', 'rendered');
+          // Wait for the branch conversation to render
+          setTimeout(() => {
+            jumpToBranchMessage(n, index);
+          }, 50);
+        } else {
+          jumpToBranchMessage(n, index);
+        }
+      };
+      
+      branchIndex.appendChild(div);
+    });
+    
+    // Show search count if filtering
+    if (branchIndexFilter) {
+      const countDiv = document.createElement('div');
+      countDiv.style.padding = '8px';
+      countDiv.style.fontSize = '11px';
+      countDiv.style.color = '#95a5a6';
+      countDiv.style.textAlign = 'center';
+      countDiv.style.borderTop = '1px solid #34495e';
+      countDiv.innerHTML = `Showing ${filteredCount} of ${ancestors.length} messages`;
+      branchIndex.appendChild(countDiv);
+    }
+    
+    // Show the index when in branch mode
+    if (currentMode === 'branch') {
+      branchIndexContainer.style.display = 'block';
+    }
+  }
+
+  function jumpToBranchMessage(n, index) {
+    // Jump to the message in the branch conversation
+    const messageId = `branch-msg-${index}`;
+    const messageElement = document.getElementById(messageId);
+    
+    if (messageElement) {
+      // First, ensure we're in branch mode and the conversation is loaded
+      if (currentMode !== 'branch' || !currentBranchNode) {
+        switchMode('branch', 'rendered');
+        setTimeout(() => {
+          jumpToMessageElement(messageElement, n);
+        }, 100);
+      } else {
+        jumpToMessageElement(messageElement, n);
+      }
+    } else {
+      // If message element not found, reload the branch conversation
+      openViewerPanel(n);
+      switchMode('branch', 'rendered');
+      
+      // Try again after a short delay
+      setTimeout(() => {
+        const retryElement = document.getElementById(messageId);
+        if (retryElement) {
+          jumpToMessageElement(retryElement, n);
+        }
+      }, 200);
+    }
+  }
+
+  function jumpToMessageElement(messageElement, n) {
+    // Highlight the node on the graph
+    centerOnNode(n);
+    handleNodeClick(n);
+    
+    // Scroll to the message in the conversation
+    messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Add visual highlight
+    messageElement.classList.add('highlighted');
+    setTimeout(() => {
+      messageElement.classList.remove('highlighted');
+    }, 2000);
+    
+    // Update current in index
+    document.querySelectorAll('.branch-index-item').forEach(item => {
+      item.classList.remove('current');
+    });
+    
+    // Find and highlight the corresponding index item
+    const indexItems = document.querySelectorAll('.branch-index-item');
+    const reversedAncestors = n.ancestors().slice().reverse();
+    const itemIndex = reversedAncestors.findIndex(node => node === n);
+    
+    if (itemIndex >= 0 && indexItems[itemIndex]) {
+      indexItems[itemIndex].classList.add('current');
+    }
+  }
+
+  // Toggle branch index sidebar
+  document.getElementById('branchIndexToggle').addEventListener('click', function() {
+    const container = document.getElementById('branchIndexContainer');
+    const isCollapsed = container.classList.contains('collapsed');
+    container.classList.toggle('collapsed');
+    this.textContent = isCollapsed ? '✕' : '📋';
+    
+    // Show/hide search bar when expanding/collapsing
+    const searchBar = document.getElementById('branchIndexSearch');
+    searchBar.style.display = isCollapsed ? 'block' : 'none';
+  });
+
+  // Branch index search functionality
+  document.getElementById('branchSearchInput')?.addEventListener('input', function(e) {
+    branchIndexFilter = e.target.value.trim();
+    if (currentBranchNode) {
+      const ancestors = currentBranchNode.ancestors().slice().reverse();
+      updateBranchIndex(ancestors, currentBranchNode);
+    }
+  });
+
+  // Clear branch search button
+  document.getElementById('clearBranchSearch')?.addEventListener('click', function() {
+    document.getElementById('branchSearchInput').value = '';
+    branchIndexFilter = '';
+    if (currentBranchNode) {
+      const ancestors = currentBranchNode.ancestors().slice().reverse();
+      updateBranchIndex(ancestors, currentBranchNode);
+    }
+  });
+
+  /* =============================== */
+  /*     CODE BLOCK COPY BUTTONS     */
+  /* =============================== */
+  
+  function addCopyButtonsToCodeBlocks(html) {
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Find all pre elements that contain code
+    const preElements = tempDiv.querySelectorAll('pre');
+    
+    preElements.forEach(pre => {
+      // Check if pre contains a code element
+      const codeElement = pre.querySelector('code');
+      if (codeElement) {
+        // Wrap in a container
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        
+        // Create copy button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'code-copy-btn';
+        copyButton.textContent = 'Copy';
+        
+        copyButton.onclick = async function(e) {
+          e.stopPropagation();
+          const codeText = codeElement.textContent;
+          
+          try {
+            await navigator.clipboard.writeText(codeText);
+            copyButton.textContent = 'Copied!';
+            copyButton.classList.add('copied');
+            
+            setTimeout(() => {
+              copyButton.textContent = 'Copy';
+              copyButton.classList.remove('copied');
+            }, 2000);
+          } catch (err) {
+            console.error('Failed to copy code:', err);
+            copyButton.textContent = 'Failed';
+            setTimeout(() => {
+              copyButton.textContent = 'Copy';
+            }, 2000);
+          }
+        };
+        
+        // Replace pre with wrapper containing pre and button
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+        wrapper.appendChild(copyButton);
+      }
+    });
+    
+    return tempDiv.innerHTML;
+  }
+
+  /* =============================== */
   /*     ENHANCED VIEWER PANEL       */
   /* =============================== */
-  let currentMode = "rendered";
+  let currentMode = "node"; // "node" or "branch"
+  let currentSubMode = "rendered"; // "rendered", "markdown", "html", "original"
   let currentRenderedContent = "";
+  let currentNodeData = null;
+  let currentBranchNode = null;
 
   function openViewerPanel(n, overrideText) {
-    const data = n && n.data ? n.data : {};
+    currentNodeData = n && n.data ? n.data : {};
+    currentBranchNode = n;
     
     // Get content based on format
     let msg = "";
@@ -1430,9 +2818,9 @@ button{
     
     if (overrideText !== undefined && overrideText !== null) {
       msg = String(overrideText);
-    } else if (data._original_data) {
+    } else if (currentNodeData._original_data) {
       // DeepSeek format
-      originalData = data._original_data;
+      originalData = currentNodeData._original_data;
       if (typeof originalData.content === "object") {
         // Build comprehensive message
         const parts = [];
@@ -1445,15 +2833,15 @@ button{
       }
     } else {
       // OpenAI format
-      msg = extractText(data.rawMessage);
+      msg = extractText(currentNodeData.rawMessage);
     }
 
-    const rawMsgObj = data.rawMessage || {};
-    const rawChunkObj = data.rawChunk || {};
-    const deepseekData = data._original_data || {};
+    const rawMsgObj = currentNodeData.rawMessage || {};
+    const rawChunkObj = currentNodeData.rawChunk || {};
+    const deepseekData = currentNodeData._original_data || {};
 
     const rawText =
-      "Format: " + (data._format || "openai") + "\n\n" +
+      "Format: " + (currentNodeData._format || "openai") + "\n\n" +
       "Message Data:\n" +
       JSON.stringify(rawMsgObj, null, 2) +
       "\n\n" +
@@ -1465,56 +2853,146 @@ button{
 
     const originalJson = originalData || rawMsgObj;
 
-    switchMode("rendered", msg, rawText, originalJson);
+    // Store data for different modes
+    window.currentNodeMsg = msg;
+    window.currentNodeRawText = rawText;
+    window.currentNodeOriginalJson = originalJson;
 
+    // Initialize with node view
+    switchMode("node", "rendered");
+
+    // Show action buttons
     document.getElementById("copyBtn").style.display = "inline-block";
     document.getElementById("exportBtn").style.display = "inline-block";
     document.getElementById("popoutBtn").style.display = "inline-block";
-
-    document.querySelectorAll(".viewerTab").forEach(tab => {
-      tab.onclick = () => switchMode(tab.dataset.mode, msg, rawText, originalJson);
-    });
+    document.getElementById("pdfBtn").style.display = "inline-block";
   }
 
-  function switchMode(mode, msg, rawText, originalData) {
+  function switchMode(mode, subMode = null) {
     currentMode = mode;
+    if (subMode) currentSubMode = subMode;
 
     const content = document.getElementById("viewerContent");
+    
+    // Update main tabs
     document.querySelectorAll(".viewerTab").forEach(tab => {
       tab.classList.toggle("active", tab.dataset.mode === mode);
     });
+    
+    // Update sub tabs
+    document.querySelectorAll(".viewerSubTab").forEach(tab => {
+      tab.classList.toggle("active", tab.dataset.submode === currentSubMode);
+    });
 
-    if (mode === "markdown") {
-      currentRenderedContent = msg;
-      content.innerText = msg;
-      return;
+    // Set up tab click handlers
+    document.querySelectorAll(".viewerTab").forEach(tab => {
+      tab.onclick = () => switchMode(tab.dataset.mode);
+    });
+    
+    document.querySelectorAll(".viewerSubTab").forEach(tab => {
+      tab.onclick = () => switchMode(currentMode, tab.dataset.submode);
+    });
+
+    // Show/hide branch index
+    const branchIndexContainer = document.getElementById('branchIndexContainer');
+    if (mode === 'branch' && currentBranchNode) {
+      branchIndexContainer.style.display = 'block';
+      // Expand the index when switching to branch mode
+      if (branchIndexContainer.classList.contains('collapsed')) {
+        branchIndexContainer.classList.remove('collapsed');
+        document.getElementById('branchIndexToggle').textContent = '✕';
+        document.getElementById('branchIndexSearch').style.display = 'block';
+      }
+    } else {
+      branchIndexContainer.style.display = 'none';
     }
 
-    if (mode === "rendered") {
-      const html = DOMPurify.sanitize(marked.parse(msg));
-      currentRenderedContent = html;
-      content.innerHTML = html;
-      return;
-    }
-
-    if (mode === "html") {
-      const html = DOMPurify.sanitize(marked.parse(msg));
-      currentRenderedContent = html;
-      content.innerText = html;
-      return;
-    }
-
-    if (mode === "raw") {
-      currentRenderedContent = rawText;
-      content.innerText = rawText;
-      return;
-    }
-
-    if (mode === "original") {
-      const text = JSON.stringify(originalData || {}, null, 2);
-      currentRenderedContent = text;
-      content.innerText = text;
-      return;
+    // Get content based on current mode
+    let displayContent = "";
+    
+    if (mode === "node") {
+      switch(currentSubMode) {
+        case "markdown":
+          displayContent = window.currentNodeMsg || "";
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+        case "rendered":
+          const html = DOMPurify.sanitize(marked.parse(window.currentNodeMsg || ""));
+          displayContent = addCopyButtonsToCodeBlocks(html);
+          currentRenderedContent = displayContent;
+          content.innerHTML = displayContent;
+          break;
+        case "html":
+          const html2 = DOMPurify.sanitize(marked.parse(window.currentNodeMsg || ""));
+          displayContent = html2;
+          currentRenderedContent = html2;
+          content.innerText = html2;
+          break;
+        case "original":
+          displayContent = JSON.stringify(window.currentNodeOriginalJson || {}, null, 2);
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+      }
+    } else if (mode === "branch") {
+      if (!currentBranchNode) {
+        content.innerHTML = "<div style='color:#777; text-align: center; padding: 40px; font-style: italic;'>Select a node first to view branch conversation.</div>";
+        return;
+      }
+      
+      switch(currentSubMode) {
+        case "markdown":
+          // Generate markdown version of branch conversation
+          const ancestors = currentBranchNode.ancestors();
+          const reversedAncestors = ancestors.slice().reverse();
+          
+          let markdownContent = "";
+          reversedAncestors.forEach((n, index) => {
+            const data = n.data;
+            const msg = extractText(data.rawMessage);
+            if (!msg || msg.trim() === "") return;
+            
+            const role = data.role || "unknown";
+            const roleIcon = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : '⚙️';
+            markdownContent += `## ${index + 1}. ${roleIcon} ${role} ${data.id || ''}\n\n`;
+            markdownContent += `${msg}\n\n---\n\n`;
+          });
+          displayContent = markdownContent;
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+        case "rendered":
+          const branchHtml = getBranchConversation(currentBranchNode);
+          displayContent = branchHtml;
+          currentRenderedContent = branchHtml;
+          content.innerHTML = branchHtml;
+          break;
+        case "html":
+          const branchHtml2 = getBranchConversation(currentBranchNode);
+          displayContent = branchHtml2;
+          currentRenderedContent = branchHtml2;
+          content.innerText = branchHtml2;
+          break;
+        case "original":
+          // Show original data for the entire branch
+          const branchData = [];
+          const branchAncestors = currentBranchNode.ancestors();
+          const reversedBranchAncestors = branchAncestors.slice().reverse();
+          
+          reversedBranchAncestors.forEach(n => {
+            branchData.push({
+              id: n.data.id,
+              role: n.data.role,
+              text: extractText(n.data.rawMessage),
+              rawData: n.data.rawMessage || n.data._original_data
+            });
+          });
+          displayContent = JSON.stringify(branchData, null, 2);
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+      }
     }
   }
 
@@ -1536,29 +3014,48 @@ button{
     let content = "";
     let type = "";
 
-    if (currentMode === "markdown"){
-      filename = "message.md";
-      content = currentRenderedContent;
-      type = "text/markdown";
-    }else if (currentMode === "rendered"){
-      filename = "message.html";
-      content =
-        "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<title>Rendered View Export</title>\n</head>\n<body>\n" +
-        currentRenderedContent +
-        "\n</body>\n</html>";
-      type = "text/html";
-    }else if (currentMode === "html"){
-      filename = "message.html";
-      content = currentRenderedContent;
-      type = "text/html";
-    }else if (currentMode === "original"){
-      filename = "message.original.json";
-      content = currentRenderedContent;
-      type = "application/json";
-    }else{
-      filename = "message.raw.json";
-      content = currentRenderedContent;
-      type = "application/json";
+    if (currentMode === "node") {
+      if (currentSubMode === "markdown"){
+        filename = "node_message.md";
+        content = currentRenderedContent;
+        type = "text/markdown";
+      }else if (currentSubMode === "rendered"){
+        filename = "node_message.html";
+        content =
+          "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<title>Node Message Export</title>\n<style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f8f9fa; } .message { margin: 20px 0; padding: 15px; border-radius: 10px; } .user-message { background: #e3f2fd; border-left: 4px solid #1976d2; } .assistant-message { background: #f1f8e9; border-left: 4px solid #388e3c; } pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; }</style></head>\n<body>\n" +
+          currentRenderedContent +
+          "\n</body>\n</html>";
+        type = "text/html";
+      }else if (currentSubMode === "html"){
+        filename = "node_message.html";
+        content = currentRenderedContent;
+        type = "text/html";
+      }else if (currentSubMode === "original"){
+        filename = "node_original.json";
+        content = currentRenderedContent;
+        type = "application/json";
+      }
+    } else if (currentMode === "branch") {
+      if (currentSubMode === "markdown"){
+        filename = "branch_conversation.md";
+        content = currentRenderedContent;
+        type = "text/markdown";
+      }else if (currentSubMode === "rendered"){
+        filename = "branch_conversation.html";
+        content =
+          "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<title>Branch Conversation Export</title>\n<style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f8f9fa; } .message { margin: 20px 0; padding: 15px; border-radius: 10px; } .user-message { background: #e3f2fd; border-left: 4px solid #1976d2; } .assistant-message { background: #f1f8e9; border-left: 4px solid #388e3c; } pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; }</style></head>\n<body>\n" +
+          currentRenderedContent +
+          "\n</body>\n</html>";
+        type = "text/html";
+      }else if (currentSubMode === "html"){
+        filename = "branch_conversation.html";
+        content = currentRenderedContent;
+        type = "text/html";
+      }else if (currentSubMode === "original"){
+        filename = "branch_original.json";
+        content = currentRenderedContent;
+        type = "application/json";
+      }
     }
 
     const blob = new Blob([content], { type });
@@ -1572,6 +3069,60 @@ button{
     URL.revokeObjectURL(url);
   };
 
+  /* PDF EXPORT BUTTON */
+  document.getElementById("pdfBtn").onclick = async () => {
+    try {
+      const content = document.getElementById("viewerContent");
+      const buttons = document.getElementById("pdfBtn");
+      buttons.innerText = "Generating PDF...";
+      
+      // Use html2canvas to capture the content
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff"
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 190; // A4 width in mm (210mm minus margins)
+      const pageHeight = 280; // A4 height in mm (297mm minus margins)
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10; // Start position
+      
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add new pages if content is longer than one page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Generate filename
+      let filename = "";
+      if (currentMode === "node") {
+        filename = `node_${currentNodeData.id || "message"}_${currentSubMode}.pdf`;
+      } else {
+        filename = `branch_${currentBranchNode?.data?.id || "conversation"}_${currentSubMode}.pdf`;
+      }
+      
+      pdf.save(filename);
+      buttons.innerText = "PDF";
+      
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert("Failed to generate PDF. Please try again.");
+      document.getElementById("pdfBtn").innerText = "PDF";
+    }
+  };
+
   /* RESET LAYOUT */
   document.getElementById("resetLayoutBtn").onclick = () => {
     allNodes.forEach(n => {
@@ -1580,7 +3131,7 @@ button{
     });
 
     updatePositions();
-    updateTextPositions(); // Update text positions when resetting
+    updateTextPositions();
     fitView();
     updateMinimap();
     clearHighlight();
@@ -1624,24 +3175,101 @@ button{
 
     const scale = Math.min(w / bounds.width, h / bounds.height);
 
+    // Draw a subtle background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw links
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    
+    allLinks.forEach(link => {
+      const sourceX = (link.source.x - bounds.x) * scale;
+      const sourceY = (link.source.y - bounds.y) * scale;
+      const targetX = (link.target.x - bounds.x) * scale;
+      const targetY = (link.target.y - bounds.y) * scale;
+      
+      ctx.beginPath();
+      ctx.moveTo(sourceX, sourceY);
+      ctx.lineTo(targetX, targetY);
+      ctx.stroke();
+    });
+
+    // Draw nodes with beautiful colors
     allNodes.forEach(n => {
       const x = (n.x - bounds.x) * scale;
       const y = (n.y - bounds.y) * scale;
+      const radius = 3;
 
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
-      ctx.fillStyle = "#10a37f";
-      ctx.fill();
+      if (isSystemData(n.data)) {
+        ctx.fillStyle = 'rgba(102, 102, 102, 0.7)';
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (n.data.role === "user") {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#3B82F6');
+        gradient.addColorStop(1, '#1D4ED8');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (n.data.role === "assistant") {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#10B981');
+        gradient.addColorStop(1, '#0C7A5C');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#8B5CF6');
+        gradient.addColorStop(1, '#6D28D9');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
+
+    // Draw viewport rectangle
+    const transform = d3.zoomTransform(svg.node());
+    const viewportX = (-transform.x / transform.k - bounds.x) * scale;
+    const viewportY = (-transform.y / transform.k - bounds.y) * scale;
+    const viewportWidth = (w / transform.k) * scale;
+    const viewportHeight = (h / transform.k) * scale;
+    
+    ctx.strokeStyle = 'rgba(255, 193, 7, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(viewportX, viewportY, viewportWidth, viewportHeight);
+    ctx.setLineDash([]);
   }
 
   /* PANEL DRAGGING SYSTEM */
+  let branchIndexOffsetX = 0;
+  let branchIndexOffsetY = 0;
+
+  // Update branch index position when panels are dragged
+  function updateBranchIndexPosition() {
+    const branchIndex = document.getElementById('branchIndexContainer');
+    const rightViewer = document.getElementById('rightViewer');
+    const rightViewerRect = rightViewer.getBoundingClientRect();
+    
+    // Position index to the left of the right panel with some margin
+    branchIndex.style.right = (window.innerWidth - rightViewerRect.left + 15) + "px";
+  }
 
   // LEFT PANEL
   (function(){
     const sidebar = document.getElementById("leftSidebar");
     const handle = document.getElementById("leftDragHandle");
     const graph = document.getElementById("graph");
+    const searchContainer = document.getElementById("searchContainer");
 
     let isDown = false;
 
@@ -1651,11 +3279,18 @@ button{
     window.addEventListener("mousemove", (e) => {
       if (!isDown) return;
 
-      const newWidth = Math.max(160, Math.min(500, e.clientX));
+      const newWidth = Math.max(180, Math.min(500, e.clientX));
       sidebar.style.width = newWidth + "px";
+
+      // Ensure search bar stays within the panel
+      searchContainer.style.width = "100%";
+      searchContainer.querySelector("#searchBar").style.width = "100%";
 
       graph.style.left = newWidth + "px";
       graph.style.width = "calc(100vw - " + newWidth + "px - " + document.getElementById("rightViewer").offsetWidth + "px)";
+      
+      updateBranchIndexPosition();
+      updateMinimap();
     });
   })();
 
@@ -1674,13 +3309,20 @@ button{
       if (!isDown) return;
 
       const screenW = window.innerWidth;
-      const newWidth = Math.max(260, Math.min(600, screenW - e.clientX));
+      const newWidth = Math.max(280, Math.min(600, screenW - e.clientX));
 
       viewer.style.width = newWidth + "px";
       graph.style.width =
         "calc(100vw - " + newWidth + "px - " + document.getElementById("leftSidebar").offsetWidth + "px)";
+      
+      updateBranchIndexPosition();
+      updateMinimap();
     });
   })();
+
+  // Initialize branch index position
+  window.addEventListener('load', updateBranchIndexPosition);
+  window.addEventListener('resize', updateBranchIndexPosition);
 
   /* POPOUT VIEWER BUTTON */
   function escapeHtml(s){
@@ -1695,26 +3337,53 @@ button{
     if (!popup) return;
 
     let bodyContent = "";
+    let title = "";
 
-    if (currentMode === "rendered"){
-      bodyContent = currentRenderedContent;
-    }else{
-      bodyContent = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">' + escapeHtml(currentRenderedContent) + "</pre>";
+    if (currentMode === "node") {
+      title = "Node Message";
+      if (currentSubMode === "rendered" || currentSubMode === "branch") {
+        bodyContent = currentRenderedContent;
+      } else {
+        bodyContent = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">' + escapeHtml(currentRenderedContent) + "</pre>";
+      }
+    } else {
+      title = "Branch Conversation";
+      if (currentSubMode === "rendered") {
+        bodyContent = currentRenderedContent;
+      } else {
+        bodyContent = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">' + escapeHtml(currentRenderedContent) + "</pre>";
+      }
     }
 
     popup.document.write(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Viewer Pop-Out</title>
+<title>${title} - Pop-Out</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+  .message { margin: 20px 0; padding: 15px; border-radius: 10px; }
+  .user-message { background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)); border-left: 4px solid #1976d2; }
+  .assistant-message { background: linear-gradient(to right, rgba(16, 163, 127, 0.1), rgba(16, 163, 127, 0.05)); border-left: 4px solid #388e3c; }
+  pre { background: linear-gradient(to right, #2c3e50, #34495e); color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  .code-copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #2c3e50; cursor: pointer; font-weight: 600; }
+  .code-copy-btn:hover { background: rgba(76, 175, 80, 0.9); color: white; }
+  .code-block-wrapper { position: relative; }
+</style>
 </head>
-<body style="font-family: sans-serif; padding: 20px;">
+<body>
 ${bodyContent}
 </body>
 </html>`);
 
     popup.document.close();
   };
+
+  // Initialize collapsible sections
+  initializeCollapsibleSections();
+  
+  // Initialize with node mode
+  switchMode("node", "rendered");
   </script>
 </body>
 </html>
