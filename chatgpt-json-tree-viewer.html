@@ -18,6 +18,7 @@
   --color-ancestor: #1E90FF;
   --color-descendant: #32CD32;
   --color-dim: rgba(0, 0, 0, 0.1);
+  --color-selected: #FF4081; /* Pink color for selected node */
 }
 
 /* =============================== */
@@ -161,6 +162,7 @@ button{
   z-index: 9999;
   box-shadow: 2px 0 10px rgba(0,0,0,0.2);
   transition: width 0.3s ease;
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 /* Collapsible section headers */
@@ -176,6 +178,9 @@ button{
   font-size: 13px;
   transition: background 0.3s ease;
   background: rgba(255,255,255,0.05);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* Prevent overflow */
 }
 
 .section-header:hover {
@@ -186,6 +191,7 @@ button{
   font-size: 12px;
   color: #95a5a6;
   transition: transform 0.3s ease;
+  flex-shrink: 0; /* Prevent icon from being cut off */
 }
 
 .section-header.collapsed .toggle-icon {
@@ -197,6 +203,9 @@ button{
   background: rgba(255,255,255,0.03);
   overflow: hidden;
   transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* Prevent overflow */
 }
 
 .section-content.collapsed {
@@ -210,10 +219,13 @@ button{
   padding: 0;
   background: transparent;
   border-bottom: none;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 #searchBar{
-  width: 100%;
+  width: calc(100% - 24px); /* Account for padding */
   margin: 0;
   padding: 10px 12px;
   font-size: 14px;
@@ -223,6 +235,8 @@ button{
   color: #ecf0f1;
   box-sizing: border-box;
   transition: all 0.3s ease;
+  min-width: 0; /* Prevent overflow */
+  max-width: 100%;
 }
 
 #searchBar:focus {
@@ -239,6 +253,9 @@ button{
   max-height: 200px;
   overflow-y: auto;
   margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .search-result-item{
@@ -251,6 +268,11 @@ button{
   font-size: 13px;
   color: #ecf0f1;
   transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 .search-result-item:hover{
   background: rgba(16, 163, 127, 0.2);
@@ -262,6 +284,7 @@ button{
   color: #10a37f;
   display: block;
   margin-bottom: 5px;
+  word-wrap: break-word;
 }
 
 /* Conversations section */
@@ -276,6 +299,11 @@ button{
   color: #ecf0f1;
   transition: all 0.3s ease;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .conversation-item:hover {
@@ -319,6 +347,7 @@ button{
   margin-bottom: 4px;
   display: block;
   color: #ecf0f1;
+  word-wrap: break-word;
 }
 
 .conversation-item .meta {
@@ -336,6 +365,9 @@ button{
   background: rgba(255,255,255,0.05);
   border-radius: 8px;
   border: 1px dashed rgba(255,255,255,0.1);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .conversations-loading {
@@ -346,6 +378,9 @@ button{
   background: rgba(255,255,255,0.05);
   border-radius: 8px;
   border: 1px dashed rgba(255,255,255,0.1);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .conversations-loading::after {
@@ -766,53 +801,6 @@ button{
   filter: drop-shadow(0 0 8px limegreen);
 }
 
-.selected-node{
-  stroke: var(--color-highlight) !important;
-  stroke-width: 5px !important;
-  filter: drop-shadow(0 0 15px var(--color-highlight)) !important;
-  animation: pulse-glow 2s infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { filter: drop-shadow(0 0 15px var(--color-highlight)); }
-  50% { filter: drop-shadow(0 0 25px var(--color-highlight)); }
-}
-
-.ancestor-node{
-  stroke: var(--color-ancestor) !important;
-  stroke-width: 4px !important;
-  filter: drop-shadow(0 0 10px var(--color-ancestor)) !important;
-}
-
-.descendant-node{
-  stroke: var(--color-descendant) !important;
-  stroke-width: 4px !important;
-  filter: drop-shadow(0 0 10px var(--color-descendant)) !important;
-}
-
-.dim-node{
-  opacity: 0.15;
-  transition: opacity 0.3s ease;
-}
-
-.highlight-faded .selected-node,
-.highlight-faded .ancestor-node,
-.highlight-faded .descendant-node{
-  opacity: 0.4 !important;
-}
-
-.link {
-  stroke: rgba(255,255,255,0.6);
-  stroke-width: 2;
-  transition: all 0.3s ease;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-}
-
-.link:hover {
-  stroke: rgba(255,255,255,0.9);
-  stroke-width: 3;
-}
-
 /* =============================== */
 /*           SEARCH HIGHLIGHT      */
 /* =============================== */
@@ -842,6 +830,126 @@ button{
 .node.search-match text{
   fill: #ffcc00 !important;
   font-weight: bold;
+}
+
+/* =============================== */
+/*       SELECTED NODE HIGHLIGHT   */
+/* =============================== */
+
+@keyframes selected-pulse {
+  0% { 
+    stroke-width: 6px;
+    filter: drop-shadow(0 0 20px #FF4081) drop-shadow(0 0 30px #FF4081);
+  }
+  50% { 
+    stroke-width: 8px;
+    filter: drop-shadow(0 0 30px #FF4081) drop-shadow(0 0 40px #FF4081);
+  }
+  100% { 
+    stroke-width: 6px;
+    filter: drop-shadow(0 0 20px #FF4081) drop-shadow(0 0 30px #FF4081);
+  }
+}
+
+.selected-node circle{
+  stroke: var(--color-selected) !important; /* Pink color for selected node */
+  stroke-width: 6px !important;
+  filter: drop-shadow(0 0 20px #FF4081) drop-shadow(0 0 30px #FF4081) !important;
+  animation: selected-pulse 2s infinite ease-in-out !important;
+  z-index: 1000 !important;
+}
+
+.selected-node text{
+  fill: var(--color-selected) !important; /* Pink color for text */
+  font-weight: bold !important;
+  font-size: 12px !important;
+}
+
+/* Larger circle for selected nodes */
+.node.selected-node .node-circle {
+  r: 26px !important; /* Larger than normal nodes */
+}
+
+/* When a node is both selected AND a search match, selected style wins */
+.node.search-match.selected-node circle{
+  stroke: var(--color-selected) !important; /* Selected color overrides search color */
+  animation: selected-pulse 2s infinite ease-in-out !important;
+  r: 26px !important; /* Keep larger size */
+}
+
+.node.search-match.selected-node text{
+  fill: var(--color-selected) !important; /* Selected color overrides search color */
+}
+
+/* =============================== */
+/*       ANCESTOR/DESCENDANT       */
+/* =============================== */
+
+@keyframes ancestor-pulse {
+  0% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #1E90FF);
+  }
+  50% { 
+    stroke-width: 5px;
+    filter: drop-shadow(0 0 12px #1E90FF);
+  }
+  100% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #1E90FF);
+  }
+}
+
+.ancestor-node circle{
+  stroke: #1E90FF !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 10px #1E90FF) !important;
+  animation: ancestor-pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes descendant-pulse {
+  0% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #32CD32);
+  }
+  50% { 
+    stroke-width: 5px;
+    filter: drop-shadow(0 10px 12px #32CD32);
+  }
+  100% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #32CD32);
+  }
+}
+
+.descendant-node circle{
+  stroke: #32CD32 !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 10px #32CD32) !important;
+  animation: descendant-pulse 2.5s infinite ease-in-out;
+}
+
+.dim-node{
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
+}
+
+.highlight-faded .selected-node,
+.highlight-faded .ancestor-node,
+.highlight-faded .descendant-node{
+  opacity: 0.4 !important;
+}
+
+.link {
+  stroke: rgba(255,255,255,0.6);
+  stroke-width: 2;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.link:hover {
+  stroke: rgba(255,255,255,0.9);
+  stroke-width: 3;
 }
 
 /* =============================== */
@@ -2076,7 +2184,7 @@ button{
       .attr("d", d3.linkVertical().x(d => d.x).y(d => d.y));
   }
 
-  /* DRAW NODES - WITH IMPROVED TEXT POSITIONING */
+  /* DRAW NODES - WITH IMPROVED TEXT POSITIONING AND SELECTED NODE SIZE */
   function drawNodes(){
     const nodes = g.selectAll(".node")
       .data(allNodes)
@@ -2087,7 +2195,8 @@ button{
         if (isSystemData(d.data)) className += " system-node";
         return className;
       })
-      .attr("transform", d => "translate(" + d.x + "," + d.y + ")");
+      .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+      .style("z-index", 1); // Base z-index for all nodes
 
     // Draw circles first with beautiful colors
     nodes.append("circle")
@@ -2111,6 +2220,7 @@ button{
         return "#6d28d9";
       })
       .attr("stroke-width", d => isSystemData(d.data) ? 2 : 3)
+      .style("z-index", 1) // Base z-index
       .on("mouseenter", (e, d) => showTooltip(e, d))
       .on("mouseleave", hideTooltip)
       .on("mousedown", () => startDragHighlightFade())
@@ -2359,7 +2469,7 @@ button{
     g.selectAll(".link").attr("d", d3.linkVertical().x(d => d.x).y(d => d.y));
   }
 
-  /* HIGHLIGHT LOGIC */
+  /* HIGHLIGHT LOGIC - UPDATED FOR SELECTED NODE SIZE */
   function handleNodeClick(d){
     if (isDragging){
       isDragging = false;
@@ -2367,22 +2477,47 @@ button{
     }
 
     activeNode = d;
+    
+    // First, clear all highlights
     clearHighlight();
+    clearSearchMatches();
 
+    // Get current search query
+    const searchQuery = document.getElementById("searchBar").value.trim();
+    
+    // If there's a search query, reapply search matches first
+    if (searchQuery && conversationsList.length > 0) {
+      // For multi-conversation files, we need to check if current conversation has matches
+      const currentConv = conversationsList[currentConversationIndex];
+      if (currentConv && currentConv.searchMatches > 0) {
+        performSearchInCurrentConversation(searchQuery);
+      }
+    } else if (searchQuery) {
+      // Single conversation - just reapply search
+      performSearchInCurrentConversation(searchQuery);
+    }
+
+    // Now apply the selected node and its branch highlights
     const ancestors = d.ancestors();
     const descendants = d.descendants();
 
-    g.selectAll(".node-circle")
+    g.selectAll(".node")
+      .filter(nd => nd === d)
+      .style("z-index", 1000); // Bring selected node to front
+
+    // Apply classes for styling - selected nodes will be larger due to CSS rule
+    g.selectAll(".node")
       .classed("selected-node", nd => nd === d)
       .classed("ancestor-node", nd => ancestors.includes(nd) && nd !== d)
       .classed("descendant-node", nd => descendants.includes(nd) && nd !== d)
-      .classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd));
+      .classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd) && nd !== d);
 
     openViewerPanel(d);
   }
 
   function clearHighlight(){
-    g.selectAll(".node-circle").classed("selected-node ancestor-node descendant-node dim-node", false);
+    g.selectAll(".node").style("z-index", 1); // Reset z-index
+    g.selectAll(".node").classed("selected-node ancestor-node descendant-node dim-node", false);
   }
 
   function startDragHighlightFade(){
@@ -3264,12 +3399,13 @@ button{
     branchIndex.style.right = (window.innerWidth - rightViewerRect.left + 15) + "px";
   }
 
-  // LEFT PANEL
+  // LEFT PANEL - UPDATED TO PREVENT SEARCH BOX OVERFLOW
   (function(){
     const sidebar = document.getElementById("leftSidebar");
     const handle = document.getElementById("leftDragHandle");
     const graph = document.getElementById("graph");
     const searchContainer = document.getElementById("searchContainer");
+    const searchBar = document.getElementById("searchBar");
 
     let isDown = false;
 
@@ -3282,9 +3418,10 @@ button{
       const newWidth = Math.max(180, Math.min(500, e.clientX));
       sidebar.style.width = newWidth + "px";
 
-      // Ensure search bar stays within the panel
-      searchContainer.style.width = "100%";
-      searchContainer.querySelector("#searchBar").style.width = "100%";
+      // Ensure search bar stays within the panel with proper width calculation
+      const padding = 15; // Account for sidebar padding
+      const searchBarWidth = newWidth - (2 * padding) - 24; // Subtract padding and account for scrollbar
+      searchBar.style.width = Math.max(100, searchBarWidth) + "px";
 
       graph.style.left = newWidth + "px";
       graph.style.width = "calc(100vw - " + newWidth + "px - " + document.getElementById("rightViewer").offsetWidth + "px)";
