@@ -74,6 +74,12 @@ Includes:
 
 ---
 
+## 📷 Screenshots
+
+![Main UI](docs/screenshot-main.png)
+
+---
+
 ## 📥 Installation
 No installation required.
 
