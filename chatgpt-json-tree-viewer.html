@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Multiverse Viewer v5.0 - Supports OpenAI & DeepSeek</title>
+<title>Multiverse Viewer v6.0 - Multi-Platform Support</title>
 
 <style>
+/* [Keep all your existing CSS styles exactly as they are - they're excellent!] */
 :root{
   /* Dynamically replaced by JS */
   --top-nav-height: 75px;
@@ -99,6 +100,23 @@
   --right-panel-text: #f3e5f5;
 }
 
+/* Format badges */
+.format-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.format-openai { background: linear-gradient(to right, #10a37f, #0e8e6c); color: white; }
+.format-deepseek { background: linear-gradient(to right, #0ea5e9, #0d8fd8); color: white; }
+.format-claude { background: linear-gradient(to right, #d946ef, #c026d3); color: white; }
+.format-grok { background: linear-gradient(to right, #f97316, #ea580c); color: white; }
+.format-mistral { background: linear-gradient(to right, #8b5cf6, #7c3aed); color: white; }
+.format-multi { background: linear-gradient(to right, #8B5CF6, #7C3AED); color: white; }
+
 /* =============================== */
 /*            GLOBAL               */
 /* =============================== */
@@ -123,7 +141,7 @@ button{
 /*             TOP BAR             */
 /* =============================== */
 
-#topNav{
+#topNav {
   position: fixed;
   top: 0;
   left: 0;
@@ -133,9 +151,12 @@ button{
   padding: 10px 20px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   z-index: 100000;
   box-shadow: 0 4px 12px var(--shadow-color);
+  flex-wrap: wrap;
+  min-height: 55px;
+  box-sizing: border-box;
 }
 
 #loadJsonBtn,
@@ -151,6 +172,7 @@ button{
   font-weight: 600;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  flex-shrink: 0;
 }
 #loadJsonBtn:hover,
 #resetLayoutBtn:hover,
@@ -174,6 +196,12 @@ button{
   color: var(--text-primary);
   user-select: none;
   font-weight: 500;
+  flex: 1;
+  min-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 #conversionStatus{
@@ -183,6 +211,8 @@ button{
   background: var(--card-bg);
   border-radius: 6px;
   display: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Theme selector */
@@ -190,6 +220,7 @@ button{
   margin-left: auto;
   margin-right: 10px;
   position: relative;
+  flex-shrink: 0;
 }
 
 #themeBtn {
@@ -249,11 +280,37 @@ button{
 }
 
 /* =============================== */
+/*        FORMAT BADGE             */
+/* =============================== */
+
+#formatBadge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  display: none;
+  margin-left: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+#formatBadge.align-right {
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+/* =============================== */
 /*        DEVELOPER TOOLS          */
 /* =============================== */
 
 #devToolsContainer{
   position: relative;
+  flex-shrink: 0;
 }
 
 #devToolsBtn{
@@ -1157,7 +1214,7 @@ button{
   }
   50% { 
     stroke-width: 5px;
-    filter: drop-shadow(0 10px 12px #32CD32);
+    filter: drop-shadow(0 0 12px #32CD32);
   }
   100% { 
     stroke-width: 4px;
@@ -1423,15 +1480,7 @@ button{
       </div>
     </div>
 
-    <div id="formatBadge" style="
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      background: linear-gradient(to right, #10a37f, #0e8e6c);
-      color: white;
-      font-weight: 600;
-      display: none;
-    "></div>
+    <div id="formatBadge"></div>
   </div>
 
   <div id="leftSidebar">
@@ -1521,6 +1570,10 @@ button{
     OPENAI_MULTIVERSE: "openai_multiverse",
     DEEPSEEK_EXPORTER: "deepseek_exporter",
     OPENAI_CONVERSATIONS_ARRAY: "openai_conversations_array",
+    CLAUDE_ANTHROPIC: "claude_anthropic",
+    XAI_GROK: "xai_grok", 
+    MISTRAL_AI: "mistral_ai",
+    DEEPSEEK_CHAT_EXPORT: "deepseek_chat_export",
     UNKNOWN: "unknown"
   };
 
@@ -1535,15 +1588,72 @@ button{
   let tooltipLingerMs = 2000; // Default tooltip timer
 
   function detectFormat(json) {
-    // Check if it's an array of conversations (OpenAI conversations.json)
+	  console.log("Detecting format for:", typeof json, Array.isArray(json) ? "Array length: " + json.length : "Object");
+	  
+	  
+	    // Add this check specifically for DeepSeek chat format
+  if (Array.isArray(json) && json.length > 0) {
+    const firstItem = json[0];
+    console.log("First item keys:", Object.keys(firstItem));
+    
+    // Check for DeepSeek chat format
+    if (firstItem.mapping && firstItem.mapping.root && 
+        firstItem.mapping.root.message === null) {
+      console.log("Detected DEEPSEEK_CHAT_EXPORT format");
+      return FORMATS.DEEPSEEK_CHAT_EXPORT;
+    }
+  }
+  
+  
+	
+    // Check if it's an array of conversations
     if (Array.isArray(json) && json.length > 0) {
-      // Check first item to see if it's a conversation object
       const firstItem = json[0];
-      if (firstItem && typeof firstItem === 'object' && firstItem.mapping) {
+      
+      // Check if this is an array of conversations or just messages within one conversation
+      // For OpenAI, check if first item has mapping
+      if (firstItem && firstItem.mapping) {
         return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
+      }
+      
+      // For Claude/Anthropic - check if it's an array of messages (not conversations)
+      if (firstItem && 
+          typeof firstItem === 'object' && 
+          (firstItem.contentChunks || firstItem.role) &&
+          (firstItem.role === 'user' || firstItem.role === 'assistant')) {
+        // Check if this looks like a conversation array (multiple conversations)
+        // by checking if the second item also looks like a message
+        if (json.length > 1 && json[1].role) {
+          // This is likely messages within a single conversation
+          return FORMATS.CLAUDE_ANTHROPIC;
+        }
+        // Otherwise it might be an array of conversations
+        // We'll handle it as Claude format but will check in formatToMultiverse
+      }
+      
+      // Grok/xAI format detection - check if it's an array of conversations
+      if (firstItem.conversation && firstItem.responses) {
+        return FORMATS.XAI_GROK;
+      }
+      
+      // Mistral AI format detection
+      if (firstItem.chat_messages && firstItem.account) {
+        return FORMATS.MISTRAL_AI;
+      }
+      
+      // DeepSeek chat format detection
+      if (firstItem.mapping && firstItem.mapping.root && 
+          firstItem.mapping.root.message === null) {
+        return FORMATS.DEEPSEEK_CHAT_EXPORT;
+      }
+      
+      // DeepSeek exporter format in array
+      if (firstItem.metadata && firstItem.metadata.platform === "DeepSeek") {
+        return FORMATS.DEEPSEEK_EXPORTER;
       }
     }
     
+    // Check for single conversation formats
     // Check for OpenAI multiverse format (single conversation)
     if (json && 
         typeof json === 'object' && 
@@ -1566,16 +1676,48 @@ button{
       return FORMATS.OPENAI_MULTIVERSE;
     }
     
+    // Check for single Claude conversation
+    if (json && 
+        typeof json === 'object' && 
+        (json.contentChunks || json.role) &&
+        (json.role === 'user' || json.role === 'assistant')) {
+      return FORMATS.CLAUDE_ANTHROPIC;
+    }
+    
+    // Check for single Grok conversation
+    if (json && 
+        typeof json === 'object' && 
+        json.conversation && json.responses) {
+      return FORMATS.XAI_GROK;
+    }
+    
+    // Check for single Mistral conversation
+    if (json && 
+        typeof json === 'object' && 
+        json.chat_messages && json.account) {
+      return FORMATS.MISTRAL_AI;
+    }
+    
     return FORMATS.UNKNOWN;
   }
 
   function formatToMultiverse(json, format) {
     originalJSON = json;
     
-    if (format === FORMATS.OPENAI_CONVERSATIONS_ARRAY) {
-      // Handle conversations array - extract all conversations
-      conversationsList = extractConversationsFromArray(json);
-      updateFormatBadge(FORMATS.OPENAI_CONVERSATIONS_ARRAY);
+    // Check if this is an array of conversations (multiple conversations)
+    const isConversationArray = Array.isArray(json) && (
+      format === FORMATS.OPENAI_CONVERSATIONS_ARRAY ||
+      format === FORMATS.CLAUDE_ANTHROPIC ||
+      format === FORMATS.XAI_GROK ||
+      format === FORMATS.MISTRAL_AI ||
+      format === FORMATS.DEEPSEEK_CHAT_EXPORT ||
+      format === FORMATS.DEEPSEEK_EXPORTER
+    );
+    
+    if (isConversationArray) {
+      // Extract all conversations from the array
+      conversationsList = extractConversationsFromArray(json, format);
+      updateFormatBadge(format);
       
       // Load the first conversation by default
       if (conversationsList.length > 0) {
@@ -1585,43 +1727,139 @@ button{
         currentConversationIndex = 0;
         return firstConv;
       } else {
-        throw new Error("No valid conversations found in array");
+        throw new Error(`No valid ${format.replace(/_/g, ' ')} conversations found`);
       }
     }
     
-    if (format === FORMATS.OPENAI_MULTIVERSE) {
-      const found = findConversationInJSON(json);
-      if (!found) throw new Error("Could not find conversation in OpenAI format");
-      convertedJSON = sanitizeConversation(found);
-      return convertedJSON;
+    // Single conversation formats
+    switch(format) {
+      case FORMATS.CLAUDE_ANTHROPIC:
+        // If it's a single Claude conversation (not array of conversations)
+        if (Array.isArray(json) && json.length > 0 && json[0].role) {
+          // It's an array of messages within a single conversation
+          return convertClaudeToMultiverse(json);
+        }
+        return convertClaudeToMultiverse([json]);
+        
+      case FORMATS.XAI_GROK:
+        return convertGrokToMultiverse([json]);
+        
+      case FORMATS.MISTRAL_AI:
+        return convertMistralToMultiverse([json]);
+        
+      case FORMATS.DEEPSEEK_CHAT_EXPORT:
+        return convertDeepSeekChatExport([json]);
+        
+      case FORMATS.OPENAI_MULTIVERSE:
+        const found = findConversationInJSON(json);
+        if (!found) throw new Error("Could not find conversation in OpenAI format");
+        convertedJSON = sanitizeConversation(found);
+        return convertedJSON;
+        
+      case FORMATS.DEEPSEEK_EXPORTER:
+        return convertDeepSeekToMultiverse(json);
+        
+      default:
+        throw new Error(`Unsupported format: ${format}`);
     }
-    
-    if (format === FORMATS.DEEPSEEK_EXPORTER) {
-      return convertDeepSeekToMultiverse(json);
-    }
-    
-    throw new Error(`Unsupported format: ${format}`);
   }
 
   /* =============================== */
   /*     CONVERSATIONS ARRAY HANDLING */
   /* =============================== */
-  
-  function extractConversationsFromArray(jsonArray) {
+
+  function extractConversationsFromArray(jsonArray, format = FORMATS.OPENAI_CONVERSATIONS_ARRAY) {
     const conversations = [];
     
+    if (!Array.isArray(jsonArray)) {
+      return conversations;
+    }
+    
     jsonArray.forEach((conv, index) => {
-      if (!conv || !conv.mapping) return;
+      let conversationData = null;
+      let title = "";
+      let createTime = Date.now() / 1000;
+      let messageCount = 0;
+      let conversationId = "";
+      let formattedDate = "";
       
-      // Extract conversation info
-      const title = conv.title || `Untitled Conversation ${index + 1}`;
-      const createTime = conv.create_time || Date.now() / 1000;
-      const messageCount = Object.keys(conv.mapping).length;
-      const conversationId = conv.conversation_id || `conv_${index}`;
+      // Handle different formats
+      switch(format) {
+        case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
+          if (!conv || !conv.mapping) return;
+          conversationData = conv;
+          title = conv.title || `Untitled Conversation ${index + 1}`;
+          createTime = conv.create_time || Date.now() / 1000;
+          messageCount = Object.keys(conv.mapping).length;
+          conversationId = conv.conversation_id || `conv_${index}`;
+          break;
+          
+        case FORMATS.CLAUDE_ANTHROPIC:
+          // Claude conversations are often linear arrays of messages
+          // Create a synthetic conversation from the messages
+          conversationData = convertClaudeToMultiverse(conv);
+          title = extractTextFromClaude(conv[0]) || `Claude Conversation ${index + 1}`;
+          title = title.length > 50 ? title.substring(0, 50) + "..." : title;
+          createTime = conv[0]?.createdAt ? 
+                      new Date(conv[0].createdAt).getTime() / 1000 : 
+                      Date.now() / 1000;
+          messageCount = conv.length;
+          conversationId = `claude_${index}_${Date.now()}`;
+          break;
+          
+        case FORMATS.XAI_GROK:
+          if (!conv || !conv.conversation) return;
+          conversationData = convertGrokToMultiverse([conv]); // Wrap in array for conversion
+          title = conv.conversation.title || `Grok Conversation ${index + 1}`;
+          createTime = conv.conversation.create_time ? 
+                      new Date(conv.conversation.create_time).getTime() / 1000 : 
+                      Date.now() / 1000;
+          messageCount = conv.responses?.length || 0;
+          conversationId = conv.conversation.id || `grok_${index}`;
+          break;
+          
+        case FORMATS.MISTRAL_AI:
+          if (!conv || !conv.chat_messages) return;
+          conversationData = convertMistralToMultiverse([conv]); // Wrap in array for conversion
+          title = conv.name || conv.title || `Mistral Conversation ${index + 1}`;  // FIXED: Use 'name' field
+          createTime = conv.created_at ? 
+                      new Date(conv.created_at).getTime() / 1000 : 
+                      Date.now() / 1000;
+          messageCount = conv.chat_messages?.length || 0;
+          conversationId = conv.uuid || `mistral_${index}`;
+          break;
+          
+        case FORMATS.DEEPSEEK_CHAT_EXPORT:
+          if (!conv || !conv.mapping) return;
+          conversationData = convertDeepSeekChatExport([conv]); // Wrap in array for conversion
+          title = conv.title || `DeepSeek Chat ${index + 1}`;
+          createTime = conv.inserted_at ? 
+                      new Date(conv.inserted_at).getTime() / 1000 : 
+                      Date.now() / 1000;
+          messageCount = Object.keys(conv.mapping).length;
+          conversationId = conv.id || `deepseek_${index}`;
+          break;
+          
+        case FORMATS.DEEPSEEK_EXPORTER:
+          if (!conv || !conv.messages) return;
+          conversationData = convertDeepSeekToMultiverse(conv);
+          title = conv.metadata?.title || `DeepSeek Conversation ${index + 1}`;
+          createTime = conv.metadata?.extracted_at ? 
+                      new Date(conv.metadata.extracted_at).getTime() / 1000 : 
+                      Date.now() / 1000;
+          messageCount = conv.messages.length;
+          conversationId = conv.metadata?.url?.split('/').pop() || `deepseek_exporter_${index}`;
+          break;
+          
+        default:
+          return; // Skip unknown formats
+      }
+      
+      if (!conversationData) return;
       
       // Format date for display
       const date = new Date(createTime * 1000);
-      const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
       
       conversations.push({
         index: index,
@@ -1630,9 +1868,10 @@ button{
         createTime: createTime,
         formattedDate: formattedDate,
         messageCount: messageCount,
-        data: conv,
+        data: conversationData,
         raw: conv,
-        searchMatches: 0 // Track search matches per conversation
+        searchMatches: 0,
+        format: format // Store the format for reference
       });
     });
     
@@ -1641,7 +1880,736 @@ button{
     
     return conversations;
   }
+
+  /* =============================== */
+  /*     CLAUDE/ANTHROPIC FORMAT     */
+  /* =============================== */
+  function convertClaudeToMultiverse(claudeJson) {
+    // Handle both array format and single conversation
+    const messages = Array.isArray(claudeJson) ? claudeJson : [claudeJson];
+    const mapping = {};
+    
+    // Create a linear chain from messages
+    messages.forEach((msg, index) => {
+      const nodeId = `msg_${index}`;
+      const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
+      const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
+      
+      // Extract content from chunks
+      let text = "";
+      let toolCalls = [];
+      
+      if (msg.contentChunks) {
+        msg.contentChunks.forEach(chunk => {
+          if (chunk.type === 'text' && chunk.text) {
+            text += chunk.text + " ";
+          } else if (chunk.type === 'tool_call' && chunk.publicArguments) {
+            const toolText = `[Tool call: ${chunk.name || 'unknown'} - ${chunk.publicArguments}]`;
+            text += toolText + " ";
+            toolCalls.push({
+              name: chunk.name,
+              arguments: chunk.publicArguments,
+              result: chunk.publicResult
+            });
+          } else if (chunk.type === 'reference' && chunk.referenceIds) {
+            text += `[References: ${chunk.referenceIds.join(', ')}] `;
+          }
+        });
+      } else {
+        text = msg.content || "";
+      }
+      
+      // Clean up text
+      text = text.trim();
+      if (!text) text = "(empty message)";
+      
+      mapping[nodeId] = {
+        id: nodeId,
+        parent: prevNodeId,
+        children: nextNodeId ? [nextNodeId] : [],
+        message: {
+          id: nodeId,
+          author: {
+            role: msg.role || "unknown",
+            name: null,
+            metadata: {}
+          },
+          create_time: msg.createdAt ? new Date(msg.createdAt).getTime() / 1000 : Date.now() / 1000,
+          content: {
+            content_type: "text",
+            parts: [text]
+          },
+          status: "finished_successfully",
+          metadata: {
+            ...msg,
+            _format: "claude",
+            _tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+            _reaction: msg.reaction,
+            _preference: msg.preference
+          },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "claude"
+      };
+    });
+    
+    // Find first message with content to use as title
+    const firstMessage = messages.find(m => m.content || (m.contentChunks && m.contentChunks.length > 0));
+    const titleText = firstMessage ? extractTextFromClaude(firstMessage) : "";
+    const title = titleText.length > 50 ? titleText.substring(0, 50) + "..." : titleText;
+    
+    convertedJSON = {
+      title: title || "Claude Conversation",
+      create_time: messages[0]?.createdAt ? 
+                   new Date(messages[0].createdAt).getTime() / 1000 : 
+                   Date.now() / 1000,
+      update_time: messages[messages.length - 1]?.createdAt ? 
+                   new Date(messages[messages.length - 1].createdAt).getTime() / 1000 : 
+                   Date.now() / 1000,
+      mapping: mapping,
+      conversation_id: messages[0]?.chatId || `claude_${Date.now()}`,
+      _original_format: "claude",
+      _converted_at: new Date().toISOString()
+    };
+    
+    return convertedJSON;
+  }
+
+  function extractTextFromClaude(msg) {
+    if (!msg) return "";
+    if (msg.content) return msg.content;
+    if (msg.contentChunks) {
+      return msg.contentChunks
+        .filter(chunk => chunk.type === 'text' && chunk.text)
+        .map(chunk => chunk.text)
+        .join(' ');
+    }
+    return "";
+  }
+
+  /* =============================== */
+  /*         GROK/XAI FORMAT         */
+  /* =============================== */
+  function convertGrokToMultiverse(grokJson) {
+    // Handle array of conversations or single conversation
+    const conversations = Array.isArray(grokJson) ? grokJson : [grokJson];
+    const firstConv = conversations[0];
+    
+    if (!firstConv || !firstConv.conversation || !firstConv.responses) {
+      throw new Error("Invalid Grok/xAI format");
+    }
+    
+    const mapping = {};
+    const allMessages = [];
+    
+    // Process each response in the conversation
+    firstConv.responses.forEach((respObj, index) => {
+      const resp = respObj.response;
+      if (!resp) return;
+      
+      // Human message
+      if (resp.sender === 'human') {
+        const nodeId = `human_${index}`;
+        const prevNodeId = allMessages.length > 0 ? allMessages[allMessages.length - 1].id : null;
+        
+        mapping[nodeId] = {
+          id: nodeId,
+          parent: prevNodeId,
+          children: [`assistant_${index}`],
+          message: {
+            id: nodeId,
+            author: {
+              role: "user",
+              name: null,
+              metadata: {}
+            },
+            create_time: resp.create_time?.$date?.$numberLong ? 
+                         parseInt(resp.create_time.$date.$numberLong) / 1000 : 
+                         Date.now() / 1000,
+            content: {
+              content_type: "text",
+              parts: [resp.message || ""]
+            },
+            status: "finished_successfully",
+            metadata: {
+              ...resp.metadata,
+              _format: "grok",
+              _model: resp.model
+            },
+            weight: 1,
+            end_turn: true
+          },
+          _original_data: resp,
+          _format: "grok"
+        };
+        
+        allMessages.push({ id: nodeId, type: 'human' });
+      }
+      
+      // Assistant message
+      if (resp.sender === 'ASSISTANT') {
+        const nodeId = `assistant_${index}`;
+        const prevNodeId = `human_${index}`; // Link to previous human message
+        
+        mapping[nodeId] = {
+          id: nodeId,
+          parent: prevNodeId,
+          children: index < firstConv.responses.length - 1 ? [`human_${index + 1}`] : [],
+          message: {
+            id: nodeId,
+            author: {
+              role: "assistant",
+              name: null,
+              metadata: {}
+            },
+            create_time: resp.create_time?.$date?.$numberLong ? 
+                         parseInt(resp.create_time.$date.$numberLong) / 1000 : 
+                         Date.now() / 1000,
+            content: {
+              content_type: "text",
+              parts: [resp.message || ""]
+            },
+            status: "finished_successfully",
+            metadata: {
+              ...resp.metadata,
+              _format: "grok",
+              _model: resp.model,
+              _parent_response_id: resp.parent_response_id
+            },
+            weight: 1,
+            end_turn: true
+          },
+          _original_data: resp,
+          _format: "grok"
+        };
+        
+        allMessages.push({ id: nodeId, type: 'assistant' });
+      }
+    });
+    
+    // If no human message before first assistant, add a root
+    if (!mapping['human_0'] && mapping['assistant_0']) {
+      mapping['assistant_0'].parent = 'root';
+    }
+    
+    convertedJSON = {
+      title: firstConv.conversation.title || "Grok Conversation",
+      create_time: firstConv.conversation.create_time ? 
+                   new Date(firstConv.conversation.create_time).getTime() / 1000 : 
+                   Date.now() / 1000,
+      update_time: firstConv.conversation.modify_time ? 
+                   new Date(firstConv.conversation.modify_time).getTime() / 1000 : 
+                   Date.now() / 1000,
+      mapping: mapping,
+      conversation_id: firstConv.conversation.id || `grok_${Date.now()}`,
+      _original_format: "grok",
+      _converted_at: new Date().toISOString()
+    };
+    
+    return convertedJSON;
+  }
+
+  /* =============================== */
+  /*         MISTRAL AI FORMAT       */
+  /* =============================== */
+  function convertMistralToMultiverse(mistralJson) {
+    // Handle array of conversations or single conversation
+    const conversations = Array.isArray(mistralJson) ? mistralJson : [mistralJson];
+    const firstConv = conversations[0];
+    
+    if (!firstConv || !firstConv.chat_messages) {
+      throw new Error("Invalid Mistral AI format");
+    }
+    
+    const mapping = {};
+    const messages = firstConv.chat_messages;
+    
+    // Create linear chain from messages
+    messages.forEach((msg, index) => {
+      const nodeId = `msg_${index}`;
+      const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
+      const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
+      
+      // Extract text from content array
+      let text = "";
+      if (msg.content && Array.isArray(msg.content)) {
+        msg.content.forEach(contentItem => {
+          if (contentItem.type === 'text' && contentItem.text) {
+            text += contentItem.text + " ";
+          }
+        });
+      }
+      
+      text = text.trim();
+      if (!text && msg.text) {
+        text = msg.text;
+      }
+      if (!text) text = "(empty message)";
+      
+      // Extract attachments
+      let attachments = [];
+      if (msg.attachments && Array.isArray(msg.attachments)) {
+        attachments = msg.attachments.map(att => ({
+          file_name: att.file_name,
+          file_size: att.file_size,
+          extracted_content: att.extracted_content
+        }));
+      }
+      
+      mapping[nodeId] = {
+        id: nodeId,
+        parent: prevNodeId,
+        children: nextNodeId ? [nextNodeId] : [],
+        message: {
+          id: nodeId,
+          author: {
+            role: msg.sender === 'human' ? 'user' : 'assistant',
+            name: null,
+            metadata: {}
+          },
+          create_time: msg.created_at ? 
+                       new Date(msg.created_at).getTime() / 1000 : 
+                       Date.now() / 1000,
+          content: {
+            content_type: "text",
+            parts: [text]
+          },
+          status: "finished_successfully",
+          metadata: {
+            _format: "mistral",
+            _attachments: attachments.length > 0 ? attachments : undefined,
+            _citations: msg.content?.filter(c => c.citations)?.flatMap(c => c.citations) || []
+          },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "mistral"
+      };
+    });
+    
+    // Use the conversation name field first, fallback to message content
+    let title = firstConv.name || "Mistral Conversation";  // FIXED: Use 'name' field
+    
+    if (!title || title === "Mistral Conversation") {
+      // Fallback to first non-empty message as title
+      const firstMessageWithContent = messages.find(m => {
+        if (m.text && m.text.trim()) return true;
+        if (m.content && Array.isArray(m.content)) {
+          return m.content.some(c => c.text && c.text.trim());
+        }
+        return false;
+      });
+      
+      if (firstMessageWithContent) {
+        if (firstMessageWithContent.text) {
+          title = firstMessageWithContent.text.substring(0, 50) + "...";
+        } else if (firstMessageWithContent.content) {
+          const firstText = firstMessageWithContent.content.find(c => c.text);
+          if (firstText) {
+            title = firstText.text.substring(0, 50) + "...";
+          }
+        }
+      }
+    }
+    
+    convertedJSON = {
+      title: title,
+      create_time: firstConv.created_at ? 
+                   new Date(firstConv.created_at).getTime() / 1000 : 
+                   Date.now() / 1000,
+      update_time: firstConv.updated_at ? 
+                   new Date(firstConv.updated_at).getTime() / 1000 : 
+                   Date.now() / 1000,
+      mapping: mapping,
+      conversation_id: firstConv.uuid || `mistral_${Date.now()}`,
+      _original_format: "mistral",
+      _converted_at: new Date().toISOString()
+    };
+    
+    return convertedJSON;
+  }
+
+function convertDeepSeekChatExport(jsonArray) {
+  // Take the first conversation
+  const conversation = Array.isArray(jsonArray) ? jsonArray[0] : jsonArray;
+  const mapping = conversation.mapping;
   
+  const convertedMapping = {};
+  
+  // First pass: convert all nodes
+  Object.keys(mapping).forEach(nodeId => {
+    const node = mapping[nodeId];
+    const msg = node.message;
+    
+    if (msg && msg.fragments && msg.fragments.length > 0) {
+      // Extract message text from fragments
+      let text = "";
+      let fragmentsContent = "";
+      
+      // Process all fragments
+      msg.fragments.forEach(fragment => {
+        if (fragment.content) {
+          fragmentsContent += fragment.content + "\n";
+        }
+      });
+      
+      text = fragmentsContent.trim();
+      if (!text && msg.content) {
+        text = msg.content; // Fallback to root content if available
+      }
+      if (!text) text = "(empty message)";
+      
+      // Determine role from fragment type
+      let role = "unknown";
+      if (msg.fragments.some(f => f.type === "REQUEST")) role = "user";
+      if (msg.fragments.some(f => f.type === "RESPONSE")) role = "assistant";
+      
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: node.parent,
+        children: node.children || [],
+        message: {
+          id: nodeId,
+          author: { 
+            role: role,
+            name: null,
+            metadata: {}
+          },
+          content: {
+            content_type: "text",
+            parts: [text]
+          },
+          create_time: msg.inserted_at ? 
+            new Date(msg.inserted_at).getTime() / 1000 : 
+            Date.now() / 1000,
+          metadata: {
+            model: msg.model,
+            files: msg.files,
+            _format: "deepseek_chat",
+            _fragments: msg.fragments // Keep original fragments for reference
+          },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "deepseek_chat"
+      };
+    } else if (nodeId === "root") {
+      // Handle root node
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: null,
+        children: node.children || [],
+        message: null
+      };
+    } else if (node.message === null) {
+      // Handle empty message nodes
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: node.parent,
+        children: node.children || [],
+        message: null
+      };
+    } else if (msg && msg.content) {
+      // Handle messages with direct content (not fragments)
+      let text = msg.content;
+      if (typeof text === 'object') {
+        text = JSON.stringify(text);
+      }
+      
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: node.parent,
+        children: node.children || [],
+        message: {
+          id: nodeId,
+          author: { 
+            role: msg.role || "unknown",
+            name: null,
+            metadata: {}
+          },
+          content: {
+            content_type: "text",
+            parts: [text]
+          },
+          create_time: msg.inserted_at ? 
+            new Date(msg.inserted_at).getTime() / 1000 : 
+            Date.now() / 1000,
+          metadata: {
+            model: msg.model,
+            files: msg.files,
+            _format: "deepseek_chat"
+          },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "deepseek_chat"
+      };
+    }
+  });
+  
+  // Second pass: ensure all parent-child relationships are bidirectional
+  Object.keys(convertedMapping).forEach(nodeId => {
+    const node = convertedMapping[nodeId];
+    
+    // Ensure parent exists
+    if (node.parent && !convertedMapping[node.parent]) {
+      console.warn(`Parent ${node.parent} not found for node ${nodeId}, setting to null`);
+      node.parent = null;
+    }
+    
+    // Ensure children exist
+    if (node.children && Array.isArray(node.children)) {
+      node.children = node.children.filter(childId => {
+        if (convertedMapping[childId]) {
+          return true;
+        } else {
+          console.warn(`Child ${childId} not found for node ${nodeId}`);
+          return false;
+        }
+      });
+    }
+  });
+  
+  // Find a valid root
+  let rootId = 'root';
+  if (!convertedMapping['root']) {
+    const nodesWithoutParent = Object.keys(convertedMapping).filter(id => 
+      !convertedMapping[id].parent || convertedMapping[id].parent === null
+    );
+    if (nodesWithoutParent.length > 0) {
+      rootId = nodesWithoutParent[0];
+    } else {
+      // Create a synthetic root
+      const firstNodeId = Object.keys(convertedMapping)[0];
+      rootId = 'root';
+      convertedMapping['root'] = {
+        id: 'root',
+        parent: null,
+        children: [firstNodeId],
+        message: null
+      };
+      if (firstNodeId && convertedMapping[firstNodeId]) {
+        convertedMapping[firstNodeId].parent = 'root';
+      }
+    }
+  }
+  
+  // Debug: Log the converted structure
+  console.log("Converted DeepSeek chat mapping:", convertedMapping);
+  console.log("Number of nodes:", Object.keys(convertedMapping).length);
+  
+  convertedJSON = {
+    title: conversation.title || "DeepSeek Conversation",
+    create_time: conversation.inserted_at ? 
+                 new Date(conversation.inserted_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    update_time: conversation.updated_at ? 
+                 new Date(conversation.updated_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    mapping: convertedMapping,
+    conversation_id: conversation.id || "deepseek_chat",
+    _original_format: "deepseek_chat",
+    _converted_at: new Date().toISOString()
+  };
+  
+  return convertedJSON;
+}
+/* =============================== */
+/*     DEEPSEEK EXPORTER          */
+/* =============================== */
+function convertDeepSeekChatExport(jsonArray) {
+  // Take the first conversation
+  const conversation = Array.isArray(jsonArray) ? jsonArray[0] : jsonArray;
+  const mapping = conversation.mapping;
+  
+  const convertedMapping = {};
+  
+  // First pass: convert all nodes
+  Object.keys(mapping).forEach(nodeId => {
+    const node = mapping[nodeId];
+    const msg = node.message;
+    
+    if (msg && msg.fragments && msg.fragments.length > 0) {
+      // Extract message text from fragments
+      let text = "";
+      let fragmentsContent = "";
+      
+      // Process all fragments
+      msg.fragments.forEach(fragment => {
+        if (fragment.content) {
+          fragmentsContent += fragment.content + "\n";
+        }
+      });
+      
+      text = fragmentsContent.trim();
+      if (!text && msg.content) {
+        text = msg.content; // Fallback to root content if available
+      }
+      if (!text) text = "(empty message)";
+      
+      // Determine role from fragment type
+      let role = "unknown";
+      if (msg.fragments.some(f => f.type === "REQUEST")) role = "user";
+      if (msg.fragments.some(f => f.type === "RESPONSE")) role = "assistant";
+      
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: node.parent,
+        children: node.children || [],
+        message: {
+          id: nodeId,
+          author: { 
+            role: role,
+            name: null,
+            metadata: {}
+          },
+          content: {
+            content_type: "text",
+            parts: [text]
+          },
+          create_time: msg.inserted_at ? 
+            new Date(msg.inserted_at).getTime() / 1000 : 
+            Date.now() / 1000,
+          metadata: {
+            model: msg.model,
+            files: msg.files,
+            _format: "deepseek_chat",
+            _fragments: msg.fragments // Keep original fragments for reference
+          },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "deepseek_chat"
+      };
+    } else if (nodeId === "root") {
+      // Handle root node
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: null,
+        children: node.children || [],
+        message: null
+      };
+    } else if (node.message === null) {
+      // Handle empty message nodes
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: node.parent,
+        children: node.children || [],
+        message: null
+      };
+    } else if (msg && msg.content) {
+      // Handle messages with direct content (not fragments)
+      let text = msg.content;
+      if (typeof text === 'object') {
+        text = JSON.stringify(text);
+      }
+      
+      convertedMapping[nodeId] = {
+        id: nodeId,
+        parent: node.parent,
+        children: node.children || [],
+        message: {
+          id: nodeId,
+          author: { 
+            role: msg.role || "unknown",
+            name: null,
+            metadata: {}
+          },
+          content: {
+            content_type: "text",
+            parts: [text]
+          },
+          create_time: msg.inserted_at ? 
+            new Date(msg.inserted_at).getTime() / 1000 : 
+            Date.now() / 1000,
+          metadata: {
+            model: msg.model,
+            files: msg.files,
+            _format: "deepseek_chat"
+          },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "deepseek_chat"
+      };
+    }
+  });
+  
+  // Second pass: ensure all parent-child relationships are bidirectional
+  Object.keys(convertedMapping).forEach(nodeId => {
+    const node = convertedMapping[nodeId];
+    
+    // Ensure parent exists
+    if (node.parent && !convertedMapping[node.parent]) {
+      console.warn(`Parent ${node.parent} not found for node ${nodeId}, setting to null`);
+      node.parent = null;
+    }
+    
+    // Ensure children exist
+    if (node.children && Array.isArray(node.children)) {
+      node.children = node.children.filter(childId => {
+        if (convertedMapping[childId]) {
+          return true;
+        } else {
+          console.warn(`Child ${childId} not found for node ${nodeId}`);
+          return false;
+        }
+      });
+    }
+  });
+  
+  // Find a valid root
+  let rootId = 'root';
+  if (!convertedMapping['root']) {
+    const nodesWithoutParent = Object.keys(convertedMapping).filter(id => 
+      !convertedMapping[id].parent || convertedMapping[id].parent === null
+    );
+    if (nodesWithoutParent.length > 0) {
+      rootId = nodesWithoutParent[0];
+    } else {
+      // Create a synthetic root
+      const firstNodeId = Object.keys(convertedMapping)[0];
+      rootId = 'root';
+      convertedMapping['root'] = {
+        id: 'root',
+        parent: null,
+        children: [firstNodeId],
+        message: null
+      };
+      if (firstNodeId && convertedMapping[firstNodeId]) {
+        convertedMapping[firstNodeId].parent = 'root';
+      }
+    }
+  }
+  
+  // Debug: Log the converted structure
+  console.log("Converted DeepSeek chat mapping:", convertedMapping);
+  console.log("Number of nodes:", Object.keys(convertedMapping).length);
+  
+  convertedJSON = {
+    title: conversation.title || "DeepSeek Conversation",
+    create_time: conversation.inserted_at ? 
+                 new Date(conversation.inserted_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    update_time: conversation.updated_at ? 
+                 new Date(conversation.updated_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    mapping: convertedMapping,
+    conversation_id: conversation.id || "deepseek_chat",
+    _original_format: "deepseek_chat",
+    _converted_at: new Date().toISOString()
+  };
+  
+  return convertedJSON;
+}
+
   function updateConversationsList(searchQuery = '') {
     const listContainer = document.getElementById('conversationsList');
     
@@ -1744,7 +2712,7 @@ button{
     
     // Update file label
     const fileName = document.getElementById('fileLabel').innerText;
-    if (fileName.includes('conversations.json')) {
+    if (conversationsList.length > 1) {
       document.getElementById('fileLabel').innerText = `${fileName} (${index + 1}/${conversationsList.length})`;
     }
     
@@ -2118,96 +3086,47 @@ button{
     });
   }
 
-  /* =============================== */
-  /*     REST OF THE FUNCTIONS       */
-  /* =============================== */
-
-  function convertDeepSeekToMultiverse(deepseekJson) {
-    const mapping = {};
-    const messages = deepseekJson.messages || [];
-    
-    // Create a simple linear chain for DeepSeek conversations
-    messages.forEach((msg, index) => {
-      const nodeId = `msg_${index}`;
-      const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
-      const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
-      
-      // Extract content
-      let contentText = "";
-      if (msg.role === "user") {
-        contentText = msg.content || "";
-      } else if (msg.role === "assistant") {
-        if (typeof msg.content === "object") {
-          contentText = msg.content.final_answer || 
-                       (msg.content.thinking_chain ? 
-                         `${msg.content.thinking_chain}\n\n${msg.content.final_answer || ""}` : 
-                         "");
-        } else {
-          contentText = msg.content || "";
-        }
-      }
-      
-      mapping[nodeId] = {
-        id: nodeId,
-        parent: prevNodeId,
-        children: nextNodeId ? [nextNodeId] : [],
-        message: {
-          id: nodeId,
-          author: {
-            role: msg.role,
-            name: null,
-            metadata: {}
-          },
-          create_time: msg.timestamp ? new Date(msg.timestamp).getTime() / 1000 : Date.now() / 1000,
-          content: {
-            content_type: "text",
-            parts: [contentText]
-          },
-          status: "finished_successfully",
-          metadata: {},
-          weight: 1,
-          end_turn: true
-        },
-        _original_data: msg,
-        _format: "deepseek"
-      };
-    });
-    
-    convertedJSON = {
-      title: deepseekJson.metadata?.title || "DeepSeek Conversation",
-      create_time: deepseekJson.metadata?.extracted_at ? 
-                   new Date(deepseekJson.metadata.extracted_at).getTime() / 1000 : 
-                   Date.now() / 1000,
-      update_time: deepseekJson.metadata?.extracted_at ? 
-                   new Date(deepseekJson.metadata.extracted_at).getTime() / 1000 : 
-                   Date.now() / 1000,
-      mapping: mapping,
-      conversation_id: deepseekJson.metadata?.url?.split('/').pop() || "deepseek_chat",
-      _original_format: "deepseek",
-      _converted_at: new Date().toISOString()
-    };
-    
-    return convertedJSON;
-  }
-
   function updateFormatBadge(format) {
     const badge = document.getElementById('formatBadge');
     currentFormat = format;
     
+    // Add align-right class for positioning
+    badge.classList.add('align-right');
+    
     switch(format) {
       case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
-        badge.textContent = "Multiple Conversations";
-        badge.style.background = "linear-gradient(to right, #8B5CF6, #7C3AED)";
+        badge.textContent = "OpenAI (Multiple)";
+        badge.style.background = "linear-gradient(to right, #10a37f, #0e8e6c)";
         badge.style.color = "white";
         break;
       case FORMATS.OPENAI_MULTIVERSE:
-        badge.textContent = "OpenAI Format";
+        badge.textContent = "OpenAI";
         badge.style.background = "linear-gradient(to right, #10a37f, #0e8e6c)";
         badge.style.color = "white";
         break;
       case FORMATS.DEEPSEEK_EXPORTER:
-        badge.textContent = "DeepSeek Format";
+        badge.textContent = "DeepSeek";
         badge.style.background = "linear-gradient(to right, #0ea5e9, #0d8fd8)";
+        badge.style.color = "white";
+        break;
+      case FORMATS.DEEPSEEK_CHAT_EXPORT:
+        badge.textContent = "DeepSeek Chat";
+        badge.style.background = "linear-gradient(to right, #0ea5e9, #0d8fd8)";
+        badge.style.color = "white";
+        break;
+      case FORMATS.CLAUDE_ANTHROPIC:
+        badge.textContent = "Claude";
+        badge.style.background = "linear-gradient(to right, #d946ef, #c026d3)";
+        badge.style.color = "white";
+        break;
+      case FORMATS.XAI_GROK:
+        badge.textContent = "Grok/xAI";
+        badge.style.background = "linear-gradient(to right, #f97316, #ea580c)";
+        badge.style.color = "white";
+        break;
+      case FORMATS.MISTRAL_AI:
+        badge.textContent = "Mistral AI";
+        badge.style.background = "linear-gradient(to right, #8b5cf6, #7c3aed)";
         badge.style.color = "white";
         break;
       default:
@@ -2312,20 +3231,25 @@ button{
         status.innerHTML = "❌ Unrecognized file format";
         status.style.color = "#f44336";
         updateFormatBadge(FORMATS.UNKNOWN);
-        throw new Error("Unrecognized file format. Supported: OpenAI multiverse JSON, DeepSeek exporter JSON");
+        throw new Error("Unrecognized file format. Supported: OpenAI, DeepSeek, Claude, Grok/xAI, Mistral AI");
       }
       
       // Update badge
       updateFormatBadge(format);
       
       // Convert to multiverse format
-      status.innerHTML = `🔄 Converting ${format}...`;
+      status.innerHTML = `🔄 Converting ${format.replace(/_/g, ' ')}...`;
       status.style.color = "#ff9800";
       status.style.display = "block";
       
       const converted = formatToMultiverse(json, format);
       
-      status.innerHTML = "✅ File loaded successfully";
+      // If we have multiple conversations, update the status
+      if (conversationsList.length > 1) {
+        status.innerHTML = `✅ Loaded ${conversationsList.length} conversations`;
+      } else {
+        status.innerHTML = "✅ File loaded successfully";
+      }
       status.style.color = "#10a37f";
       
       return converted;
@@ -2424,16 +3348,40 @@ button{
   let lastLoadedJSON = null;
   let showSystemNodes = false;
 
-  /* =============================== */
-  /*     ENHANCED EXTRACT TEXT       */
-  /* =============================== */
+/* =============================== */
+/*     ENHANCED EXTRACT TEXT       */
+/* =============================== */
+
+function extractText(msg) {
+  if (!msg) return "";
   
-  function extractText(msg) {
-    if (!msg) return "";
+  // Handle different formats based on metadata
+  if (msg._original_data) {
+    const data = msg._original_data;
     
-    // Handle DeepSeek format
-    if (msg._original_data) {
-      const data = msg._original_data;
+    // Claude format
+    if (data._format === "claude") {
+      return extractTextFromClaude(data);
+    }
+    
+    // Grok format
+    if (data._format === "grok") {
+      return data.message || "";
+    }
+    
+    // Mistral format
+    if (data._format === "mistral") {
+      if (data.content && Array.isArray(data.content)) {
+        return data.content
+          .filter(c => c.type === 'text' && c.text)
+          .map(c => c.text)
+          .join(' ');
+      }
+      return data.text || "";
+    }
+    
+    // DeepSeek exporter format
+    if (data._format === "deepseek") {
       if (data.role === "user") {
         return String(data.content || "").trim();
       } else if (data.role === "assistant") {
@@ -2448,19 +3396,38 @@ button{
       }
     }
     
-    // Handle OpenAI format
-    if (msg.content && Array.isArray(msg.content.parts)) {
-      return msg.content.parts.join("\n");
+    // DeepSeek chat format
+    if (data._format === "deepseek_chat") {
+      if (data.fragments && Array.isArray(data.fragments)) {
+        return data.fragments
+          .filter(f => f.content)
+          .map(f => f.content)
+          .join('\n');
+      } else if (data.content && data.content.parts) {
+        // Handle OpenAI-style content
+        return Array.isArray(data.content.parts) ? 
+               data.content.parts.join("\n") : 
+               String(data.content.parts || "");
+      }
     }
-    if (msg.content && msg.content.content_type && msg.content.content_type !== "text") {
-      return "[" + msg.content.content_type + "]";
-    }
-    
-    // Fallback
-    if (msg._viewerText) return msg._viewerText;
-    
-    return "";
   }
+  
+  // Handle OpenAI format
+  if (msg.content && Array.isArray(msg.content.parts)) {
+    return msg.content.parts.join("\n");
+  }
+  if (msg.content && msg.content.content_type && msg.content.content_type !== "text") {
+    return "[" + msg.content.content_type + "]";
+  }
+  if (typeof msg.content === 'string') {
+    return msg.content;
+  }
+  
+  // Fallback
+  if (msg._viewerText) return msg._viewerText;
+  
+  return "";
+}
 
   /* DEV TOOLS MENU */
   const devBtn = document.getElementById("devToolsBtn");
@@ -2597,42 +3564,99 @@ button{
     return node;
   }
 
-  /* ENHANCED BUILD TREE TO HANDLE DEEPSEEK FORMAT */
-  function buildTree(json) {
-    const map = json.mapping;
+ /* ENHANCED BUILD TREE TO HANDLE ALL FORMATS */
+function buildTree(json) {
+  const map = json.mapping;
+  
+  // Find root nodes (nodes without parents)
+  const rootIds = Object.keys(map).filter(id => !map[id].parent || map[id].parent === null);
+  
+  // If no root found, look for the first message
+  if (rootIds.length === 0) {
+    // Try to find any node without a parent
+    const firstId = Object.keys(map).find(id => !map[id].parent || map[id].parent === null);
+    if (firstId) rootIds.push(firstId);
+  }
+  
+  if (!rootIds.length) {
+    // Try to find the "root" node
+    if (map['root']) {
+      rootIds.push('root');
+    } else {
+      // Try to find any node to use as root
+      const anyId = Object.keys(map)[0];
+      if (anyId) rootIds.push(anyId);
+    }
+  }
+  
+  if (!rootIds.length) return;
+
+  function convert(id, visited = new Set()) {
+    if (visited.has(id)) return null;
+    visited.add(id);
     
-    // Find root nodes (nodes without parents)
-    const rootIds = Object.keys(map).filter(id => !map[id].parent);
+    const node = map[id];
+    if (!node) return null;
     
-    // If no root found in OpenAI format, look for DeepSeek linear chain
-    if (rootIds.length === 0) {
-      // For DeepSeek linear format, find the first message
-      const firstId = Object.keys(map).find(id => map[id].parent === null);
-      if (firstId) rootIds.push(firstId);
+    const convertedNode = {
+      id,
+      role: node.message?.author?.role || "unknown",
+      text: extractText(node.message),
+      rawMessage: node.message || null,
+      rawChunk: node || null,
+      children: []
+    };
+    
+    // Add children - handle both arrays and single values
+    if (node.children) {
+      const children = Array.isArray(node.children) ? node.children : [node.children];
+      children.forEach(childId => {
+        if (childId && childId !== id) { // Avoid self-references
+          const child = convert(childId, visited);
+          if (child) {
+            convertedNode.children.push(child);
+          }
+        }
+      });
     }
     
-    if (!rootIds.length) return;
+    return convertedNode;
+  }
 
-    function convert(id) {
-      const node = map[id];
-      return {
-        id,
+  let rootData = convert(rootIds[0]);
+
+  if (!rootData) {
+    // Create a simple linear chain from all nodes
+    const allNodesList = Object.values(map).filter(n => n.message);
+    rootData = {
+      id: "root",
+      role: "system",
+      text: "Conversation Root",
+      children: []
+    };
+    
+    let prevNode = rootData;
+    allNodesList.forEach((node, index) => {
+      const childNode = {
+        id: node.id || `node_${index}`,
         role: node.message?.author?.role || "unknown",
         text: extractText(node.message),
-        rawMessage: node.message || null,
-        rawChunk: node || null,
-        children: (node.children || []).map(convert)
+        rawMessage: node.message,
+        rawChunk: node,
+        children: []
       };
-    }
-
-    let rootData = convert(rootIds[0]);
-
-    if (!showSystemNodes) {
-      rootData = collapseSystemNodesTree(rootData);
-    }
-
-    renderTree(rootData);
+      prevNode.children.push(childNode);
+      prevNode = childNode;
+    });
   }
+
+  if (!showSystemNodes) {
+    rootData = collapseSystemNodesTree(rootData);
+  }
+
+  renderTree(rootData);
+}
+
 
   /* RENDER TREE */
   function renderTree(rootData){
@@ -3481,17 +4505,50 @@ button{
     if (overrideText !== undefined && overrideText !== null) {
       msg = String(overrideText);
     } else if (currentNodeData._original_data) {
-      // DeepSeek format
+      // Handle different formats
       originalData = currentNodeData._original_data;
-      if (typeof originalData.content === "object") {
-        // Build comprehensive message
-        const parts = [];
-        if (originalData.content.search_hint) parts.push(`**${originalData.content.search_hint}**`);
-        if (originalData.content.thinking_chain) parts.push(`### Thoughts\n\n> ${originalData.content.thinking_chain}`);
-        if (originalData.content.final_answer) parts.push(`### Answer\n\n${originalData.content.final_answer}`);
-        msg = parts.join("\n\n");
-      } else {
-        msg = String(originalData.content || "");
+      
+      // Claude format
+      if (currentNodeData._format === "claude") {
+        msg = extractTextFromClaude(originalData);
+      }
+      // Grok format
+      else if (currentNodeData._format === "grok") {
+        msg = originalData.message || "";
+      }
+      // Mistral format
+      else if (currentNodeData._format === "mistral") {
+        if (originalData.content && Array.isArray(originalData.content)) {
+          msg = originalData.content
+            .filter(c => c.type === 'text' && c.text)
+            .map(c => c.text)
+            .join(' ');
+        } else {
+          msg = originalData.text || "";
+        }
+      }
+      // DeepSeek format
+      else if (currentNodeData._format === "deepseek") {
+        if (typeof originalData.content === "object") {
+          const parts = [];
+          if (originalData.content.search_hint) parts.push(`**${originalData.content.search_hint}**`);
+          if (originalData.content.thinking_chain) parts.push(`### Thoughts\n\n> ${originalData.content.thinking_chain}`);
+          if (originalData.content.final_answer) parts.push(`### Answer\n\n${originalData.content.final_answer}`);
+          msg = parts.join("\n\n");
+        } else {
+          msg = String(originalData.content || "");
+        }
+      }
+      // DeepSeek chat format
+      else if (currentNodeData._format === "deepseek_chat") {
+        if (originalData.fragments && Array.isArray(originalData.fragments)) {
+          msg = originalData.fragments
+            .filter(f => f.content)
+            .map(f => f.content)
+            .join('\n');
+        } else {
+          msg = "";
+        }
       }
     } else {
       // OpenAI format
@@ -3500,7 +4557,7 @@ button{
 
     const rawMsgObj = currentNodeData.rawMessage || {};
     const rawChunkObj = currentNodeData.rawChunk || {};
-    const deepseekData = currentNodeData._original_data || {};
+    const originalDataObj = currentNodeData._original_data || {};
 
     const rawText =
       "Format: " + (currentNodeData._format || "openai") + "\n\n" +
@@ -3509,11 +4566,11 @@ button{
       "\n\n" +
       "Node Data:\n" +
       JSON.stringify(rawChunkObj, null, 2) +
-      (Object.keys(deepseekData).length ? 
-        "\n\n" + "DeepSeek Original:\n" + JSON.stringify(deepseekData, null, 2) : 
+      (Object.keys(originalDataObj).length ? 
+        "\n\n" + "Original Data:\n" + JSON.stringify(originalDataObj, null, 2) : 
         "");
 
-    const originalJson = originalData || rawMsgObj;
+    const originalJson = originalDataObj || rawMsgObj;
 
     // Store data for different modes
     window.currentNodeMsg = msg;
@@ -3647,7 +4704,8 @@ button{
               id: n.data.id,
               role: n.data.role,
               text: extractText(n.data.rawMessage),
-              rawData: n.data.rawMessage || n.data._original_data
+              rawData: n.data.rawMessage || n.data._original_data,
+              format: n.data._format
             });
           });
           displayContent = JSON.stringify(branchData, null, 2);
