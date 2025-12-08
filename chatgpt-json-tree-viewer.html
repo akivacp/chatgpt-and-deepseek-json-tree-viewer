@@ -1449,7 +1449,7 @@ button{
         <label class="devToolsRow">
           <span>Tooltip timer (ms)</span>
           <input type="range" id="tooltipTimerRange" min="500" max="10000" step="500" value="2000">
-          <span class="range-value" id="tooltipTimerValue">2000</span>
+          <span class="range-value" id="tooltipTimerValue">500</span>
         </label>
       </div>
     </div>
@@ -1588,7 +1588,7 @@ button{
   let searchResultsAcrossAllConversations = []; // Store search results across all conversations
   let currentTheme = 'dark'; // Default theme
   let showTooltips = true; // Default to showing tooltips
-  let tooltipLingerMs = 2000; // Default tooltip timer
+  let tooltipLingerMs = 500; // Default tooltip timer
 
 function detectFormat(json) {
   console.log("Detecting format for:", typeof json, Array.isArray(json) ? "Array length: " + json.length : "Object");
@@ -3174,7 +3174,7 @@ function convertDeepSeekChatExport(jsonArray) {
   function initializeDeveloperTools() {
     // Load saved settings
     const savedShowTooltips = localStorage.getItem('multiverseShowTooltips') !== 'false';
-    const savedTooltipTimer = localStorage.getItem('multiverseTooltipTimer') || '2000';
+    const savedTooltipTimer = localStorage.getItem('multiverseTooltipTimer') || '500';
     
     showTooltips = savedShowTooltips;
     tooltipLingerMs = parseInt(savedTooltipTimer);
