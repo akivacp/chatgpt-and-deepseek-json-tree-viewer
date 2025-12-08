@@ -4494,7 +4494,10 @@ function buildTree(json) {
   let currentNodeData = null;
   let currentBranchNode = null;
 
-  function openViewerPanel(n, overrideText) {
+
+
+
+function openViewerPanel(n, overrideText) {
     currentNodeData = n && n.data ? n.data : {};
     currentBranchNode = n;
     
@@ -4559,23 +4562,27 @@ function buildTree(json) {
     const rawChunkObj = currentNodeData.rawChunk || {};
     const originalDataObj = currentNodeData._original_data || {};
 
-    const rawText =
-      "Format: " + (currentNodeData._format || "openai") + "\n\n" +
-      "Message Data:\n" +
-      JSON.stringify(rawMsgObj, null, 2) +
-      "\n\n" +
-      "Node Data:\n" +
-      JSON.stringify(rawChunkObj, null, 2) +
-      (Object.keys(originalDataObj).length ? 
-        "\n\n" + "Original Data:\n" + JSON.stringify(originalDataObj, null, 2) : 
-        "");
-
-    const originalJson = originalDataObj || rawMsgObj;
+    // Store ALL original data for display
+    const allOriginalData = {
+      id: currentNodeData.id,
+      role: currentNodeData.role,
+      format: currentNodeData._format || "openai",
+      rawMessage: rawMsgObj,
+      rawChunk: rawChunkObj,
+      originalData: originalDataObj,
+      timestamp: rawMsgObj.create_time ? new Date(rawMsgObj.create_time * 1000).toISOString() : null,
+      metadata: rawMsgObj.metadata || {},
+      // Include any other relevant data
+      ...(currentNodeData._format === "claude" ? { claudeData: originalDataObj } : {}),
+      ...(currentNodeData._format === "grok" ? { grokData: originalDataObj } : {}),
+      ...(currentNodeData._format === "mistral" ? { mistralData: originalDataObj } : {}),
+      ...(currentNodeData._format === "deepseek" ? { deepseekData: originalDataObj } : {})
+    };
 
     // Store data for different modes
     window.currentNodeMsg = msg;
-    window.currentNodeRawText = rawText;
-    window.currentNodeOriginalJson = originalJson;
+    window.currentNodeRawText = JSON.stringify(allOriginalData, null, 2); // Use allOriginalData instead of just originalDataObj
+    window.currentNodeOriginalJson = allOriginalData;
 
     // Initialize with node view
     switchMode("node", "rendered");
@@ -4586,6 +4593,7 @@ function buildTree(json) {
     document.getElementById("popoutBtn").style.display = "inline-block";
     document.getElementById("pdfBtn").style.display = "inline-block";
   }
+
 
   function switchMode(mode, subMode = null) {
     currentMode = mode;
