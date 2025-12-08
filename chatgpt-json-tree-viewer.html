@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1587,7 +1588,7 @@ button{
   let searchResultsAcrossAllConversations = []; // Store search results across all conversations
   let currentTheme = 'dark'; // Default theme
   let showTooltips = true; // Default to showing tooltips
-  let tooltipLingerMs = 500; // Default tooltip timer
+  let tooltipLingerMs = 2000; // Default tooltip timer
 
 function detectFormat(json) {
   console.log("Detecting format for:", typeof json, Array.isArray(json) ? "Array length: " + json.length : "Object");
@@ -3173,7 +3174,7 @@ function convertDeepSeekChatExport(jsonArray) {
   function initializeDeveloperTools() {
     // Load saved settings
     const savedShowTooltips = localStorage.getItem('multiverseShowTooltips') !== 'false';
-    const savedTooltipTimer = localStorage.getItem('multiverseTooltipTimer') || '500';
+    const savedTooltipTimer = localStorage.getItem('multiverseTooltipTimer') || '2000';
     
     showTooltips = savedShowTooltips;
     tooltipLingerMs = parseInt(savedTooltipTimer);
@@ -3446,13 +3447,13 @@ function convertDeepSeekChatExport(jsonArray) {
       tooltipCopyBtn.textContent = 'Copied!';
       setTimeout(() => {
         tooltipCopyBtn.textContent = 'Copy';
-      }, 500);
+      }, 2000);
     } catch (err) {
       console.error('Failed to copy tooltip content:', err);
       tooltipCopyBtn.textContent = 'Failed';
       setTimeout(() => {
         tooltipCopyBtn.textContent = 'Copy';
-      }, 500);
+      }, 2000);
     }
   });
 
@@ -4511,7 +4512,7 @@ function buildTree(json) {
     messageElement.classList.add('highlighted');
     setTimeout(() => {
       messageElement.classList.remove('highlighted');
-    }, 500);
+    }, 2000);
     
     // Update current in index
     document.querySelectorAll('.branch-index-item').forEach(item => {
@@ -4596,13 +4597,13 @@ function buildTree(json) {
             setTimeout(() => {
               copyButton.textContent = 'Copy';
               copyButton.classList.remove('copied');
-            }, 500);
+            }, 2000);
           } catch (err) {
             console.error('Failed to copy code:', err);
             copyButton.textContent = 'Failed';
             setTimeout(() => {
               copyButton.textContent = 'Copy';
-            }, 500);
+            }, 2000);
           }
         };
         
