@@ -1587,14 +1587,29 @@ button{
   let showTooltips = true; // Default to showing tooltips
   let tooltipLingerMs = 2000; // Default tooltip timer
 
-  function detectFormat(json) {
-	  console.log("Detecting format for:", typeof json, Array.isArray(json) ? "Array length: " + json.length : "Object");
-	  
-	  
-	    // Add this check specifically for DeepSeek chat format
+function detectFormat(json) {
+  console.log("Detecting format for:", typeof json, Array.isArray(json) ? "Array length: " + json.length : "Object");
+  
+  // Check for DeepSeek exporter format (single conversation)
+  if (json && 
+      typeof json === 'object' && 
+      json.metadata && 
+      json.metadata.platform === "DeepSeek" &&
+      Array.isArray(json.messages)) {
+    console.log("Detected DEEPSEEK_EXPORTER format (single)");
+    return FORMATS.DEEPSEEK_EXPORTER;
+  }
+  
+  // Check for array of conversations (could be DeepSeek exporter in array)
   if (Array.isArray(json) && json.length > 0) {
     const firstItem = json[0];
     console.log("First item keys:", Object.keys(firstItem));
+    
+    // Check if it's an array of DeepSeek exporter conversations
+    if (firstItem.metadata && firstItem.metadata.platform === "DeepSeek") {
+      console.log("Detected DEEPSEEK_EXPORTER format (array)");
+      return FORMATS.DEEPSEEK_EXPORTER;
+    }
     
     // Check for DeepSeek chat format
     if (firstItem.mapping && firstItem.mapping.root && 
@@ -1602,285 +1617,260 @@ button{
       console.log("Detected DEEPSEEK_CHAT_EXPORT format");
       return FORMATS.DEEPSEEK_CHAT_EXPORT;
     }
-  }
-  
-  
-	
-    // Check if it's an array of conversations
-    if (Array.isArray(json) && json.length > 0) {
-      const firstItem = json[0];
-      
-      // Check if this is an array of conversations or just messages within one conversation
-      // For OpenAI, check if first item has mapping
-      if (firstItem && firstItem.mapping) {
-        return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
-      }
-      
-      // For Claude/Anthropic - check if it's an array of messages (not conversations)
-      if (firstItem && 
-          typeof firstItem === 'object' && 
-          (firstItem.contentChunks || firstItem.role) &&
-          (firstItem.role === 'user' || firstItem.role === 'assistant')) {
-        // Check if this looks like a conversation array (multiple conversations)
-        // by checking if the second item also looks like a message
-        if (json.length > 1 && json[1].role) {
-          // This is likely messages within a single conversation
-          return FORMATS.CLAUDE_ANTHROPIC;
-        }
-        // Otherwise it might be an array of conversations
-        // We'll handle it as Claude format but will check in formatToMultiverse
-      }
-      
-      // Grok/xAI format detection - check if it's an array of conversations
-      if (firstItem.conversation && firstItem.responses) {
-        return FORMATS.XAI_GROK;
-      }
-      
-      // Mistral AI format detection
-      if (firstItem.chat_messages && firstItem.account) {
-        return FORMATS.MISTRAL_AI;
-      }
-      
-      // DeepSeek chat format detection
-      if (firstItem.mapping && firstItem.mapping.root && 
-          firstItem.mapping.root.message === null) {
-        return FORMATS.DEEPSEEK_CHAT_EXPORT;
-      }
-      
-      // DeepSeek exporter format in array
-      if (firstItem.metadata && firstItem.metadata.platform === "DeepSeek") {
-        return FORMATS.DEEPSEEK_EXPORTER;
+    
+    // Check if this is an array of conversations or just messages within one conversation
+    if (firstItem && firstItem.mapping) {
+      return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
+    }
+    
+    // For Claude/Anthropic - check if it's an array of messages
+    if (firstItem && 
+        typeof firstItem === 'object' && 
+        (firstItem.contentChunks || firstItem.role) &&
+        (firstItem.role === 'user' || firstItem.role === 'assistant')) {
+      if (json.length > 1 && json[1].role) {
+        return FORMATS.CLAUDE_ANTHROPIC;
       }
     }
     
-    // Check for single conversation formats
-    // Check for OpenAI multiverse format (single conversation)
-    if (json && 
-        typeof json === 'object' && 
-        json.mapping && 
-        typeof json.mapping === 'object') {
-      return FORMATS.OPENAI_MULTIVERSE;
-    }
-    
-    // Check for DeepSeek exporter format
-    if (json && 
-        typeof json === 'object' && 
-        json.metadata && 
-        json.metadata.platform === "DeepSeek" &&
-        Array.isArray(json.messages)) {
-      return FORMATS.DEEPSEEK_EXPORTER;
-    }
-    
-    // Check for wrapped OpenAI format
-    if (findConversationInJSON(json)) {
-      return FORMATS.OPENAI_MULTIVERSE;
-    }
-    
-    // Check for single Claude conversation
-    if (json && 
-        typeof json === 'object' && 
-        (json.contentChunks || json.role) &&
-        (json.role === 'user' || json.role === 'assistant')) {
-      return FORMATS.CLAUDE_ANTHROPIC;
-    }
-    
-    // Check for single Grok conversation
-    if (json && 
-        typeof json === 'object' && 
-        json.conversation && json.responses) {
+    // Grok/xAI format detection
+    if (firstItem.conversation && firstItem.responses) {
       return FORMATS.XAI_GROK;
     }
     
-    // Check for single Mistral conversation
-    if (json && 
-        typeof json === 'object' && 
-        json.chat_messages && json.account) {
+    // Mistral AI format detection
+    if (firstItem.chat_messages && firstItem.account) {
       return FORMATS.MISTRAL_AI;
     }
-    
-    return FORMATS.UNKNOWN;
   }
+  
+  // Check for single OpenAI multiverse format
+  if (json && 
+      typeof json === 'object' && 
+      json.mapping && 
+      typeof json.mapping === 'object') {
+    return FORMATS.OPENAI_MULTIVERSE;
+  }
+  
+  // Check for wrapped OpenAI format
+  if (findConversationInJSON(json)) {
+    return FORMATS.OPENAI_MULTIVERSE;
+  }
+  
+  // Check for single Claude conversation
+  if (json && 
+      typeof json === 'object' && 
+      (json.contentChunks || json.role) &&
+      (json.role === 'user' || json.role === 'assistant')) {
+    return FORMATS.CLAUDE_ANTHROPIC;
+  }
+  
+  // Check for single Grok conversation
+  if (json && 
+      typeof json === 'object' && 
+      json.conversation && json.responses) {
+    return FORMATS.XAI_GROK;
+  }
+  
+  // Check for single Mistral conversation
+  if (json && 
+      typeof json === 'object' && 
+      json.chat_messages && json.account) {
+    return FORMATS.MISTRAL_AI;
+  }
+  
+  return FORMATS.UNKNOWN;
+}
 
-  function formatToMultiverse(json, format) {
-    originalJSON = json;
+function formatToMultiverse(json, format) {
+  originalJSON = json;
+  
+  // Check if this is an array of conversations (multiple conversations)
+  const isConversationArray = Array.isArray(json) && (
+    format === FORMATS.OPENAI_CONVERSATIONS_ARRAY ||
+    format === FORMATS.CLAUDE_ANTHROPIC ||
+    format === FORMATS.XAI_GROK ||
+    format === FORMATS.MISTRAL_AI ||
+    format === FORMATS.DEEPSEEK_CHAT_EXPORT ||
+    format === FORMATS.DEEPSEEK_EXPORTER  // Add DEEPSEEK_EXPORTER here
+  );
+  
+  if (isConversationArray) {
+    // Extract all conversations from the array
+    conversationsList = extractConversationsFromArray(json, format);
+    updateFormatBadge(format);
     
-    // Check if this is an array of conversations (multiple conversations)
-    const isConversationArray = Array.isArray(json) && (
-      format === FORMATS.OPENAI_CONVERSATIONS_ARRAY ||
-      format === FORMATS.CLAUDE_ANTHROPIC ||
-      format === FORMATS.XAI_GROK ||
-      format === FORMATS.MISTRAL_AI ||
-      format === FORMATS.DEEPSEEK_CHAT_EXPORT ||
-      format === FORMATS.DEEPSEEK_EXPORTER
-    );
-    
-    if (isConversationArray) {
-      // Extract all conversations from the array
-      conversationsList = extractConversationsFromArray(json, format);
-      updateFormatBadge(format);
-      
-      // Load the first conversation by default
-      if (conversationsList.length > 0) {
-        updateConversationsList();
-        const firstConv = sanitizeConversation(conversationsList[0].data);
-        convertedJSON = firstConv;
-        currentConversationIndex = 0;
-        return firstConv;
-      } else {
-        throw new Error(`No valid ${format.replace(/_/g, ' ')} conversations found`);
+    // Load the first conversation by default
+    if (conversationsList.length > 0) {
+      updateConversationsList();
+      const firstConv = sanitizeConversation(conversationsList[0].data);
+      convertedJSON = firstConv;
+      currentConversationIndex = 0;
+      return firstConv;
+    } else {
+      throw new Error(`No valid ${format.replace(/_/g, ' ')} conversations found`);
+    }
+  }
+  
+  // Single conversation formats
+  switch(format) {
+    case FORMATS.CLAUDE_ANTHROPIC:
+      if (Array.isArray(json) && json.length > 0 && json[0].role) {
+        return convertClaudeToMultiverse(json);
       }
-    }
-    
-    // Single conversation formats
-    switch(format) {
-      case FORMATS.CLAUDE_ANTHROPIC:
-        // If it's a single Claude conversation (not array of conversations)
-        if (Array.isArray(json) && json.length > 0 && json[0].role) {
-          // It's an array of messages within a single conversation
-          return convertClaudeToMultiverse(json);
+      return convertClaudeToMultiverse([json]);
+      
+    case FORMATS.XAI_GROK:
+      return convertGrokToMultiverse([json]);
+      
+    case FORMATS.MISTRAL_AI:
+      return convertMistralToMultiverse([json]);
+      
+    case FORMATS.DEEPSEEK_CHAT_EXPORT:
+      return convertDeepSeekChatExport([json]);
+      
+    case FORMATS.OPENAI_MULTIVERSE:
+      const found = findConversationInJSON(json);
+      if (!found) throw new Error("Could not find conversation in OpenAI format");
+      convertedJSON = sanitizeConversation(found);
+      return convertedJSON;
+      
+    case FORMATS.DEEPSEEK_EXPORTER:
+      // Handle both single DeepSeek exporter format and array
+      if (Array.isArray(json) && json.length > 0 && json[0].metadata && json[0].metadata.platform === "DeepSeek") {
+        // It's an array of DeepSeek conversations
+        conversationsList = extractConversationsFromArray(json, format);
+        updateFormatBadge(format);
+        if (conversationsList.length > 0) {
+          updateConversationsList();
+          const firstConv = sanitizeConversation(conversationsList[0].data);
+          convertedJSON = firstConv;
+          currentConversationIndex = 0;
+          return firstConv;
         }
-        return convertClaudeToMultiverse([json]);
-        
-      case FORMATS.XAI_GROK:
-        return convertGrokToMultiverse([json]);
-        
-      case FORMATS.MISTRAL_AI:
-        return convertMistralToMultiverse([json]);
-        
-      case FORMATS.DEEPSEEK_CHAT_EXPORT:
-        return convertDeepSeekChatExport([json]);
-        
-      case FORMATS.OPENAI_MULTIVERSE:
-        const found = findConversationInJSON(json);
-        if (!found) throw new Error("Could not find conversation in OpenAI format");
-        convertedJSON = sanitizeConversation(found);
-        return convertedJSON;
-        
-      case FORMATS.DEEPSEEK_EXPORTER:
-        return convertDeepSeekToMultiverse(json);
-        
-      default:
-        throw new Error(`Unsupported format: ${format}`);
-    }
+      }
+      // Single DeepSeek exporter conversation
+      return convertDeepSeekToMultiverse(json);
+      
+    default:
+      throw new Error(`Unsupported format: ${format}`);
   }
-
+}
   /* =============================== */
   /*     CONVERSATIONS ARRAY HANDLING */
   /* =============================== */
 
-  function extractConversationsFromArray(jsonArray, format = FORMATS.OPENAI_CONVERSATIONS_ARRAY) {
-    const conversations = [];
-    
-    if (!Array.isArray(jsonArray)) {
-      return conversations;
-    }
-    
-    jsonArray.forEach((conv, index) => {
-      let conversationData = null;
-      let title = "";
-      let createTime = Date.now() / 1000;
-      let messageCount = 0;
-      let conversationId = "";
-      let formattedDate = "";
-      
-      // Handle different formats
-      switch(format) {
-        case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
-          if (!conv || !conv.mapping) return;
-          conversationData = conv;
-          title = conv.title || `Untitled Conversation ${index + 1}`;
-          createTime = conv.create_time || Date.now() / 1000;
-          messageCount = Object.keys(conv.mapping).length;
-          conversationId = conv.conversation_id || `conv_${index}`;
-          break;
-          
-        case FORMATS.CLAUDE_ANTHROPIC:
-          // Claude conversations are often linear arrays of messages
-          // Create a synthetic conversation from the messages
-          conversationData = convertClaudeToMultiverse(conv);
-          title = extractTextFromClaude(conv[0]) || `Claude Conversation ${index + 1}`;
-          title = title.length > 50 ? title.substring(0, 50) + "..." : title;
-          createTime = conv[0]?.createdAt ? 
-                      new Date(conv[0].createdAt).getTime() / 1000 : 
-                      Date.now() / 1000;
-          messageCount = conv.length;
-          conversationId = `claude_${index}_${Date.now()}`;
-          break;
-          
-        case FORMATS.XAI_GROK:
-          if (!conv || !conv.conversation) return;
-          conversationData = convertGrokToMultiverse([conv]); // Wrap in array for conversion
-          title = conv.conversation.title || `Grok Conversation ${index + 1}`;
-          createTime = conv.conversation.create_time ? 
-                      new Date(conv.conversation.create_time).getTime() / 1000 : 
-                      Date.now() / 1000;
-          messageCount = conv.responses?.length || 0;
-          conversationId = conv.conversation.id || `grok_${index}`;
-          break;
-          
-        case FORMATS.MISTRAL_AI:
-          if (!conv || !conv.chat_messages) return;
-          conversationData = convertMistralToMultiverse([conv]); // Wrap in array for conversion
-          title = conv.name || conv.title || `Mistral Conversation ${index + 1}`;  // FIXED: Use 'name' field
-          createTime = conv.created_at ? 
-                      new Date(conv.created_at).getTime() / 1000 : 
-                      Date.now() / 1000;
-          messageCount = conv.chat_messages?.length || 0;
-          conversationId = conv.uuid || `mistral_${index}`;
-          break;
-          
-        case FORMATS.DEEPSEEK_CHAT_EXPORT:
-          if (!conv || !conv.mapping) return;
-          conversationData = convertDeepSeekChatExport([conv]); // Wrap in array for conversion
-          title = conv.title || `DeepSeek Chat ${index + 1}`;
-          createTime = conv.inserted_at ? 
-                      new Date(conv.inserted_at).getTime() / 1000 : 
-                      Date.now() / 1000;
-          messageCount = Object.keys(conv.mapping).length;
-          conversationId = conv.id || `deepseek_${index}`;
-          break;
-          
-        case FORMATS.DEEPSEEK_EXPORTER:
-          if (!conv || !conv.messages) return;
-          conversationData = convertDeepSeekToMultiverse(conv);
-          title = conv.metadata?.title || `DeepSeek Conversation ${index + 1}`;
-          createTime = conv.metadata?.extracted_at ? 
-                      new Date(conv.metadata.extracted_at).getTime() / 1000 : 
-                      Date.now() / 1000;
-          messageCount = conv.messages.length;
-          conversationId = conv.metadata?.url?.split('/').pop() || `deepseek_exporter_${index}`;
-          break;
-          
-        default:
-          return; // Skip unknown formats
-      }
-      
-      if (!conversationData) return;
-      
-      // Format date for display
-      const date = new Date(createTime * 1000);
-      formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      conversations.push({
-        index: index,
-        id: conversationId,
-        title: title,
-        createTime: createTime,
-        formattedDate: formattedDate,
-        messageCount: messageCount,
-        data: conversationData,
-        raw: conv,
-        searchMatches: 0,
-        format: format // Store the format for reference
-      });
-    });
-    
-    // Sort by creation time (newest first)
-    conversations.sort((a, b) => b.createTime - a.createTime);
-    
+function extractConversationsFromArray(jsonArray, format = FORMATS.OPENAI_CONVERSATIONS_ARRAY) {
+  const conversations = [];
+  
+  if (!Array.isArray(jsonArray)) {
     return conversations;
   }
-
+  
+  jsonArray.forEach((conv, index) => {
+    let conversationData = null;
+    let title = "";
+    let createTime = Date.now() / 1000;
+    let messageCount = 0;
+    let conversationId = "";
+    let formattedDate = "";
+    
+    // Handle different formats
+    switch(format) {
+      case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
+        if (!conv || !conv.mapping) return;
+        conversationData = conv;
+        title = conv.title || `Untitled Conversation ${index + 1}`;
+        createTime = conv.create_time || Date.now() / 1000;
+        messageCount = Object.keys(conv.mapping).length;
+        conversationId = conv.conversation_id || `conv_${index}`;
+        break;
+        
+      case FORMATS.CLAUDE_ANTHROPIC:
+        // Claude conversations are often linear arrays of messages
+        conversationData = convertClaudeToMultiverse(conv);
+        title = extractTextFromClaude(conv[0]) || `Claude Conversation ${index + 1}`;
+        title = title.length > 50 ? title.substring(0, 50) + "..." : title;
+        createTime = conv[0]?.createdAt ? 
+                    new Date(conv[0].createdAt).getTime() / 1000 : 
+                    Date.now() / 1000;
+        messageCount = conv.length;
+        conversationId = `claude_${index}_${Date.now()}`;
+        break;
+        
+      case FORMATS.XAI_GROK:
+        if (!conv || !conv.conversation) return;
+        conversationData = convertGrokToMultiverse([conv]);
+        title = conv.conversation.title || `Grok Conversation ${index + 1}`;
+        createTime = conv.conversation.create_time ? 
+                    new Date(conv.conversation.create_time).getTime() / 1000 : 
+                    Date.now() / 1000;
+        messageCount = conv.responses?.length || 0;
+        conversationId = conv.conversation.id || `grok_${index}`;
+        break;
+        
+      case FORMATS.MISTRAL_AI:
+        if (!conv || !conv.chat_messages) return;
+        conversationData = convertMistralToMultiverse([conv]);
+        title = conv.name || conv.title || `Mistral Conversation ${index + 1}`;
+        createTime = conv.created_at ? 
+                    new Date(conv.created_at).getTime() / 1000 : 
+                    Date.now() / 1000;
+        messageCount = conv.chat_messages?.length || 0;
+        conversationId = conv.uuid || `mistral_${index}`;
+        break;
+        
+      case FORMATS.DEEPSEEK_CHAT_EXPORT:
+        if (!conv || !conv.mapping) return;
+        conversationData = convertDeepSeekChatExport([conv]);
+        title = conv.title || `DeepSeek Chat ${index + 1}`;
+        createTime = conv.inserted_at ? 
+                    new Date(conv.inserted_at).getTime() / 1000 : 
+                    Date.now() / 1000;
+        messageCount = Object.keys(conv.mapping).length;
+        conversationId = conv.id || `deepseek_${index}`;
+        break;
+        
+      case FORMATS.DEEPSEEK_EXPORTER:
+        if (!conv || !conv.messages) return;
+        conversationData = convertDeepSeekToMultiverse(conv);
+        title = conv.metadata?.title || `DeepSeek Conversation ${index + 1}`;
+        createTime = conv.metadata?.extracted_at ? 
+                    new Date(conv.metadata.extracted_at).getTime() / 1000 : 
+                    Date.now() / 1000;
+        messageCount = conv.messages.length;
+        conversationId = conv.metadata?.url?.split('/').pop() || `deepseek_exporter_${index}`;
+        break;
+        
+      default:
+        return; // Skip unknown formats
+    }
+    
+    if (!conversationData) return;
+    
+    // Format date for display
+    const date = new Date(createTime * 1000);
+    formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    conversations.push({
+      index: index,
+      id: conversationId,
+      title: title,
+      createTime: createTime,
+      formattedDate: formattedDate,
+      messageCount: messageCount,
+      data: conversationData,
+      raw: conv,
+      searchMatches: 0,
+      format: format
+    });
+  });
+  
+  // Sort by creation time (newest first)
+  conversations.sort((a, b) => b.createTime - a.createTime);
+  
+  return conversations;
+}
   /* =============================== */
   /*     CLAUDE/ANTHROPIC FORMAT     */
   /* =============================== */
@@ -2231,6 +2221,128 @@ button{
     
     return convertedJSON;
   }
+  
+  /* =============================== */
+/*     DEEPSEEK EXPORTER FORMAT    */
+/* =============================== */
+function convertDeepSeekToMultiverse(deepseekJson) {
+  // Handle both single conversation and array
+  const conversations = Array.isArray(deepseekJson) ? deepseekJson : [deepseekJson];
+  const firstConv = conversations[0];
+  
+  if (!firstConv || !firstConv.messages) {
+    throw new Error("Invalid DeepSeek exporter format");
+  }
+  
+  const mapping = {};
+  const messages = firstConv.messages;
+  
+  // Create linear chain from messages
+  messages.forEach((msg, index) => {
+    const nodeId = `msg_${index}`;
+    const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
+    const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
+    
+    // Extract content
+    let text = "";
+    if (typeof msg.content === "string") {
+      text = msg.content;
+    } else if (typeof msg.content === "object") {
+      // Handle structured content
+      if (msg.content.final_answer) {
+        text = msg.content.final_answer;
+        if (msg.content.search_hint) {
+          text = `**${msg.content.search_hint}**\n\n${text}`;
+        }
+        if (msg.content.thinking_chain) {
+          text = `### Thoughts\n\n> ${msg.content.thinking_chain}\n\n### Answer\n\n${text}`;
+        }
+      } else {
+        text = JSON.stringify(msg.content, null, 2);
+      }
+    }
+    
+    if (!text) text = "(empty message)";
+    
+    // Determine role
+    let role = msg.role || "unknown";
+    if (role === "user") role = "user";
+    else if (role === "assistant") role = "assistant";
+    else if (role === "system") role = "system";
+    
+    mapping[nodeId] = {
+      id: nodeId,
+      parent: prevNodeId,
+      children: nextNodeId ? [nextNodeId] : [],
+      message: {
+        id: nodeId,
+        author: {
+          role: role,
+          name: null,
+          metadata: {}
+        },
+        create_time: msg.timestamp ? 
+                     new Date(msg.timestamp).getTime() / 1000 : 
+                     Date.now() / 1000,
+        content: {
+          content_type: "text",
+          parts: [text]
+        },
+        status: "finished_successfully",
+        metadata: {
+          _format: "deepseek",
+          _id: msg.id,
+          _timestamp: msg.timestamp,
+          _raw_html: msg.raw_html
+        },
+        weight: 1,
+        end_turn: true
+      },
+      _original_data: msg,
+      _format: "deepseek"
+    };
+  });
+  
+  // Create a root node
+  const rootId = "root";
+  mapping[rootId] = {
+    id: rootId,
+    parent: null,
+    children: messages.length > 0 ? ["msg_0"] : [],
+    message: null
+  };
+  
+  // Use metadata for title
+  let title = firstConv.metadata?.title || "DeepSeek Conversation";
+  if (!title || title === "DeepSeek Conversation") {
+    // Fallback to first message content
+    if (messages.length > 0 && messages[0].content) {
+      const firstMsg = messages[0];
+      if (typeof firstMsg.content === "string") {
+        title = firstMsg.content.substring(0, 50) + "...";
+      } else if (typeof firstMsg.content === "object" && firstMsg.content.final_answer) {
+        title = firstMsg.content.final_answer.substring(0, 50) + "...";
+      }
+    }
+  }
+  
+  convertedJSON = {
+    title: title,
+    create_time: firstConv.metadata?.extracted_at ? 
+                 new Date(firstConv.metadata.extracted_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    update_time: firstConv.metadata?.extracted_at ? 
+                 new Date(firstConv.metadata.extracted_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    mapping: mapping,
+    conversation_id: firstConv.metadata?.url?.split('/').pop() || `deepseek_${Date.now()}`,
+    _original_format: "deepseek",
+    _converted_at: new Date().toISOString()
+  };
+  
+  return convertedJSON;
+}
+  
 
 function convertDeepSeekChatExport(jsonArray) {
   // Take the first conversation
@@ -3382,18 +3494,16 @@ function extractText(msg) {
     
     // DeepSeek exporter format
     if (data._format === "deepseek") {
-      if (data.role === "user") {
-        return String(data.content || "").trim();
-      } else if (data.role === "assistant") {
-        if (typeof data.content === "object") {
-          const parts = [];
-          if (data.content.search_hint) parts.push(`**${data.content.search_hint}**`);
-          if (data.content.thinking_chain) parts.push(`> ${data.content.thinking_chain}`);
-          if (data.content.final_answer) parts.push(data.content.final_answer);
-          return parts.join("\n\n");
-        }
-        return String(data.content || "").trim();
+      if (typeof data.content === "string") {
+        return data.content;
+      } else if (typeof data.content === "object") {
+        const parts = [];
+        if (data.content.search_hint) parts.push(`**${data.content.search_hint}**`);
+        if (data.content.thinking_chain) parts.push(`> ${data.content.thinking_chain}`);
+        if (data.content.final_answer) parts.push(data.content.final_answer);
+        return parts.join("\n\n");
       }
+      return String(data.content || "");
     }
     
     // DeepSeek chat format
@@ -3404,7 +3514,6 @@ function extractText(msg) {
           .map(f => f.content)
           .join('\n');
       } else if (data.content && data.content.parts) {
-        // Handle OpenAI-style content
         return Array.isArray(data.content.parts) ? 
                data.content.parts.join("\n") : 
                String(data.content.parts || "");
@@ -4530,9 +4639,11 @@ function openViewerPanel(n, overrideText) {
           msg = originalData.text || "";
         }
       }
-      // DeepSeek format
+      // DeepSeek exporter format - FIXED: Only one block for deepseek
       else if (currentNodeData._format === "deepseek") {
-        if (typeof originalData.content === "object") {
+        if (typeof originalData.content === "string") {
+          msg = originalData.content;
+        } else if (typeof originalData.content === "object") {
           const parts = [];
           if (originalData.content.search_hint) parts.push(`**${originalData.content.search_hint}**`);
           if (originalData.content.thinking_chain) parts.push(`### Thoughts\n\n> ${originalData.content.thinking_chain}`);
@@ -4581,7 +4692,7 @@ function openViewerPanel(n, overrideText) {
 
     // Store data for different modes
     window.currentNodeMsg = msg;
-    window.currentNodeRawText = JSON.stringify(allOriginalData, null, 2); // Use allOriginalData instead of just originalDataObj
+    window.currentNodeRawText = JSON.stringify(allOriginalData, null, 2);
     window.currentNodeOriginalJson = allOriginalData;
 
     // Initialize with node view
