@@ -4985,33 +4985,98 @@ function openViewerPanel(n, overrideText) {
     }
   };
 
-  /* RESET LAYOUT */
-  document.getElementById("resetLayoutBtn").onclick = () => {
-    allNodes.forEach(n => {
-      n.x = n.data.originalX;
-      n.y = n.data.originalY;
-    });
+	/* SMOOTH RESET LAYOUT WITH ANIMATION */
+	document.getElementById("resetLayoutBtn").onclick = () => {
+	  // Store current positions for interpolation
+	  const originalPositionsMap = new Map();
+	  
+	  // Calculate target positions
+	  allNodes.forEach(n => {
+		originalPositionsMap.set(n, {
+		  x: n.data.originalX,
+		  y: n.data.originalY
+		});
+	  });
 
-    updatePositions();
-    updateTextPositions();
-    fitView();
-    updateMinimap();
-    clearHighlight();
-    clearSearchMatches();
-  };
+	  // Animate the transition
+	  const duration = 750; // Animation duration in milliseconds
+	  const startTime = Date.now();
+	  
+	  function animateReset() {
+		const elapsed = Date.now() - startTime;
+		const progress = Math.min(elapsed / duration, 1);
+		
+		// Use easing function for smoother animation
+		const easeProgress = easeOutCubic(progress);
+		
+		// Update all node positions with interpolation
+		allNodes.forEach(n => {
+		  const targetPos = originalPositionsMap.get(n);
+		  if (targetPos) {
+			const startX = n.x;
+			const startY = n.y;
+			
+			// Interpolate between current and target position
+			n.x = startX + (targetPos.x - startX) * easeProgress;
+			n.y = startY + (targetPos.y - startY) * easeProgress;
+			n.data.x = n.x;
+			n.data.y = n.y;
+		  }
+		});
 
-  /* FIT VIEW */
-  function fitView(){
-    if (!g || !g.node()) return;
-    const bounds = g.node().getBBox();
-    const svgEl = document.getElementById("graph");
+		// Update visual elements
+		updatePositions();
+		updateTextPositions();
+		
+		// Continue animation if not finished
+		if (progress < 1) {
+		  requestAnimationFrame(animateReset);
+		} else {
+		  // Animation complete - ensure final positions are exact
+		  allNodes.forEach(n => {
+			const targetPos = originalPositionsMap.get(n);
+			if (targetPos) {
+			  n.x = targetPos.x;
+			  n.y = targetPos.y;
+			  n.data.x = n.x;
+			  n.data.y = n.y;
+			}
+		  });
+		  
+		  // Final update
+		  updatePositions();
+		  updateTextPositions();
+		  updateMinimap();
+		  clearHighlight();
+		  clearSearchMatches();
+		}
+	  }
+	  
+	  // Start the animation
+	  requestAnimationFrame(animateReset);
+	};
 
-    const t = d3.zoomIdentity
-      .translate(svgEl.clientWidth / 2 - (bounds.x + bounds.width / 2), 80)
-      .scale(0.85);
+	/* EASING FUNCTION FOR SMOOTH ANIMATION */
+	function easeOutCubic(t) {
+	  return 1 - Math.pow(1 - t, 3);
+	}
 
-    svg.call(zoom.transform, t);
-  }
+	/* FIT VIEW WITH ANIMATION */
+	function fitView() {
+	  if (!g || !g.node()) return;
+	  const bounds = g.node().getBBox();
+	  const svgEl = document.getElementById("graph");
+
+	  const targetTransform = d3.zoomIdentity
+		.translate(svgEl.clientWidth / 2 - (bounds.x + bounds.width / 2), 80)
+		.scale(0.85);
+
+	  // Animate the transition
+	  svg.transition()
+		.duration(750)
+		.ease(d3.easeCubicOut)
+		.call(zoom.transform, targetTransform);
+	}
 
   /* MINIMAP */
   function updateMinimap(){
