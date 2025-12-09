@@ -371,6 +371,35 @@ button{
   color: var(--text-secondary);
 }
 
+
+/* =============================== */
+/*        HELP TOPICS MODAL        */
+/* =============================== */
+
+.help-topic-item:hover > div {
+  background: var(--hover-bg) !important;
+  transform: translateX(3px);
+}
+
+.help-topic-item.active > div {
+  background: rgba(16, 163, 127, 0.15) !important;
+  border-left-color: #10a37f !important;
+}
+
+#helpModal button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#helpModal #prevTopicBtn:not(:disabled):hover {
+  background: var(--hover-bg) !important;
+}
+
+#helpModal #nextTopicBtn:not(:disabled):hover {
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c) !important;
+}
+
+	
 /* =============================== */
 /*           LEFT SIDEBAR          */
 /* =============================== */
@@ -1451,6 +1480,10 @@ button{
           <input type="range" id="tooltipTimerRange" min="500" max="10000" step="500" value="2000">
           <span class="range-value" id="tooltipTimerValue">500</span>
         </label>
+		<hr style="border: none; border-top: 1px solid var(--border-color); margin: 10px 0;">
+		<div class="devToolsRow" style="justify-content: center;">
+		  <button id="showHelpBtn" style="background: linear-gradient(to right, #3B82F6, #1D4ED8); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;">Show Help Topics</button>
+		</div>
       </div>
     </div>
 
@@ -3253,6 +3286,478 @@ function convertDeepSeekChatExport(jsonArray) {
     badge.style.display = "inline-block";
   }
 
+
+	  /* =============================== */
+/*        HELP TOPICS SYSTEM       */
+/* =============================== */
+
+function initializeHelpSystem() {
+  const helpTopics = [
+    {
+      id: 'getting-started',
+      title: '🚀 Getting Started',
+      content: `
+        <h3>Welcome to Multiverse Viewer v6.0</h3>
+        <p>This tool visualizes conversation trees from various AI platforms including:</p>
+        <ul>
+          <li><strong>OpenAI ChatGPT</strong> (official export format)</li>
+          <li><strong>DeepSeek</strong> (exporter and chat formats)</li>
+          <li><strong>Claude/Anthropic</strong> conversations</li>
+          <li><strong>Grok/xAI</strong> exports</li>
+          <li><strong>Mistral AI</strong> chats</li>
+        </ul>
+        
+        <h4>Quick Start:</h4>
+        <ol>
+          <li>Click <strong>"Load Conversation JSON"</strong> to load your conversation file</li>
+          <li>Click any node in the graph to view its content</li>
+          <li>Use the right panel to view messages in different formats</li>
+          <li>Try dragging nodes around to reposition the tree</li>
+        </ol>
+        
+        <div style="background: rgba(16, 163, 127, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #10a37f;">
+          <strong>💡 Tip:</strong> You can drag and drop JSON files directly onto the "Load Conversation JSON" button!
+        </div>
+      `
+    },
+    {
+      id: 'loading-conversations',
+      title: '📁 Loading Conversations',
+      content: `
+        <h3>How to Load Conversations</h3>
+        
+        <h4>Supported Formats:</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+          <span class="format-badge format-openai">OpenAI</span>
+          <span class="format-badge format-deepseek">DeepSeek</span>
+          <span class="format-badge format-claude">Claude</span>
+          <span class="format-badge format-grok">Grok/xAI</span>
+          <span class="format-badge format-mistral">Mistral AI</span>
+          <span class="format-badge format-multi">Multi-conversation</span>
+        </div>
+        
+        <h4>Methods:</h4>
+        <ul>
+          <li><strong>Button click:</strong> Click "Load Conversation JSON" and select a file</li>
+          <li><strong>Drag & drop:</strong> Drag a JSON file onto the load button</li>
+          <li><strong>Multiple files:</strong> Load a conversations.json file with multiple conversations</li>
+        </ul>
+        
+        <h4>What Happens:</h4>
+        <ul>
+          <li>File format is automatically detected</li>
+          <li>Format badge appears in the top bar</li>
+          <li>Graph visualization is generated</li>
+          <li>For multi-conversation files, list appears in left sidebar</li>
+        </ul>
+        
+        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #3B82F6;">
+          <strong>⚠️ Note:</strong> System automatically converts all formats to a unified visualization format. Original data is preserved in "Original" view mode.
+        </div>
+      `
+    },
+    {
+      id: 'navigating-graph',
+      title: '🌳 Navigating the Graph',
+      content: `
+        <h3>Navigating the Conversation Tree</h3>
+        
+        <h4>Basic Navigation:</h4>
+        <ul>
+          <li><strong>Click a node:</strong> Selects it and shows content in right panel</li>
+          <li><strong>Drag a node:</strong> Moves the node and its entire branch</li>
+          <li><strong>Mouse wheel:</strong> Zoom in and out</li>
+          <li><strong>Drag background:</strong> Pan around the graph</li>
+          <li><strong>Double-click background:</strong> Reset zoom/pan</li>
+        </ul>
+        
+        <h4>Node Colors:</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin: 15px 0;">
+          <div style="display: flex; align-items: center;">
+            <div style="width: 20px; height: 20px; background: linear-gradient(to bottom right, #3B82F6, #1D4ED8); border-radius: 50%; margin-right: 8px;"></div>
+            <span>👤 User messages</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <div style="width: 20px; height: 20px; background: linear-gradient(to bottom right, #10B981, #0C7A5C); border-radius: 50%; margin-right: 8px;"></div>
+            <span>🤖 Assistant messages</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <div style="width: 20px; height: 20px; background: linear-gradient(to bottom right, #8B5CF6, #6D28D9); border-radius: 50%; margin-right: 8px;"></div>
+            <span>❓ Other/System messages</span>
+          </div>
+        </div>
+        
+        <h4>Special Actions:</h4>
+        <ul>
+          <li><strong>Shift + drag:</strong> Move only the selected node (without its branch)</li>
+          <li><strong>Reset Layout:</strong> Animates all nodes back to their original positions</li>
+          <li><strong>Hover over node:</strong> Shows tooltip with message preview</li>
+        </ul>
+        
+        <div style="background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #8B5CF6;">
+          <strong>💡 Pro Tip:</strong> Drag nodes to organize the tree in a way that makes sense for your analysis. The layout is saved while you work with the file.
+        </div>
+      `
+    },
+    {
+      id: 'search-features',
+      title: '🔍 Search Features',
+      content: `
+        <h3>Searching Conversations</h3>
+        
+        <h4>Search Bar (Left Sidebar):</h4>
+        <ul>
+          <li><strong>Cross-conversation search:</strong> Searches ALL loaded conversations</li>
+          <li><strong>Real-time highlighting:</strong> Matching nodes pulse with yellow glow</li>
+          <li><strong>Results panel:</strong> Shows matches with context preview</li>
+          <li><strong>Click results:</strong> Jumps to that node in the graph</li>
+        </ul>
+        
+        <h4>Search Within Branches:</h4>
+        <ul>
+          <li>When in "Branch Conversation" view, use the search box in the branch index sidebar</li>
+          <li>Searches only within the current branch</li>
+          <li>Results shown in the index with jump-to functionality</li>
+        </ul>
+        
+        <h4>Visual Indicators:</h4>
+        <ul>
+          <li><strong>Yellow pulse:</strong> Search matches on the graph</li>
+          <li><strong>Match count badge:</strong> On conversation items in sidebar</li>
+          <li><strong>Highlighted results:</strong> In search results panel</li>
+        </ul>
+        
+        <div style="background: rgba(255, 193, 7, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #ffc107;">
+          <strong>🔍 Tip:</strong> Search works across ALL conversations when you load a multi-conversation file. Click any result to switch to that conversation.
+        </div>
+      `
+    },
+    {
+      id: 'viewing-modes',
+      title: '📊 Viewing Modes',
+      content: `
+        <h3>Viewing Message Content</h3>
+        
+        <h4>Two Main Views:</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+          <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <h5 style="margin-top: 0;">📌 Node View</h5>
+            <p>Shows the content of a single selected node</p>
+            <ul style="font-size: 0.9em;">
+              <li>Focus on one message</li>
+              <li>See full content</li>
+              <li>View in different formats</li>
+            </ul>
+          </div>
+          <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <h5 style="margin-top: 0;">🌿 Branch View</h5>
+            <p>Shows the entire conversation path to the selected node</p>
+            <ul style="font-size: 0.9em;">
+              <li>Contextual conversation</li>
+              <li>Branch index sidebar</li>
+              <li>Jump between messages</li>
+            </ul>
+          </div>
+        </div>
+        
+        <h4>Content Formats (Sub-tabs):</h4>
+        <ul>
+          <li><strong>Rendered:</strong> Formatted markdown with syntax highlighting</li>
+          <li><strong>Markdown:</strong> Raw markdown source</li>
+          <li><strong>HTML:</strong> Generated HTML from markdown</li>
+          <li><strong>Original:</strong> Original JSON data structure</li>
+        </ul>
+        
+        <h4>Action Buttons:</h4>
+        <ul>
+          <li><strong>Copy:</strong> Copy content to clipboard</li>
+          <li><strong>Export:</strong> Export as HTML/Markdown/JSON file</li>
+          <li><strong>Pop-Out:</strong> Open content in separate window</li>
+          <li><strong>PDF:</strong> Generate PDF from content</li>
+        </ul>
+        
+        <div style="background: rgba(33, 150, 243, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #2196F3;">
+          <strong>💡 Tip:</strong> Use "Original" view to see the raw data structure and metadata for debugging or analysis.
+        </div>
+      `
+    },
+    {
+      id: 'branch-features',
+      title: '📋 Branch Features',
+      content: `
+        <h3>Branch Conversation View</h3>
+        
+        <h4>What is a Branch?</h4>
+        <p>A branch shows the complete conversation path from the root to the selected node, including all ancestors.</p>
+        
+        <h4>Branch Index Sidebar:</h4>
+        <ul>
+          <li>Toggle with the clipboard icon (📋) near the right panel</li>
+          <li>Shows list of all messages in the branch</li>
+          <li>Current node highlighted in green</li>
+          <li>Search within the branch using the search box</li>
+          <li>Click any item to jump to that message</li>
+        </ul>
+        
+        <h4>Navigating Branches:</h4>
+        <ul>
+          <li>Switch to "Branch Conversation" tab in right panel</li>
+          <li>Scroll through the conversation flow</li>
+          <li>Use branch index for quick navigation</li>
+          <li>Messages are color-coded by role</li>
+        </ul>
+        
+        <h4>Exporting Branches:</h4>
+        <ul>
+          <li>Export entire branch conversation as HTML/Markdown/JSON</li>
+          <li>Generate PDF of the full conversation</li>
+          <li>Pop-out branch in separate window</li>
+        </ul>
+        
+        <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #4CAF50;">
+          <strong>🌿 Tip:</strong> Use branch view to understand the full context of a response, including the conversation history that led to it.
+        </div>
+      `
+    },
+    {
+      id: 'customization',
+      title: '🎨 Customization',
+      content: `
+        <h3>Customizing Your Experience</h3>
+        
+        <h4>Themes:</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+          <div style="display: flex; align-items: center; background: #2c3e50; color: white; padding: 5px 10px; border-radius: 6px;">
+            <div style="width: 12px; height: 12px; background: #2c3e50; border-radius: 3px; margin-right: 8px;"></div>
+            Dark
+          </div>
+          <div style="display: flex; align-items: center; background: white; color: #2c3e50; padding: 5px 10px; border-radius: 6px; border: 1px solid #ccc;">
+            <div style="width: 12px; height: 12px; background: white; border-radius: 3px; border: 1px solid #ccc; margin-right: 8px;"></div>
+            Light
+          </div>
+          <div style="display: flex; align-items: center; background: #1a237e; color: white; padding: 5px 10px; border-radius: 6px;">
+            <div style="width: 12px; height: 12px; background: #1a237e; border-radius: 3px; margin-right: 8px;"></div>
+            Blue
+          </div>
+          <div style="display: flex; align-items: center; background: #1b5e20; color: white; padding: 5px 10px; border-radius: 6px;">
+            <div style="width: 12px; height: 12px; background: #1b5e20; border-radius: 3px; margin-right: 8px;"></div>
+            Green
+          </div>
+          <div style="display: flex; align-items: center; background: #4a148c; color: white; padding: 5px 10px; border-radius: 6px;">
+            <div style="width: 12px; height: 12px; background: #4a148c; border-radius: 3px; margin-right: 8px;"></div>
+            Purple
+          </div>
+        </div>
+        
+        <h4>Developer Tools (Settings):</h4>
+        <ul>
+          <li><strong>Show system nodes:</strong> Toggle visibility of system messages</li>
+          <li><strong>Auto-format detection:</strong> Automatic format recognition</li>
+          <li><strong>Show tooltips:</strong> Enable/disable hover tooltips</li>
+          <li><strong>Tooltip timer:</strong> Control how long tooltips stay visible</li>
+        </ul>
+        
+        <h4>Persistent Settings:</h4>
+        <ul>
+          <li>Themes are saved in browser storage</li>
+          <li>Developer tool settings are saved</li>
+          <li>Panel widths are remembered</li>
+        </ul>
+        
+        <div style="background: rgba(156, 39, 176, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #9C27B0;">
+          <strong>🎨 Tip:</strong> Try different themes to find what works best for your environment. Light theme is great for well-lit rooms, dark for low-light.
+        </div>
+      `
+    },
+    {
+      id: 'keyboard-shortcuts',
+      title: '⌨️ Keyboard Shortcuts',
+      content: `
+        <h3>Keyboard Shortcuts & Quick Actions</h3>
+        
+        <h4>Graph Navigation:</h4>
+        <ul>
+          <li><strong>Click node:</strong> Select and view content</li>
+          <li><strong>Drag node:</strong> Move node and its entire branch</li>
+          <li><strong>Shift + Drag node:</strong> Move only the selected node</li>
+          <li><strong>Mouse wheel:</strong> Zoom in/out</li>
+          <li><strong>Drag background:</strong> Pan around the graph</li>
+        </ul>
+        
+        <h4>Viewer Panel:</h4>
+        <ul>
+          <li><strong>Copy button:</strong> Copy content to clipboard</li>
+          <li><strong>Tab click:</strong> Switch between Node/Branch view</li>
+          <li><strong>Sub-tab click:</strong> Switch between formats</li>
+        </ul>
+        
+        <h4>Search & Navigation:</h4>
+        <ul>
+          <li><strong>Type in search box:</strong> Real-time search</li>
+          <li><strong>Click search result:</strong> Jump to node</li>
+          <li><strong>Click conversation item:</strong> Switch conversations</li>
+        </ul>
+        
+        <h4>Special Actions:</h4>
+        <ul>
+          <li><strong>Reset Layout button:</strong> Smooth animation back to original layout</li>
+          <li><strong>Close Conversation button:</strong> Clear current conversation</li>
+          <li><strong>Hover over code blocks:</strong> Show copy button</li>
+        </ul>
+        
+        <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #FF9800;">
+          <strong>⚡ Pro Tip:</strong> Hold SHIFT while dragging a node if you want to reposition only that specific node without affecting its descendants.
+        </div>
+      `
+    },
+    {
+      id: 'troubleshooting',
+      title: '❓ Troubleshooting',
+      content: `
+        <h3>Common Issues & Solutions</h3>
+        
+        <h4>File Loading Issues:</h4>
+        <ul>
+          <li><strong>Unsupported format:</strong> Ensure your JSON matches supported formats</li>
+          <li><strong>Empty file:</strong> Check file has content</li>
+          <li><strong>Invalid JSON:</strong> Validate JSON syntax</li>
+          <li><strong>Large files:</strong> Very large conversations may load slowly</li>
+        </ul>
+        
+        <h4>Graph Display Issues:</h4>
+        <ul>
+          <li><strong>Nodes overlapping:</strong> Drag nodes to space them out</li>
+          <li><strong>Can't see all nodes:</strong> Use mouse wheel to zoom out</li>
+          <li><strong>Missing nodes:</strong> Check "Show system nodes" in Developer Tools</li>
+          <li><strong>Links disconnected:</strong> Click "Reset Layout" to fix positioning</li>
+        </ul>
+        
+        <h4>Search Issues:</h4>
+        <ul>
+          <li><strong>No search results:</strong> Check spelling and try broader terms</li>
+          <li><strong>Results not highlighting:</strong> Ensure search query is in messages</li>
+          <li><strong>Can't click results:</strong> Click conversation first if in different conversation</li>
+        </ul>
+        
+        <h4>Export Issues:</h4>
+        <ul>
+          <li><strong>PDF generation fails:</strong> Try smaller content or HTML export</li>
+          <li><strong>Copy not working:</strong> Check browser clipboard permissions</li>
+          <li><strong>Export file empty:</strong> Ensure content is loaded in viewer</li>
+        </ul>
+        
+        <h4>Getting Help:</h4>
+        <ul>
+          <li>Check format requirements for your platform</li>
+          <li>Try loading sample files from the platform's export</li>
+          <li>Clear browser cache if experiencing persistent issues</li>
+          <li>Different browsers may have slightly different behaviors</li>
+        </ul>
+        
+        <div style="background: rgba(244, 67, 54, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f44336;">
+          <strong>⚠️ Important:</strong> This tool runs entirely in your browser. No data is sent to any server. All processing happens locally.
+        </div>
+      `
+    }
+  ];
+
+  // Populate topics list
+  const topicsList = document.getElementById('helpTopicsList');
+  helpTopics.forEach((topic, index) => {
+    const topicDiv = document.createElement('div');
+    topicDiv.className = 'help-topic-item';
+    topicDiv.innerHTML = `
+      <div style="padding: 10px 12px; margin: 5px 0; background: var(--card-bg); border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border-left: 3px solid transparent;" 
+           data-topic-id="${topic.id}" data-index="${index}">
+        <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${topic.title}</div>
+      </div>
+    `;
+    topicsList.appendChild(topicDiv);
+  });
+
+  // Set up topic navigation
+  let currentTopicIndex = 0;
+  
+  function showTopic(index) {
+    if (index < 0 || index >= helpTopics.length) return;
+    
+    currentTopicIndex = index;
+    const topic = helpTopics[index];
+    
+    // Update content
+    document.getElementById('helpContent').innerHTML = topic.content;
+    document.getElementById('currentTopic').textContent = topic.title;
+    
+    // Update active topic in sidebar
+    document.querySelectorAll('.help-topic-item').forEach((item, i) => {
+      const div = item.querySelector('div');
+      if (i === index) {
+        div.style.borderLeftColor = '#10a37f';
+        div.style.background = 'rgba(16, 163, 127, 0.1)';
+      } else {
+        div.style.borderLeftColor = 'transparent';
+        div.style.background = 'var(--card-bg)';
+      }
+    });
+    
+    // Update button states
+    document.getElementById('prevTopicBtn').style.opacity = index === 0 ? '0.5' : '1';
+    document.getElementById('nextTopicBtn').style.opacity = index === helpTopics.length - 1 ? '0.5' : '1';
+  }
+
+  // Event listeners
+  document.getElementById('showHelpBtn').addEventListener('click', () => {
+    document.getElementById('helpModal').style.display = 'flex';
+    showTopic(0); // Start with first topic
+  });
+
+  document.getElementById('closeHelpBtn').addEventListener('click', () => {
+    document.getElementById('helpModal').style.display = 'none';
+  });
+
+  document.getElementById('prevTopicBtn').addEventListener('click', () => {
+    if (currentTopicIndex > 0) {
+      showTopic(currentTopicIndex - 1);
+    }
+  });
+
+  document.getElementById('nextTopicBtn').addEventListener('click', () => {
+    if (currentTopicIndex < helpTopics.length - 1) {
+      showTopic(currentTopicIndex + 1);
+    }
+  });
+
+  // Topic click handlers
+  document.querySelectorAll('.help-topic-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const index = parseInt(this.querySelector('div').dataset.index);
+      showTopic(index);
+    });
+  });
+
+  // Close modal when clicking outside content
+  document.getElementById('helpModal').addEventListener('click', (e) => {
+    if (e.target.id === 'helpModal') {
+      document.getElementById('helpModal').style.display = 'none';
+    }
+  });
+
+  // Close with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('helpModal').style.display === 'flex') {
+      document.getElementById('helpModal').style.display = 'none';
+    }
+  });
+}
+
+// Initialize help system when page loads
+window.addEventListener('load', () => {
+  // Add a small delay to ensure everything else is loaded
+  setTimeout(initializeHelpSystem, 500);
+});
+
+
+	  
   /* =============================== */
   /*        AUTO-CONVERSION LOGIC    */
   /* =============================== */
@@ -5320,5 +5825,47 @@ ${bodyContent}
   // Initialize with node mode
   switchMode("node", "rendered");
   </script>
+	<!-- Help Topics Modal -->
+<div id="helpModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000000; align-items: center; justify-content: center;">
+  <div style="background: var(--bg-secondary); width: 90%; max-width: 900px; height: 80vh; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color);">
+    <!-- Modal Header -->
+    <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to right, var(--bg-primary), var(--bg-secondary));">
+      <h2 style="margin: 0; color: var(--text-primary);">Multiverse Viewer Help Guide</h2>
+      <button id="closeHelpBtn" style="background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; padding: 0 10px;">×</button>
+    </div>
+    
+    <!-- Modal Content -->
+    <div style="flex: 1; overflow: hidden; display: flex;">
+      <!-- Left Sidebar - Topics -->
+      <div style="width: 250px; background: var(--card-bg); border-right: 1px solid var(--border-color); overflow-y: auto;">
+        <div id="helpTopicsList" style="padding: 15px;">
+          <!-- Topics will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Right Content - Details -->
+      <div style="flex: 1; padding: 25px; overflow-y: auto;">
+        <div id="helpContent">
+          <h3 style="margin-top: 0; color: var(--text-primary);">Welcome to Multiverse Viewer v6.0</h3>
+          <p style="color: var(--text-secondary); line-height: 1.6;">
+            This tool helps you visualize and explore conversation trees from various AI platforms. 
+            Select a topic from the sidebar to learn more about specific features.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal Footer -->
+    <div style="padding: 15px 25px; border-top: 1px solid var(--border-color); background: var(--card-bg); display: flex; justify-content: space-between; align-items: center;">
+      <div style="color: var(--text-secondary); font-size: 13px;">
+        <span id="currentTopic">Getting Started</span>
+      </div>
+      <div>
+        <button id="prevTopicBtn" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; margin-right: 10px; cursor: pointer; font-size: 13px;">← Previous</button>
+        <button id="nextTopicBtn" style="background: linear-gradient(to right, #10a37f, #0e8e6c); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
