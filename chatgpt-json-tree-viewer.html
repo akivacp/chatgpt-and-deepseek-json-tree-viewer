@@ -4574,40 +4574,41 @@ function buildTree(json) {
   }
 
   /* DRAG BRANCH */
-	function dragBranch(event, d) {
+		function dragBranch(event, d) {
 		  isDragging = true;
-
+		
 		  const dx = event.dx;
 		  const dy = event.dy;
-
+		
 		  // Move dragged node
 		  d.x += dx;
 		  d.y += dy;
 		  d.data.x = d.x;
 		  d.data.y = d.y;
-
-		  // Only move descendants if SHIFT is pressed
-		  if (event.sourceEvent.shiftKey) {
-			shiftDescendants(d, dx, dy);
+		
+		  // MOVE DESCENDANTS BY DEFAULT (regular drag)
+		  // Only DON'T move descendants if SHIFT is pressed (Shift key overrides)
+		  if (!event.sourceEvent.shiftKey) {
+		    shiftDescendants(d, dx, dy);
 		  }
-
+		
 		  // Update node positions immediately for smooth dragging
 		  g.selectAll(".node")
-			.attr("transform", nd => `translate(${nd.x},${nd.y})`);
-
+		    .attr("transform", nd => `translate(${nd.x},${nd.y})`);
+		
 		  // Update text immediately
 		  updateTextPositions();
-
+		
 		  // Update minimap immediately
 		  updateMinimap();
-
+		
 		  // Defer link redraw to the SAME animation frame
 		  requestAnimationFrame(() => {
-			g.selectAll(".link")
-			  .attr("d", d3.linkVertical()
-				.x(l => l.x)
-				.y(l => l.y)
-			  );
+		    g.selectAll(".link")
+		      .attr("d", d3.linkVertical()
+		        .x(l => l.x)
+		        .y(l => l.y)
+		      );
 		  });
 		}
 
