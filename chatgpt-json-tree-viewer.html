@@ -2894,8 +2894,13 @@ function initializeHelpSystem() {
         return FORMATS.DEEPSEEK_CHAT_EXPORT;
       }
       if (firstItem && firstItem.mapping) {
-        return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
-      }
+		  // Check if it's DeepSeek Chat Export format
+		  const firstNode = firstItem.mapping[Object.keys(firstItem.mapping)[1]];
+		  if (firstNode && firstNode.message && firstNode.message.fragments) {
+			return FORMATS.DEEPSEEK_CHAT_EXPORT;
+		  }
+		  return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
+		}
       if (firstItem && typeof firstItem === 'object' && (firstItem.contentChunks || firstItem.role)) {
         if (json.length > 1 && json[1].role) {
           return FORMATS.CLAUDE_ANTHROPIC;
@@ -4915,6 +4920,70 @@ ${bodyContent}
 
   // Other format conversion functions would go here...
   // For brevity, I'm including simplified versions
+
+	function convertDeepSeekChatExport(deepseekArray) {
+		  const conversations = Array.isArray(deepseekArray) ? deepseekArray : [deepseekArray];
+		  const firstConv = conversations[0];
+		  
+		  if (!firstConv || !firstConv.mapping) {
+			throw new Error("Invalid DeepSeek Chat Export format");
+		  }
+		  
+		  const mapping = {};
+		  Object.keys(firstConv.mapping).forEach(key => {
+			const node = firstConv.mapping[key];
+			const msg = node.message;
+			
+			let text = "";
+			if (msg && msg.fragments && Array.isArray(msg.fragments)) {
+			  msg.fragments.forEach(frag => {
+				if (frag.content) text += frag.content + "\n";
+			  });
+			  text = text.trim();
+			}
+			
+			mapping[key] = {
+			  id: node.id,
+			  parent: node.parent,
+			  children: node.children || [],
+			  message: {
+				id: node.id,
+				author: { 
+				  role: msg?.fragments?.[0]?.type === "REQUEST" ? "user" : 
+						msg?.fragments?.[0]?.type === "RESPONSE" ? "assistant" : "unknown",
+				  name: null,
+				  metadata: {}
+				},
+				create_time: msg?.inserted_at ? new Date(msg.inserted_at).getTime() / 1000 : Date.now() / 1000,
+				content: { content_type: "text", parts: [text || "(empty)"] },
+				status: "finished_successfully",
+				metadata: { 
+				  _format: "deepseek_chat",
+				  model: msg?.model,
+				  files: msg?.files
+				},
+				weight: 1,
+				end_turn: true
+			  },
+			  _original_data: msg,
+			  _format: "deepseek_chat"
+			};
+		  });
+		  
+		  const convertedJSON = {
+			title: firstConv.title || "DeepSeek Chat",
+			create_time: firstConv.inserted_at ? new Date(firstConv.inserted_at).getTime() / 1000 : Date.now() / 1000,
+			update_time: firstConv.updated_at ? new Date(firstConv.updated_at).getTime() / 1000 : Date.now() / 1000,
+			mapping: mapping,
+			conversation_id: firstConv.id || `deepseek_chat_${Date.now()}`,
+			_original_format: "deepseek_chat",
+			_converted_at: new Date().toISOString()
+		  };
+		  
+		  return convertedJSON;
+		}
+
+
 
   function convertGrokToMultiverse(grokJson) {
     const conversations = Array.isArray(grokJson) ? grokJson : [grokJson];
