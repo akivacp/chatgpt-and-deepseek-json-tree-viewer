@@ -1,5 +1,5 @@
 
-# 🌳 ChatGPT and DeepSeek JSON Tree Viewer
+# 🌳 ChatGPT JSON Tree Viewer
 
 *A standalone, offline, multi-platform conversation explorer and branching tree visualizer.*
 
