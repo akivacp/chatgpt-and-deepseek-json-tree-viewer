@@ -3,10 +3,6 @@
 
 *A standalone, offline, multi-platform conversation explorer and branching tree visualizer.*
 
-## 🔗 Live demo:
-✅ **HTML Preview:** [Click here to run it in your browser](https://htmlpreview.github.io/?https://github.com/akivacp/chatgpt-json-tree-viewer/blob/main/chatgpt-json-tree-viewer.html)
-
----
 
 ## 📷 Screenshots
 
