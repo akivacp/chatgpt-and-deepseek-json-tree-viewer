@@ -11,7 +11,7 @@
 
 ## 🧭 Overview
 
-**ChatGPT and DeepSeek JSON Tree Viewer** is a **single-file HTML application** that loads exported AI conversation data and converts it into an **interactive branching tree**, complete with metadata inspection, Markdown rendering, multi-format compatibility, full-text search, and a developer-grade UI.
+**ChatGPT JSON Tree Viewer** is a **single-file HTML application** that loads exported AI conversation data and converts it into an **interactive branching tree**, complete with metadata inspection, Markdown rendering, multi-format compatibility, full-text search, and a developer-grade UI.
 
 Everything runs **100 percent locally**, right inside your browser.\
 No servers, no uploads, no telemetry.
