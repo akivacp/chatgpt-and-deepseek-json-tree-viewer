@@ -5,9 +5,9 @@
 
 ## Live Demo
 
-<a href="https://htmlpreview.github.io/?https://github.com/akivacp/chatgpt-json-tree-viewer/blob/main/chatgpt-json-tree-viewer.html" target="_blank" rel="noopener noreferrer">
-👉 Try the HTML viewer (opens in a new tab)
-</a>
+👉 Try the HTML viewer directly in your browser:  
+https://htmlpreview.github.io/?https://github.com/akivacp/chatgpt-json-tree-viewer/blob/main/chatgpt-json-tree-viewer.html
+
 
 
 
