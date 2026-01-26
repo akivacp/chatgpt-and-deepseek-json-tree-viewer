@@ -285,3 +285,7 @@ When loading `conversations.json`:
 
 Click **Developer Tools** to toggle advanced controls.
 
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=akivacp/chatgpt-json-tree-viewer&type=date&legend=top-left)](https://www.star-history.com/#akivacp/chatgpt-json-tree-viewer&type=date&legend=top-left)
