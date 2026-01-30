@@ -1715,6 +1715,8 @@ button{
     XAI_GROK: "xai_grok", 
     MISTRAL_AI: "mistral_ai",
     DEEPSEEK_CHAT_EXPORT: "deepseek_chat_export",
+	ZHIPU_GLM: "zhipu_glm", // Add this
+
     UNKNOWN: "unknown"
   };
 
@@ -2880,62 +2882,175 @@ function initializeHelpSystem() {
   }
 
   // FORMAT DETECTION AND CONVERSION
-  function detectFormat(json) {
-    if (json && typeof json === 'object' && json.metadata && json.metadata.platform === "DeepSeek" && Array.isArray(json.messages)) {
-      return FORMATS.DEEPSEEK_EXPORTER;
-    }
-    
-    if (Array.isArray(json) && json.length > 0) {
-      const firstItem = json[0];
-      if (firstItem.metadata && firstItem.metadata.platform === "DeepSeek") {
-        return FORMATS.DEEPSEEK_EXPORTER;
-      }
-      if (firstItem.mapping && firstItem.mapping.root && firstItem.mapping.root.message === null) {
-        return FORMATS.DEEPSEEK_CHAT_EXPORT;
-      }
-      if (firstItem && firstItem.mapping) {
-		  // Check if it's DeepSeek Chat Export format
+	  function detectFormat(json) {
+	  // Check for DeepSeek exporter format FIRST (before array check)
+	  if (json && typeof json === 'object') {
+		// Check for Zhipu/GLM format
+		if (json.chat && json.chat.history && json.chat.history.messages) {
+		  return FORMATS.ZHIPU_GLM;
+		}
+		
+		// DeepSeek Exporter format
+		if (json.metadata && json.metadata.platform === "DeepSeek" && Array.isArray(json.messages)) {
+		  return FORMATS.DEEPSEEK_EXPORTER;
+		}
+		
+		// DeepSeek Chat Export format (single object)
+		if (json.mapping && json.id) {
+		  // Check for DeepSeek Chat Export structure
+		  const firstKey = Object.keys(json.mapping)[0];
+		  if (firstKey && json.mapping[firstKey] && json.mapping[firstKey].message && json.mapping[firstKey].message.fragments) {
+			return FORMATS.DEEPSEEK_CHAT_EXPORT;
+		  }
+		}
+		
+		// OpenAI multiverse format
+		if (json.mapping && typeof json.mapping === 'object') {
+		  return FORMATS.OPENAI_MULTIVERSE;
+		}
+		
+		// Claude Anthropic format (single object)
+		if (json.contentChunks || json.role) {
+		  return FORMATS.CLAUDE_ANTHROPIC;
+		}
+		
+		// Grok/xAI format (single object)
+		if (json.conversation && json.responses) {
+		  return FORMATS.XAI_GROK;
+		}
+		
+		// Mistral AI format (single object)
+		if (json.chat_messages && json.account) {
+		  return FORMATS.MISTRAL_AI;
+		}
+	  }
+	  
+	  // Check if it's an array
+	  if (Array.isArray(json) && json.length > 0) {
+		const firstItem = json[0];
+		
+		// Check for Zhipu/GLM format
+		if (firstItem.chat && firstItem.chat.history && firstItem.chat.history.messages) {
+		  return FORMATS.ZHIPU_GLM;
+		}
+		
+		// Array of DeepSeek exporter conversations
+		if (firstItem.metadata && firstItem.metadata.platform === "DeepSeek") {
+		  return FORMATS.DEEPSEEK_EXPORTER;
+		}
+		
+		// Array of DeepSeek Chat Export conversations
+		if (firstItem.mapping && firstItem.mapping.root && firstItem.mapping.root.message === null) {
+		  return FORMATS.DEEPSEEK_CHAT_EXPORT;
+		}
+		
+		// Check if it's DeepSeek Chat Export format in array
+		if (firstItem && firstItem.mapping) {
 		  const firstNode = firstItem.mapping[Object.keys(firstItem.mapping)[1]];
 		  if (firstNode && firstNode.message && firstNode.message.fragments) {
 			return FORMATS.DEEPSEEK_CHAT_EXPORT;
 		  }
+		}
+		
+		// OpenAI conversations array
+		if (firstItem && firstItem.mapping) {
 		  return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
 		}
-      if (firstItem && typeof firstItem === 'object' && (firstItem.contentChunks || firstItem.role)) {
-        if (json.length > 1 && json[1].role) {
-          return FORMATS.CLAUDE_ANTHROPIC;
-        }
+		
+		// Claude Anthropic array
+		if (firstItem && typeof firstItem === 'object' && (firstItem.contentChunks || firstItem.role)) {
+		  if (json.length > 1 && json[1].role) {
+			return FORMATS.CLAUDE_ANTHROPIC;
+		  }
+		  return FORMATS.CLAUDE_ANTHROPIC;
+		}
+		
+		// Grok/xAI array
+		if (firstItem.conversation && firstItem.responses) {
+		  return FORMATS.XAI_GROK;
+		}
+		
+		// Mistral AI array
+		if (firstItem.chat_messages && firstItem.account) {
+		  return FORMATS.MISTRAL_AI;
+		}
+	  }
+	  
+	  // Try to find conversation in nested structure
+	  const found = findConversationInJSON(json);
+	  if (found) return FORMATS.OPENAI_MULTIVERSE;
+	  
+	  return FORMATS.UNKNOWN;
+	}
+
+
+function convertDeepSeekToMultiverse(deepseekJson) {
+  const mapping = {};
+  const messages = deepseekJson.messages || [];
+  
+  // Create a simple linear chain for DeepSeek conversations
+  messages.forEach((msg, index) => {
+    const nodeId = `msg_${index}`;
+    const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
+    const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
+    
+    // Extract content
+    let contentText = "";
+    if (msg.role === "user") {
+      contentText = msg.content || "";
+    } else if (msg.role === "assistant") {
+      if (typeof msg.content === "object") {
+        contentText = msg.content.final_answer || 
+                     (msg.content.thinking_chain ? 
+                       `${msg.content.thinking_chain}\n\n${msg.content.final_answer || ""}` : 
+                       "");
+      } else {
+        contentText = msg.content || "";
       }
-      if (firstItem.conversation && firstItem.responses) {
-        return FORMATS.XAI_GROK;
-      }
-      if (firstItem.chat_messages && firstItem.account) {
-        return FORMATS.MISTRAL_AI;
-      }
     }
     
-    if (json && typeof json === 'object' && json.mapping && typeof json.mapping === 'object') {
-      return FORMATS.OPENAI_MULTIVERSE;
-    }
-    
-    if (findConversationInJSON(json)) {
-      return FORMATS.OPENAI_MULTIVERSE;
-    }
-    
-    if (json && typeof json === 'object' && (json.contentChunks || json.role)) {
-      return FORMATS.CLAUDE_ANTHROPIC;
-    }
-    
-    if (json && typeof json === 'object' && json.conversation && json.responses) {
-      return FORMATS.XAI_GROK;
-    }
-    
-    if (json && typeof json === 'object' && json.chat_messages && json.account) {
-      return FORMATS.MISTRAL_AI;
-    }
-    
-    return FORMATS.UNKNOWN;
-  }
+    mapping[nodeId] = {
+      id: nodeId,
+      parent: prevNodeId,
+      children: nextNodeId ? [nextNodeId] : [],
+      message: {
+        id: nodeId,
+        author: {
+          role: msg.role,
+          name: null,
+          metadata: {}
+        },
+        create_time: msg.timestamp ? new Date(msg.timestamp).getTime() / 1000 : Date.now() / 1000,
+        content: {
+          content_type: "text",
+          parts: [contentText]
+        },
+        status: "finished_successfully",
+        metadata: {},
+        weight: 1,
+        end_turn: true
+      },
+      _original_data: msg,
+      _format: "deepseek"
+    };
+  });
+  
+  convertedJSON = {
+    title: deepseekJson.metadata?.title || "DeepSeek Conversation",
+    create_time: deepseekJson.metadata?.extracted_at ? 
+                 new Date(deepseekJson.metadata.extracted_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    update_time: deepseekJson.metadata?.extracted_at ? 
+                 new Date(deepseekJson.metadata.extracted_at).getTime() / 1000 : 
+                 Date.now() / 1000,
+    mapping: mapping,
+    conversation_id: deepseekJson.metadata?.url?.split('/').pop() || "deepseek_chat",
+    _original_format: "deepseek",
+    _converted_at: new Date().toISOString()
+  };
+  
+  return convertedJSON;
+}
 
   function formatToMultiverse(json, format) {
     originalJSON = json;
@@ -2985,6 +3100,23 @@ function initializeHelpSystem() {
         if (!found) throw new Error("Could not find conversation in OpenAI format");
         convertedJSON = sanitizeConversation(found);
         return convertedJSON;
+        
+        
+         case FORMATS.ZHIPU_GLM:
+			  if (Array.isArray(json) && json.length > 0 && json[0].chat && json[0].chat.history) {
+				conversationsList = extractConversationsFromArray(json, format);
+				updateFormatBadge(format);
+				if (conversationsList.length > 0) {
+				  updateConversationsList();
+				  const firstConv = sanitizeConversation(conversationsList[0].data);
+				  convertedJSON = firstConv;
+				  currentConversationIndex = 0;
+				  return firstConv;
+				}
+			  }
+			  return convertGLMToMultiverse(json);
+				
+        
         
       case FORMATS.DEEPSEEK_EXPORTER:
         if (Array.isArray(json) && json.length > 0 && json[0].metadata && json[0].metadata.platform === "DeepSeek") {
@@ -3148,6 +3280,13 @@ function initializeHelpSystem() {
         badge.textContent = "Grok/xAI";
         badge.style.background = "linear-gradient(to right, #f97316, #ea580c)";
         break;
+        
+		case FORMATS.ZHIPU_GLM:
+      badge.textContent = "GLM/Zhipu AI";
+      badge.style.background = "linear-gradient(to right, #0099ff, #0066cc)";
+      break;
+      
+      
       case FORMATS.MISTRAL_AI:
         badge.textContent = "Mistral AI";
         badge.style.background = "linear-gradient(to right, #8b5cf6, #7c3aed)";
@@ -4693,6 +4832,16 @@ ${bodyContent}
           conversationId = conv.id || `deepseek_${index}`;
           break;
           
+          
+		case FORMATS.ZHIPU_GLM:
+		  if (!conv || !conv.chat || !conv.chat.history) return;
+		  conversationData = convertGLMToMultiverse([conv]);
+		  title = conv.title || conv.chat?.title || `GLM Conversation ${index + 1}`;
+		  createTime = conv.created_at || conv.timestamp || Date.now() / 1000;
+		  messageCount = conv.chat.history.messages ? Object.keys(conv.chat.history.messages).length : 0;
+		  conversationId = conv.id || `glm_${index}`;
+		  break;
+          
         case FORMATS.DEEPSEEK_EXPORTER:
           if (!conv || !conv.messages) return;
           conversationData = convertDeepSeekToMultiverse(conv);
@@ -4920,6 +5069,9 @@ ${bodyContent}
 
   // Other format conversion functions would go here...
   // For brevity, I'm including simplified versions
+  
+  
+  
 
 	function convertDeepSeekChatExport(deepseekArray) {
 		  const conversations = Array.isArray(deepseekArray) ? deepseekArray : [deepseekArray];
@@ -4979,10 +5131,73 @@ ${bodyContent}
 			_original_format: "deepseek_chat",
 			_converted_at: new Date().toISOString()
 		  };
+			  
+			  return convertedJSON;
+			}
+			
+			//QWEN AI!!!
+		function convertGLMToMultiverse(glmArray) {
+		  const conversations = Array.isArray(glmArray) ? glmArray : [glmArray];
+		  const firstConv = conversations[0];
+		  
+		  if (!firstConv || !firstConv.chat || !firstConv.chat.history || !firstConv.chat.history.messages) {
+			throw new Error("Invalid GLM/Zhipu AI format");
+		  }
+		  
+		  const messages = firstConv.chat.history.messages;
+		  const mapping = {};
+		  
+		  // First, create all nodes
+		  Object.keys(messages).forEach(messageId => {
+			const msg = messages[messageId];
+			
+			mapping[messageId] = {
+			  id: messageId,
+			  parent: msg.parentId,
+			  children: msg.childrenIds || [],
+			  message: {
+				id: messageId,
+				author: {
+				  role: msg.role || "unknown",
+				  name: null,
+				  metadata: {}
+				},
+				create_time: msg.timestamp || Date.now() / 1000,
+				content: {
+				  content_type: "text",
+				  parts: [msg.content || ""]
+				},
+				status: msg.done ? "finished_successfully" : "in_progress",
+				metadata: {
+				  _format: "glm",
+				  model: msg.model || msg.models?.[0],
+				  modelName: msg.modelName,
+				  usage: msg.usage,
+				  timestamp: msg.timestamp
+				},
+				weight: 1,
+				end_turn: true
+			  },
+			  _original_data: msg,
+			  _format: "glm"
+			};
+		  });
+		  
+		  // Find root node (has parentId === null)
+		  const rootIds = Object.keys(mapping).filter(id => mapping[id].parent === null);
+		  
+		  const convertedJSON = {
+			title: firstConv.title || firstConv.chat?.title || "GLM Conversation",
+			create_time: firstConv.created_at || firstConv.timestamp || Date.now() / 1000,
+			update_time: firstConv.updated_at || firstConv.timestamp || Date.now() / 1000,
+			mapping: mapping,
+			conversation_id: firstConv.id || `glm_${Date.now()}`,
+			_original_format: "glm",
+			_converted_at: new Date().toISOString()
+		  };
 		  
 		  return convertedJSON;
 		}
-
 
 
   function convertGrokToMultiverse(grokJson) {
