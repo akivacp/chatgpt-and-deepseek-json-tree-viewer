@@ -53,8 +53,6 @@ It reconstructs:
 - Conversation titles
 - Linear or branching structure
 
-If needed, you can disable auto-detection in **Developer Tools**.
-
 ---
 
 ### 🌳 **Interactive Graph Viewer**
