@@ -138,9 +138,7 @@ Users can switch seamlessly between:
 
 - **Dark** (default)
 - **Light**
-- **Blue**
-- **Green**
-- **Purple**
+
 
 Themes apply to:
 
