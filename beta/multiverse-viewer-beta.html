@@ -528,13 +528,31 @@ body {
   border-top: 1px solid var(--border-color);
   font-size: 11px; color: var(--text-muted);
   font-family: var(--font-mono); flex-shrink: 0;
+  display: none; max-height: 220px; overflow: hidden;
   display: none;
 }
-.meta-bar.visible { display: block; }
-.meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.meta-bar.visible { display: flex; flex-direction: column; }
+.meta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.meta-row:last-child { margin-bottom: 0; }
 .meta-kv { display: flex; gap: 4px; }
 .meta-key { color: var(--text-muted); }
 .meta-val { color: var(--accent-teal); }
+.meta-levels { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; border-top: 1px solid var(--border-color); padding-top: 6px; max-height: 140px; overflow-y: auto; }
+.meta-level-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 6px; border-radius: 3px;
+  cursor: pointer; transition: background var(--transition);
+}
+.meta-level-row:hover { background: var(--bg-hover); }
+.meta-level-row.current { background: rgba(0,212,170,0.08); }
+.meta-level-label { color: var(--text-muted); min-width: 52px; }
+.meta-level-pos { color: var(--accent-teal); font-weight: 600; }
+.meta-level-bar {
+  flex: 1; height: 4px; background: var(--border-color);
+  border-radius: 99px; overflow: hidden; max-width: 80px;
+}
+.meta-level-fill { height: 100%; background: var(--accent-teal); border-radius: 99px; }
+.meta-level-preview { color: var(--text-muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
 
 /* Node info header */
 .node-header {
@@ -1049,6 +1067,7 @@ body {
             <div class="content-scroll code-view" id="content-json" style="display:none"></div>
             <div class="meta-bar" id="meta-bar">
               <div class="meta-row" id="meta-row"></div>
+              <div class="meta-levels" id="meta-levels" style="display:none"></div>
             </div>
           </div>
         </div>
@@ -2040,13 +2059,82 @@ function showNodeContent(nodeId) {
   // Metadata
   const msg = node.message;
   const metaItems = [];
-  if (msg.create_time) metaItems.push({ k: 'time', v: new Date(msg.create_time * 1000 || msg.create_time).toLocaleString() });
+  if (msg.create_time) metaItems.push({ k: 'time', v: new Date(msg.create_time > 1e10 ? msg.create_time : msg.create_time * 1000).toLocaleString() });
   if (msg.metadata?.model) metaItems.push({ k: 'model', v: msg.metadata.model });
   if (node.parent) metaItems.push({ k: 'parent', v: node.parent.slice(0, 12) });
   if (node.children?.length) metaItems.push({ k: 'children', v: node.children.length });
   const metaRow = document.getElementById('meta-row');
   metaRow.innerHTML = metaItems.map(m => `<div class="meta-kv"><span class="meta-key">${m.k}:</span><span class="meta-val">${m.v}</span></div>`).join('');
+
+  // Level chain — BFS to find all nodes at each depth, then walk the path
+  const metaLevels = document.getElementById('meta-levels');
+  metaLevels.innerHTML = '';
+
+  // Build depth map for full conversation
+  const depthNodes = new Map(); // depth -> [{id, node}]
+  const depthOf = new Map();
+  const bfsQueue = [{ id: 'root', depth: -1 }];
+  while (bfsQueue.length) {
+    const { id, depth } = bfsQueue.shift();
+    const n = conv.data.mapping[id];
+    if (!n) continue;
+    const myDepth = n.message ? depth + 1 : depth;
+    if (n.message) {
+      if (!depthNodes.has(myDepth)) depthNodes.set(myDepth, []);
+      depthNodes.get(myDepth).push(id);
+      depthOf.set(id, myDepth);
+    }
+    (n.children || []).forEach(cId => bfsQueue.push({ id: cId, depth: myDepth }));
+  }
+
+  // Walk the path from root to selected node
+  const pathIds = [];
+  let cur = nodeId;
+  while (cur && cur !== 'root') {
+    const n = conv.data.mapping[cur];
+    if (!n) break;
+    if (n.message) pathIds.unshift(cur);
+    cur = n.parent;
+  }
+
+  if (pathIds.length) {
+    metaLevels.style.display = '';
+    pathIds.forEach((pid, i) => {
+      const n = conv.data.mapping[pid];
+      const depth = depthOf.get(pid);
+      const siblings = depthNodes.get(depth) || [];
+      const pos = siblings.indexOf(pid) + 1;
+      const total = siblings.length;
+      const isCurrent = pid === nodeId;
+      const preview = getNodeText(n).slice(0, 40).replace(/\n/g, ' ') + (getNodeText(n).length > 40 ? '…' : '');
+      const pct = total > 1 ? Math.round((pos / total) * 100) : 100;
+
+      const row = document.createElement('div');
+      row.className = `meta-level-row${isCurrent ? ' current' : ''}`;
+      row.innerHTML = `
+        <span class="meta-level-label">level ${depth}</span>
+        <span class="meta-level-pos">${pos}/${total}</span>
+        <span class="meta-level-preview">${escapeHtml(preview)}</span>
+      `;
+      row.addEventListener('click', () => {
+        // Select node without rebuilding branch
+        state.selectedNodeId = pid;
+        updateNodeHighlights();
+        showNodeContent(pid);
+        scrollToNode(pid);
+        // Refresh branch index selection
+        document.querySelectorAll('.branch-msg-item').forEach(el => {
+          el.classList.toggle('selected', el.dataset.nodeId === pid);
+        });
+      });
+      metaLevels.appendChild(row);
+    });
+  } else {
+    metaLevels.style.display = 'none';
+  }
+
   document.getElementById('meta-bar').className = `meta-bar${state.showMeta ? ' visible' : ''}`;
+  if (state.showMeta) setTimeout(() => document.getElementById('meta-levels')?.querySelector('.current')?.scrollIntoView({ block: 'nearest' }), 0);
 
   applyViewMode();
 }
@@ -2313,25 +2401,59 @@ function updateBranchIndex() {
     current = node.parent;
   }
 
+  // BFS to compute depth and position-at-level for every node in the tree
+  const depthNodes = new Map(); // depth -> [nodeId, ...]
+  const depthOf = new Map();    // nodeId -> depth
+  const queue = [{ id: 'root', depth: -1 }];
+  while (queue.length) {
+    const { id, depth } = queue.shift();
+    const n = conv.data.mapping[id];
+    if (!n) continue;
+    const myDepth = n.message ? depth + 1 : depth;
+    if (n.message) {
+      if (!depthNodes.has(myDepth)) depthNodes.set(myDepth, []);
+      depthNodes.get(myDepth).push(id);
+      depthOf.set(id, myDepth);
+    }
+    (n.children || []).forEach(cId => queue.push({ id: cId, depth: myDepth }));
+  }
+
   const list = document.getElementById('branch-list');
   const filter = document.getElementById('branch-index-search').value.toLowerCase();
   list.innerHTML = '';
   path.filter(n => !filter || getNodeText(n).toLowerCase().includes(filter)).forEach(node => {
     const role = getNodeRole(node);
     const text = getNodeText(node);
+    const depth = depthOf.get(node.id);
+    const siblings = depthNodes.get(depth) || [];
+    const posInLevel = siblings.indexOf(node.id) + 1;
+    const totalAtLevel = siblings.length;
+    const levelLabel = depth !== undefined ? `${depth},${posInLevel}/${totalAtLevel}` : '';
     const item = document.createElement('div');
     item.className = `branch-msg-item${node.id === nodeId ? ' selected' : ''}`;
+    item.dataset.nodeId = node.id;
+    const roleColor = role === 'user' ? 'var(--accent-blue)' : role === 'assistant' ? 'var(--accent-green)' : 'var(--text-muted)';
     item.innerHTML = `
-      <div class="bm-role" style="color:${role==='user'?'var(--accent-blue)':role==='assistant'?'var(--accent-green)':'var(--text-muted)'}">${role}</div>
-      <div class="bm-preview">${text.slice(0,80)}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+        <span class="bm-role" style="color:${roleColor}">${role}</span>
+        ${levelLabel ? `<span style="font-size:9px;font-family:var(--font-mono);color:var(--accent-teal);background:rgba(0,212,170,0.1);padding:1px 4px;border-radius:3px;margin-left:auto">${levelLabel}</span>` : ''}
+      </div>
+      <div class="bm-preview">${text.slice(0, 80)}</div>
     `;
     item.addEventListener('click', () => {
-      selectNode(node.id);
+      // Update selection and graph highlights without replacing the branch view
+      state.selectedNodeId = node.id;
+      updateNodeHighlights();
+      showNodeContent(node.id);
+      // Refresh index highlights without re-rendering branch content
+      list.querySelectorAll('.branch-msg-item').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
       scrollToNode(node.id);
     });
     list.appendChild(item);
   });
 }
+
 
 function scrollToNode(nodeId, zoomIn = false) {
   const g = getNodeGElement(nodeId);
@@ -3777,6 +3899,7 @@ document.getElementById('btn-pdf').addEventListener('click', async () => {
 document.getElementById('btn-toggle-meta').addEventListener('click', () => {
   state.showMeta = !state.showMeta;
   document.getElementById('meta-bar').className = `meta-bar${state.showMeta ? ' visible' : ''}`;
+  if (state.showMeta) setTimeout(() => document.getElementById('meta-levels')?.querySelector('.current')?.scrollIntoView({ block: 'nearest' }), 0);
 });
 
 function setHighlight(on) {
