@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Multiverse Viewer v6.0</title>
+<title>Multiverse Viewer v6.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -760,6 +760,21 @@ body {
   color: var(--text-primary);
 }
 
+/* Changelog */
+.cl-version { padding: 20px 24px 0; }
+.cl-version:last-child { padding-bottom: 24px; }
+.cl-version + .cl-version { border-top: 1px solid var(--border-color); margin-top: 4px; }
+.cl-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.cl-tag { font-size: 13px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-teal); background: rgba(0,212,170,0.1); padding: 2px 8px; border-radius: 4px; }
+.cl-tag.latest { background: var(--accent-teal); color: #000; }
+.cl-date { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.cl-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.cl-item { display: flex; gap: 8px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.cl-item::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--border-light); margin-top: 8px; flex-shrink: 0; }
+.cl-item.new::before { background: var(--accent-green); }
+.cl-item.fix::before { background: var(--accent-yellow); }
+.cl-item.change::before { background: var(--accent-blue); }
+
 /* Settings modal */
 .settings-body { padding: 20px; overflow-y: auto; }
 .setting-group { margin-bottom: 20px; }
@@ -878,7 +893,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       Multiverse Viewer
-      <span class="logo-version">v6.0</span>
+      <span class="logo-version">v6.1</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1223,7 +1238,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>Multiverse Viewer v6.0 — Help</h2>
+      <h2>Multiverse Viewer v6.1 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1236,7 +1251,7 @@ body {
         <button id="help-search-clear" style="display:none;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;">✕</button>
       </div>
       <div style="display:flex;flex:1;overflow:hidden;">
-        <div class="help-sidebar" id="help-sidebar"></div>
+        <div class="help-sidebar" id="help-nav"></div>
         <div class="help-content" id="help-content"></div>
       </div>
     </div>
@@ -3129,7 +3144,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>Multiverse Viewer v6.0</h2>
+    <h2>Multiverse Viewer v6.1</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -3554,10 +3569,11 @@ const helpTopics = [
     <h3>All libraries are loaded via CDN</h3>
     <p>All third-party code is loaded from <code>cdnjs.cloudflare.com</code> and <code>fonts.googleapis.com</code>. No code is bundled or modified. The viewer requires an internet connection on first load for these resources; once cached by the browser, it works offline.</p>
   `},
+  { id: 'changelog', label: '🆕 What\'s New', content: '__changelog__' },
 ];
 
 function buildHelp() {
-  const sidebar = document.getElementById('help-sidebar');
+  const sidebar = document.getElementById('help-nav');
   const content = document.getElementById('help-content');
   if (sidebar._built) return; // only build once
   sidebar._built = true;
@@ -3566,8 +3582,22 @@ function buildHelp() {
   sidebar.innerHTML = helpTopics.map((t, i) => `<button class="help-topic-btn${i === 0 ? ' active' : ''}" data-topic="${t.id}">${t.label}</button>`).join('');
 
   // Content sections + search results container
+  const changelogHtml = changelog.map(v => `
+    <div class="cl-version">
+      <div class="cl-header">
+        <span class="cl-tag${v.latest ? ' latest' : ''}">${v.version}</span>
+        <span class="cl-date">${v.date}</span>
+        ${v.latest ? '<span style="font-size:10px;color:var(--accent-teal);font-weight:600">LATEST</span>' : ''}
+      </div>
+      <ul class="cl-items">${v.items.map(i => `<li class="cl-item ${i.type}">${i.text}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+
   content.innerHTML = `<div id="help-search-results" class="help-search-results"></div>` +
-    helpTopics.map((t, i) => `<div class="help-section${i === 0 ? ' active' : ''}" id="help-${t.id}">${t.content}</div>`).join('');
+    helpTopics.map((t, i) => {
+      const body = t.content === '__changelog__' ? changelogHtml : t.content;
+      return `<div class="help-section${i === 0 ? ' active' : ''}" id="help-${t.id}">${body}</div>`;
+    }).join('');
 
   // Sidebar navigation
   sidebar.querySelectorAll('.help-topic-btn').forEach(btn => {
@@ -4135,7 +4165,7 @@ document.getElementById('btn-reset-layout').addEventListener('click', resetLayou
 // Modals
 document.getElementById('btn-settings').addEventListener('click', () => { buildSettings(); openModal('modal-settings'); });
 document.getElementById('btn-help').addEventListener('click', () => {
-  const sidebar = document.getElementById('help-sidebar');
+  const sidebar = document.getElementById('help-nav');
   sidebar._built = false; // allow rebuild each open so search resets
   buildHelp();
   openModal('modal-help');
@@ -4242,7 +4272,56 @@ document.addEventListener('keydown', e => {
 // Init
 renderConvList();
 renderGraph(null);
-console.log('Multiverse Viewer v6.0 loaded. Drop a JSON file to get started.');
+
+// ============================================================
+// CHANGELOG
+// ============================================================
+const changelog = [
+  {
+    version: 'v6.1', date: '2025-05-03', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Changelog modal</strong> — "What\'s New" button in topbar showing full version history' },
+      { type: 'new', text: '<strong>Branch Index levels</strong> — each entry now shows depth and position-at-level (e.g. <code>5,12/13</code>)' },
+      { type: 'change', text: '<strong>Branch Index click</strong> — clicking an entry no longer rebuilds the branch view; keeps current path open' },
+      { type: 'new', text: '<strong>Metadata level chain</strong> — M toggle now shows every ancestor level with depth, pos/total, and message preview; levels are scrollable and auto-scroll to current; clicking any row jumps to that node without closing the branch' },
+      { type: 'new', text: '<strong>Load dialog</strong> — loading files when conversations are already present now asks to add to project or start fresh' },
+      { type: 'new', text: '<strong>Start Over / Restore All</strong> — context menu gains "Restore All" (unhides Show Only convs) and "Start Over" (resets all convs to original loaded state including deleted ones)' },
+      { type: 'fix', text: '<strong>Deleted conversations</strong> — Delete Conv now stashes to a recovery pool; Start Over brings them back' },
+      { type: 'new', text: '<strong>Unload All</strong> — clears all three conversation pools (visible, hidden, deleted)' },
+      { type: 'new', text: '<strong>GitHub signature</strong> — topbar link to chatgpt-json-tree-viewer repo' },
+      { type: 'new', text: '<strong>License & Credits topic</strong> in Help — lists MIT license, all third-party libraries with versions, and fonts' },
+      { type: 'change', text: '<strong>Help guide</strong> — fully rewritten with 14 detailed topics, search/index with match highlighting, and result cards' },
+      { type: 'fix', text: '<strong>Metadata bar scrolling</strong> — levels list now scrollable; outer container properly bounded' },
+    ]
+  },
+  {
+    version: 'v6.0', date: '2025-05-01',
+    items: [
+      { type: 'new', text: '<strong>Branch view filters</strong> — search bar, Show/Hide role pills, Search-in scope pills' },
+      { type: 'new', text: '<strong>Branch view modes</strong> — Rendered / Markdown / HTML / JSON with per-mode export' },
+      { type: 'new', text: '<strong>Branch pop-out</strong> — opens full thread in new tab with role-colored shading' },
+      { type: 'new', text: '<strong>Per-message copy</strong> — copy button on each branch message card' },
+      { type: 'new', text: '<strong>Node right-click menu</strong> — Copy Message, Select & View, Delete Node' },
+      { type: 'new', text: '<strong>GPT↓ export</strong> — download current conversation as OpenAI conversations.json' },
+      { type: 'new', text: '<strong>Export All</strong> — export entire project as single OpenAI JSON array' },
+      { type: 'new', text: '<strong>Search result cards</strong> — show depth, timestamp, breadcrumb, and node ID' },
+      { type: 'new', text: '<strong>Search persists</strong> — results stay open after clicking a result' },
+      { type: 'new', text: '<strong>Zoom to search result</strong> — clicking result pans and zooms graph to node' },
+      { type: 'new', text: '<strong>H highlight toggle</strong> — toggle search term highlighting in node and branch panels' },
+      { type: 'new', text: '<strong>Node location bar</strong> — depth, timestamp, and breadcrumb shown in selected node header' },
+      { type: 'new', text: '<strong>Branch message location</strong> — depth, timestamp, breadcrumb in each branch card' },
+      { type: 'new', text: '<strong>Minimap toggle</strong> — hide/show with button; Ctrl+drag to reposition' },
+      { type: 'new', text: '<strong>Role-colored branch cards</strong> — distinct tinted backgrounds per message role' },
+      { type: 'new', text: '<strong>Branch index levels</strong> — depth position badge on each branch index row' },
+      { type: 'new', text: '<strong>Unload All</strong> — top bar button to clear all conversations' },
+      { type: 'new', text: '<strong>YYYY-MM-DD dates</strong> — sidebar sorts by latest message timestamp' },
+      { type: 'fix', text: '<strong>DeepSeek chat-array format</strong> — fixed detection and content extraction for fragment-based format' },
+      { type: 'change', text: '<strong>Context menu</strong> — now clamps to screen bounds so items are always clickable' },
+    ]
+  },
+];
+
+console.log('Multiverse Viewer v6.1 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
