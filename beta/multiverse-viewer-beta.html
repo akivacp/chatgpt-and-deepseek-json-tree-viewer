@@ -1,0 +1,4070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiverse Viewer v6.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg-primary: #0d0f14;
+  --bg-secondary: #141720;
+  --bg-tertiary: #1a1e2a;
+  --bg-panel: #111318;
+  --bg-hover: #1e2333;
+  --bg-active: #242840;
+  --border-color: #2a2f42;
+  --border-light: #333850;
+  --text-primary: #e8eaf0;
+  --text-secondary: #9096b0;
+  --text-muted: #5a6080;
+  --accent-teal: #00d4aa;
+  --accent-teal-dim: #00a882;
+  --accent-blue: #4a9eff;
+  --accent-green: #4ade80;
+  --accent-purple: #a855f7;
+  --accent-pink: #f472b6;
+  --accent-yellow: #fbbf24;
+  --accent-red: #ef4444;
+  --node-user: linear-gradient(135deg, #1e40af, #3b82f6);
+  --node-user-border: #60a5fa;
+  --node-assistant: linear-gradient(135deg, #166534, #22c55e);
+  --node-assistant-border: #4ade80;
+  --node-system-border: #6b7280;
+  --node-other: linear-gradient(135deg, #6b21a8, #a855f7);
+  --node-other-border: #c084fc;
+  --scrollbar-width: 6px;
+  --scrollbar-color: #00d4aa;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --transition: 0.2s ease;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-ui: 'DM Sans', 'Outfit', system-ui, sans-serif;
+  --font-content: 'Literata', 'Georgia', serif;
+}
+[data-theme="light"] {
+  --bg-primary: #f0f2f8;
+  --bg-secondary: #e8eaf2;
+  --bg-tertiary: #dde0ee;
+  --bg-panel: #f5f6fc;
+  --bg-hover: #e0e3f0;
+  --bg-active: #d4d8ed;
+  --border-color: #c8cce0;
+  --border-light: #b8bcda;
+  --text-primary: #1a1d2e;
+  --text-secondary: #4a5080;
+  --text-muted: #8090b0;
+}
+[data-theme="blue"] {
+  --bg-primary: #060d1a;
+  --bg-secondary: #0a1525;
+  --bg-tertiary: #0e1c30;
+  --bg-panel: #08111f;
+  --bg-hover: #132238;
+  --bg-active: #1a2e4a;
+  --border-color: #1a3050;
+  --border-light: #224060;
+  --text-primary: #d0e8ff;
+  --text-secondary: #7090b8;
+  --accent-teal: #00aaff;
+  --accent-teal-dim: #0088cc;
+}
+[data-theme="green"] {
+  --bg-primary: #061008;
+  --bg-secondary: #0a1a0c;
+  --bg-tertiary: #0e2210;
+  --bg-panel: #081208;
+  --bg-hover: #132818;
+  --bg-active: #1a3820;
+  --border-color: #1a3820;
+  --border-light: #224830;
+  --text-primary: #d0ffd8;
+  --text-secondary: #70b880;
+  --accent-teal: #00ff88;
+  --accent-teal-dim: #00cc66;
+}
+[data-theme="purple"] {
+  --bg-primary: #0d080f;
+  --bg-secondary: #130c1a;
+  --bg-tertiary: #1a1025;
+  --bg-panel: #100a14;
+  --bg-hover: #1e1430;
+  --bg-active: #281a40;
+  --border-color: #2a1840;
+  --border-light: #382255;
+  --text-primary: #ead0ff;
+  --text-secondary: #9070b8;
+  --accent-teal: #cc88ff;
+  --accent-teal-dim: #aa66dd;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+*::-webkit-scrollbar { width: var(--scrollbar-width); height: var(--scrollbar-width); }
+*::-webkit-scrollbar-track { background: var(--bg-secondary); }
+*::-webkit-scrollbar-thumb { background: var(--scrollbar-color); border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--accent-teal); }
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background var(--transition), color var(--transition);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Literata:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ===== LAYOUT ===== */
+#app { display: flex; flex-direction: column; height: 100vh; }
+#topbar {
+  display: flex; align-items: center; gap: 8px;
+  height: 48px; padding: 0 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 100; flex-shrink: 0;
+}
+#main { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+/* Sidebar left */
+#sidebar-left {
+  width: 260px; min-width: 160px; max-width: 400px;
+  display: flex; flex-direction: column;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  overflow: hidden; flex-shrink: 0;
+}
+#sidebar-left.collapsed { width: 0; min-width: 0; }
+
+/* Center graph */
+#graph-area {
+  flex: 1; position: relative; overflow: hidden;
+  background: var(--bg-primary);
+  background-image: radial-gradient(circle at 1px 1px, var(--border-color) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
+/* Right panel */
+#panel-right {
+  width: 380px; min-width: 220px; max-width: 600px;
+  display: flex; flex-direction: column;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-color);
+  overflow: hidden; flex-shrink: 0;
+}
+#panel-right.collapsed { width: 0; min-width: 0; }
+
+/* Resize handles */
+.resize-handle {
+  width: 4px; cursor: col-resize;
+  background: transparent;
+  transition: background var(--transition);
+  z-index: 10; flex-shrink: 0;
+  position: relative;
+}
+.resize-handle:hover, .resize-handle.dragging { background: var(--accent-teal); }
+.resize-handle::after {
+  content: ''; position: absolute;
+  top: 0; left: -6px; right: -6px; bottom: 0;
+}
+
+/* ===== TOPBAR ===== */
+#logo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 700; font-size: 15px; color: var(--accent-teal);
+  white-space: nowrap;
+}
+#logo svg { width: 22px; height: 22px; }
+.logo-version {
+  font-size: 10px; color: var(--text-muted);
+  font-weight: 400; font-family: var(--font-mono);
+  background: var(--bg-tertiary); padding: 2px 5px; border-radius: 4px;
+}
+.topbar-sep { flex: 1; }
+.topbar-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--radius-sm);
+  background: transparent; border: 1px solid var(--border-color);
+  color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; font-family: var(--font-ui);
+  transition: all var(--transition); white-space: nowrap;
+}
+.topbar-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-light); }
+.topbar-btn.primary { background: var(--accent-teal); color: #000; border-color: var(--accent-teal); font-weight: 600; }
+.topbar-btn.primary:hover { background: var(--accent-teal-dim); border-color: var(--accent-teal-dim); }
+.topbar-btn svg { width: 14px; height: 14px; }
+#file-input { display: none; }
+
+/* Theme buttons */
+#theme-picker { display: flex; gap: 4px; align-items: center; }
+.theme-dot {
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all var(--transition);
+}
+.theme-dot:hover, .theme-dot.active { border-color: var(--text-primary); transform: scale(1.2); }
+.theme-dot.t-dark { background: #1a1e2a; }
+.theme-dot.t-light { background: #e8eaf2; }
+.theme-dot.t-blue { background: #0a1525; border-color: #224060; }
+.theme-dot.t-green { background: #0a1a0c; border-color: #224830; }
+.theme-dot.t-purple { background: #130c1a; border-color: #382255; }
+
+/* ===== SIDEBAR LEFT ===== */
+#sidebar-search-wrap {
+  padding: 10px; border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+#sidebar-search {
+  width: 100%; padding: 7px 10px 7px 32px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-md); color: var(--text-primary);
+  font-family: var(--font-ui); font-size: 13px;
+  transition: border-color var(--transition);
+}
+#sidebar-search:focus { outline: none; border-color: var(--accent-teal); }
+#sidebar-search::placeholder { color: var(--text-muted); }
+.search-wrap-inner { position: relative; }
+.search-icon {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); pointer-events: none;
+}
+.search-opts { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+.search-scope-btn {
+  font-size: 11px; padding: 2px 7px; border-radius: 99px;
+  border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-muted); cursor: pointer; font-family: var(--font-ui);
+  transition: all var(--transition);
+}
+.search-scope-btn.active { background: var(--accent-teal); color: #000; border-color: var(--accent-teal); }
+
+.conversations-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px 4px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); flex-shrink: 0;
+}
+.conv-count {
+  background: var(--bg-tertiary); color: var(--text-muted);
+  font-size: 10px; padding: 1px 5px; border-radius: 99px;
+}
+
+#conv-list { flex: 1; overflow-y: auto; padding: 4px 6px 8px; }
+.conv-item {
+  padding: 8px 10px; border-radius: var(--radius-md);
+  cursor: pointer; margin-bottom: 2px;
+  transition: all var(--transition);
+  border: 1px solid transparent;
+  position: relative;
+}
+.conv-item:hover { background: var(--bg-hover); }
+.conv-item.active { background: var(--bg-active); border-color: var(--accent-teal); }
+.conv-item-title {
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+.conv-item-date {
+  font-size: 11px; color: var(--accent-teal); margin-top: 2px;
+  font-family: var(--font-mono);
+}
+.conv-item-meta {
+  font-size: 11px; color: var(--text-muted); margin-top: 2px;
+  display: flex; gap: 6px; align-items: center;
+}
+.conv-match-badge {
+  background: var(--accent-yellow); color: #000;
+  font-size: 10px; font-weight: 700; padding: 1px 5px;
+  border-radius: 99px; margin-left: auto;
+}
+
+.search-msg-item {
+  padding: 8px 9px; border-radius: var(--radius-sm);
+  cursor: pointer; margin-bottom: 4px;
+  border: 1px solid transparent;
+  transition: all var(--transition);
+  background: var(--bg-tertiary);
+}
+.search-msg-item:hover { background: var(--bg-hover); border-color: var(--border-color); }
+.search-msg-item-header {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+}
+.search-msg-role {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.search-msg-depth {
+  font-size: 10px; font-family: var(--font-mono); color: var(--accent-teal);
+  background: rgba(0,212,170,0.1); padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+}
+.search-msg-date {
+  font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); margin-left: auto;
+}
+.search-msg-breadcrumb {
+  font-size: 11px; color: var(--text-muted); margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
+}
+.search-crumb-sep { color: var(--accent-teal); margin: 0 2px; }
+.search-msg-preview {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.search-msg-preview mark {
+  background: rgba(251,191,36,0.3); color: var(--text-primary);
+  border-radius: 2px; padding: 0 1px;
+}
+.search-msg-nav {
+  font-size: 10px; color: var(--text-muted); opacity: 0;
+  transition: opacity var(--transition);
+}
+.search-msg-item:hover .search-msg-nav { opacity: 1; }
+.search-msg-nodeid { font-family: var(--font-mono); color: var(--accent-teal); }
+
+/* ===== GRAPH AREA ===== */
+#graph-svg {
+  width: 100%; height: 100%;
+  cursor: grab;
+}
+#graph-svg:active { cursor: grabbing; }
+
+.node-circle {
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.node-circle:hover { filter: brightness(1.3); }
+
+.link-line {
+  stroke: var(--border-light);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* Node tooltip */
+#tooltip {
+  position: fixed; z-index: 9999;
+  max-width: 300px; padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  pointer-events: none;
+  opacity: 0; transition: opacity 0.15s;
+  font-size: 12px;
+}
+#tooltip.visible { opacity: 1; }
+.tt-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.tt-role.user { color: var(--accent-blue); }
+.tt-role.assistant { color: var(--accent-green); }
+.tt-role.system { color: var(--text-muted); }
+.tt-role.other { color: var(--accent-purple); }
+.tt-preview { color: var(--text-secondary); line-height: 1.4; }
+
+/* Minimap */
+#minimap {
+  position: absolute; bottom: 16px; right: 16px;
+  width: 180px; height: 120px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: opacity 0.2s, transform 0.2s;
+  user-select: none;
+}
+#minimap.hidden { opacity: 0; pointer-events: none; transform: scale(0.9); }
+#minimap.dragging { cursor: grabbing; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border-color: var(--accent-teal); }
+#minimap-label {
+  position: absolute; top: 4px; left: 6px;
+  font-size: 9px; font-family: var(--font-mono); color: var(--text-muted);
+  pointer-events: none; letter-spacing: .04em; text-transform: uppercase; opacity: 0.6;
+}
+#minimap-drag-hint {
+  position: absolute; bottom: 3px; right: 5px;
+  font-size: 9px; font-family: var(--font-mono); color: var(--text-muted);
+  pointer-events: none; opacity: 0; transition: opacity 0.2s;
+}
+#minimap:hover #minimap-drag-hint { opacity: 0.5; }
+#minimap-canvas { width: 100%; height: 100%; }
+#minimap-viewport {
+  position: absolute; top: 0; left: 0;
+  border: 1.5px solid var(--accent-teal);
+  background: rgba(0,212,170,0.08);
+  pointer-events: none;
+}
+
+/* Graph controls */
+#graph-controls {
+  position: absolute; bottom: 16px; left: 16px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.graph-ctrl-btn {
+  width: 32px; height: 32px;
+  background: var(--bg-secondary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+  transition: all var(--transition);
+}
+.graph-ctrl-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.graph-ctrl-btn svg { width: 14px; height: 14px; }
+
+/* Empty state */
+#empty-state {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none;
+}
+#empty-state h2 { font-size: 22px; font-weight: 300; color: var(--text-muted); margin-bottom: 8px; }
+#empty-state p { font-size: 13px; color: var(--text-muted); max-width: 280px; }
+.drop-zone-indicator {
+  margin-top: 20px; padding: 24px 32px;
+  border: 2px dashed var(--border-light);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted); font-size: 13px;
+}
+
+/* ===== RIGHT PANEL ===== */
+#panel-tabs {
+  display: flex; border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.panel-tab {
+  flex: 1; padding: 10px 8px; text-align: center;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
+  transition: all var(--transition); background: transparent; border-top: none; border-left: none; border-right: none;
+  font-family: var(--font-ui);
+}
+.panel-tab:hover { color: var(--text-primary); }
+.panel-tab.active { color: var(--accent-teal); border-bottom-color: var(--accent-teal); }
+
+#panel-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.panel-tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.panel-tab-content.active { display: flex; }
+
+/* Content toolbar */
+.content-toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px; border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.view-mode-btn {
+  padding: 3px 8px; border-radius: var(--radius-sm);
+  font-size: 11px; border: 1px solid var(--border-color);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  font-family: var(--font-mono); transition: all var(--transition);
+}
+.view-mode-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.view-mode-btn.active { background: var(--bg-active); color: var(--text-primary); border-color: var(--border-light); }
+.toolbar-sep { flex: 1; }
+.action-btn {
+  width: 28px; height: 28px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition); font-size: 12px;
+}
+.action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.action-btn.success { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+.action-btn.active { background: var(--bg-active); color: var(--accent-teal); border-color: var(--accent-teal); }
+
+/* Content area */
+.content-scroll {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+}
+.content-scroll.code-view {
+  font-family: var(--font-mono); font-size: 12px;
+  white-space: pre-wrap; word-break: break-all;
+  line-height: 1.6; color: var(--text-secondary);
+}
+
+/* Rendered Markdown */
+.md-content { line-height: 1.7; }
+.md-content h1,.md-content h2,.md-content h3 { font-weight: 600; margin: 16px 0 8px; color: var(--text-primary); }
+.md-content h1 { font-size: 20px; }
+.md-content h2 { font-size: 17px; }
+.md-content h3 { font-size: 15px; }
+.md-content p { margin-bottom: 10px; color: var(--text-secondary); }
+.md-content ul, .md-content ol { margin: 8px 0 8px 20px; color: var(--text-secondary); }
+.md-content li { margin-bottom: 4px; }
+.md-content blockquote {
+  border-left: 3px solid var(--accent-teal); padding-left: 12px;
+  margin: 10px 0; color: var(--text-muted); font-style: italic;
+}
+.md-content code {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--bg-tertiary); padding: 2px 5px; border-radius: 3px;
+  color: var(--accent-teal);
+}
+.md-content pre {
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-md); padding: 12px; margin: 10px 0;
+  overflow-x: auto; position: relative;
+}
+.md-content pre code {
+  background: none; padding: 0; color: var(--text-primary); font-size: 12px;
+}
+.code-copy-btn {
+  position: absolute; top: 6px; right: 6px;
+  padding: 3px 8px; font-size: 10px;
+  background: var(--bg-secondary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);
+  font-family: var(--font-ui); transition: all var(--transition);
+}
+.code-copy-btn:hover { color: var(--text-primary); }
+.md-content table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+.md-content th, .md-content td { padding: 6px 10px; border: 1px solid var(--border-color); font-size: 13px; }
+.md-content th { background: var(--bg-tertiary); font-weight: 600; }
+.md-content a { color: var(--accent-teal); text-decoration: none; }
+.md-content a:hover { text-decoration: underline; }
+
+/* Metadata bar */
+.meta-bar {
+  padding: 8px 12px; background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+  font-size: 11px; color: var(--text-muted);
+  font-family: var(--font-mono); flex-shrink: 0;
+  display: none;
+}
+.meta-bar.visible { display: block; }
+.meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.meta-kv { display: flex; gap: 4px; }
+.meta-key { color: var(--text-muted); }
+.meta-val { color: var(--accent-teal); }
+
+/* Node info header */
+.node-header {
+  padding: 10px 14px; border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.node-role-badge {
+  padding: 2px 8px; border-radius: 99px; font-size: 11px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.role-user { background: rgba(59,130,246,0.2); color: #60a5fa; }
+.role-assistant { background: rgba(34,197,94,0.2); color: #4ade80; }
+.role-system { background: rgba(107,114,128,0.2); color: #9ca3af; }
+.role-other { background: rgba(168,85,247,0.2); color: #c084fc; }
+.node-id-display { font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); margin-left: auto; }
+
+/* Empty right panel */
+.no-selection {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text-muted); text-align: center; padding: 20px;
+}
+.no-selection svg { width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.3; }
+.no-selection p { font-size: 13px; }
+
+/* Branch list in right panel */
+#branch-list { flex: 1; overflow-y: auto; }
+.branch-msg-item {
+  padding: 8px 12px; border-bottom: 1px solid var(--border-color);
+  cursor: pointer; transition: background var(--transition);
+}
+.branch-msg-item:hover { background: var(--bg-hover); }
+.branch-msg-item.selected { background: var(--bg-active); }
+.bm-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.bm-preview { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== CONTEXT MENU ===== */
+#context-menu {
+  position: fixed; z-index: 9000;
+  background: var(--bg-secondary); border: 1px solid var(--border-light);
+  border-radius: var(--radius-md); padding: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  min-width: 160px; display: none;
+}
+.ctx-item {
+  padding: 7px 12px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 13px; color: var(--text-secondary);
+  transition: all var(--transition); display: flex; align-items: center; gap: 8px;
+}
+.ctx-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ctx-node-only { display: none; }
+.ctx-conv-only { display: flex; }
+#context-menu.node-mode .ctx-node-only { display: flex; }
+#context-menu.node-mode .ctx-conv-only { display: none; }
+
+.branch-msg-copy-btn {
+  opacity: 0; transition: opacity var(--transition);
+  padding: 2px 7px; font-size: 10px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);
+  font-family: var(--font-ui); white-space: nowrap; flex-shrink: 0;
+}
+.branch-msg-wrap:hover .branch-msg-copy-btn { opacity: 1; }
+.branch-msg-copy-btn.copied { color: var(--accent-green); border-color: var(--accent-green); opacity: 1; }
+
+/* Branch filter bar */
+#branch-filter-bar {
+  padding: 6px 8px 4px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.branch-filter-search-row {
+  display: flex; align-items: center; gap: 6px;
+}
+.branch-filter-search-wrap {
+  position: relative; flex: 1;
+}
+#branch-search-input {
+  width: 100%; padding: 5px 8px 5px 26px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: 12px; font-family: var(--font-ui);
+}
+#branch-search-input:focus { outline: none; border-color: var(--accent-teal); }
+#help-search-input:focus { outline: none; border-color: var(--accent-teal); }
+#branch-search-input::placeholder { color: var(--text-muted); }
+#branch-search-count {
+  font-size: 10px; color: var(--accent-yellow); font-family: var(--font-mono);
+  white-space: nowrap; min-width: 28px; text-align: right;
+}
+.branch-filter-roles-row {
+  display: flex; align-items: center; gap: 3px; flex-wrap: wrap;
+}
+.branch-filter-label {
+  font-size: 10px; color: var(--text-muted); margin-right: 2px; white-space: nowrap;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.branch-role-btn, .branch-scope-btn {
+  padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 600;
+  border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-muted); cursor: pointer; font-family: var(--font-ui);
+  transition: all var(--transition);
+}
+.branch-role-btn:hover, .branch-scope-btn:hover { border-color: var(--border-light); color: var(--text-primary); }
+.branch-role-btn.active[data-role="user"],   .branch-scope-btn.active[data-scope="user"]      { background: rgba(59,130,246,0.2);  color: #60a5fa; border-color: rgba(96,165,250,0.5); }
+.branch-role-btn.active[data-role="assistant"], .branch-scope-btn.active[data-scope="assistant"] { background: rgba(34,197,94,0.2);  color: #4ade80; border-color: rgba(74,222,128,0.5); }
+.branch-role-btn.active[data-role="system"],  .branch-scope-btn.active[data-scope="system"]    { background: rgba(107,114,128,0.2); color: #9ca3af; border-color: rgba(156,163,175,0.5); }
+.branch-role-btn.active[data-role="other"],   .branch-scope-btn.active[data-scope="other"]     { background: rgba(168,85,247,0.2); color: #c084fc; border-color: rgba(192,132,252,0.5); }
+.branch-role-btn.active[data-role="all"] { background: var(--bg-active); color: var(--text-primary); border-color: var(--border-light); }
+
+/* Search highlight within branch */
+.branch-search-hit { background: rgba(251,191,36,0.3); border-radius: 2px; padding: 0 1px; color: var(--text-primary); }
+.branch-msg-wrap.hidden-role { display: none; }
+.branch-msg-wrap.no-search-match { display: none; }
+.ctx-item.danger { color: var(--accent-red); }
+.ctx-item.danger:hover { background: rgba(239,68,68,0.1); }
+.ctx-sep { height: 1px; background: var(--border-color); margin: 4px 0; }
+
+/* ===== MODALS ===== */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+}
+.modal-backdrop.visible { display: flex; }
+.modal-box {
+  background: var(--bg-secondary); border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg); max-width: 840px; width: 90%;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.modal-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.modal-header h2 { font-size: 16px; font-weight: 600; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 18px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.modal-body { flex: 1; overflow: hidden; display: flex; }
+
+/* Help modal */
+.help-sidebar {
+  width: 210px; flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto; padding: 8px 6px;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.help-topic-btn {
+  width: 100%; text-align: left; padding: 7px 10px;
+  background: transparent; border: none; border-radius: var(--radius-sm);
+  color: var(--text-secondary); cursor: pointer; font-size: 12px;
+  font-family: var(--font-ui); transition: all var(--transition);
+  line-height: 1.4;
+}
+.help-topic-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.help-topic-btn.active { background: var(--bg-active); color: var(--accent-teal); }
+.help-topic-btn.has-match { color: var(--accent-yellow); }
+.help-topic-btn .help-match-count {
+  float: right; font-size: 10px; background: rgba(251,191,36,0.2);
+  color: var(--accent-yellow); padding: 1px 5px; border-radius: 99px;
+}
+.help-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.help-section { display: none; }
+.help-section.active { display: block; }
+.help-search-results { display: none; }
+.help-search-results.active { display: block; }
+.help-result-item {
+  padding: 10px 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--border-color); margin-bottom: 8px;
+  cursor: pointer; background: var(--bg-tertiary); transition: all var(--transition);
+}
+.help-result-item:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.help-result-topic { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-teal); margin-bottom: 4px; }
+.help-result-preview { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.help-result-preview mark { background: rgba(251,191,36,0.3); color: var(--text-primary); border-radius: 2px; padding: 0 1px; }
+.help-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 14px; color: var(--text-primary); border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
+.help-section h3 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; color: var(--accent-teal); text-transform: uppercase; letter-spacing: .06em; }
+.help-section h4 { font-size: 13px; font-weight: 600; margin: 12px 0 6px; color: var(--text-primary); }
+.help-section p { color: var(--text-secondary); font-size: 13px; margin-bottom: 10px; line-height: 1.65; }
+.help-section ul, .help-section ol { margin: 6px 0 10px 18px; color: var(--text-secondary); font-size: 13px; }
+.help-section li { margin-bottom: 6px; line-height: 1.55; }
+.help-section li strong { color: var(--text-primary); }
+.help-section table { border-collapse: collapse; width: 100%; margin: 10px 0 14px; font-size: 12px; }
+.help-section th { background: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; padding: 6px 10px; border: 1px solid var(--border-color); text-align: left; }
+.help-section td { padding: 6px 10px; border: 1px solid var(--border-color); color: var(--text-secondary); vertical-align: top; }
+.help-section .tip {
+  background: rgba(0,212,170,0.08); border-left: 3px solid var(--accent-teal);
+  padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 10px 0; font-size: 12px; color: var(--text-secondary);
+}
+.help-section .tip strong { color: var(--accent-teal); }
+.kbd {
+  display: inline-block; padding: 1px 6px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-light);
+  border-radius: 3px; font-family: var(--font-mono); font-size: 11px;
+  color: var(--text-primary);
+}
+
+/* Settings modal */
+.settings-body { padding: 20px; overflow-y: auto; }
+.setting-group { margin-bottom: 20px; }
+.setting-group h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border-color);
+}
+.setting-label { font-size: 13px; color: var(--text-primary); }
+.setting-desc { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+/* Toggle */
+.toggle {
+  width: 36px; height: 20px; position: relative; cursor: pointer;
+  background: var(--bg-tertiary); border-radius: 99px;
+  border: 1px solid var(--border-color); transition: all var(--transition);
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--accent-teal); border-color: var(--accent-teal); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text-muted); transition: all var(--transition);
+}
+.toggle.on::after { left: 18px; background: #000; }
+
+/* Range input */
+.setting-range { display: flex; align-items: center; gap: 8px; }
+.setting-range input[type="range"] {
+  width: 120px; accent-color: var(--accent-teal);
+}
+.range-val { font-family: var(--font-mono); font-size: 11px; color: var(--accent-teal); min-width: 40px; }
+
+/* Notification */
+#notif {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-secondary); border: 1px solid var(--border-light);
+  padding: 8px 16px; border-radius: var(--radius-md);
+  font-size: 13px; color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3); z-index: 9999;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+#notif.show { opacity: 1; }
+#notif.success { border-color: var(--accent-green); }
+#notif.error { border-color: var(--accent-red); }
+
+/* ===== NODE ANIMATIONS ===== */
+@keyframes pulse-selected {
+  0%,100% { box-shadow: 0 0 0 0 rgba(244,114,182,0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(244,114,182,0); }
+}
+@keyframes pulse-search {
+  0%,100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.7); }
+  50% { box-shadow: 0 0 0 10px rgba(251,191,36,0); }
+}
+
+/* ===== PRINT ===== */
+@media print {
+  #topbar, #sidebar-left, .resize-handle, #graph-area, #panel-tabs,
+  .content-toolbar, #panel-right .panel-tab-content:not(.active) { display: none !important; }
+  #app { display: block; }
+  #main { display: block; }
+  #panel-right { width: 100%; max-width: 100%; border: none; }
+  .content-scroll { overflow: visible; height: auto; }
+}
+
+/* ===== DROP OVERLAY ===== */
+#drop-overlay {
+  position: absolute; inset: 0; z-index: 500;
+  background: rgba(0,212,170,0.08);
+  border: 3px dashed var(--accent-teal);
+  border-radius: var(--radius-lg);
+  display: none; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--accent-teal); font-weight: 500;
+  pointer-events: none;
+}
+#drop-overlay.active { display: flex; }
+
+/* Branch index panel toggle */
+#branch-index-panel {
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0; display: flex; flex-direction: column;
+  max-height: 200px;
+}
+.branch-index-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px; cursor: pointer; user-select: none;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.branch-index-header:hover { color: var(--text-primary); }
+.branch-search {
+  padding: 4px 8px; border-bottom: 1px solid var(--border-color);
+}
+.branch-search input {
+  width: 100%; padding: 4px 8px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: 12px; font-family: var(--font-ui);
+}
+.branch-search input:focus { outline: none; border-color: var(--accent-teal); }
+</style>
+</head>
+<body data-theme="dark">
+<div id="app">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div id="logo">
+      <svg viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+        <circle cx="12" cy="5" r="2.5" fill="currentColor"/>
+        <circle cx="5" cy="17" r="2.5" fill="currentColor"/>
+        <circle cx="19" cy="17" r="2.5" fill="currentColor"/>
+        <line x1="12" y1="7.5" x2="5" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="12" y1="7.5" x2="19" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
+      </svg>
+      Multiverse Viewer
+      <span class="logo-version">v6.0</span>
+    </div>
+    <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Load File
+    </button>
+    <input type="file" id="file-input" accept=".json" multiple>
+    <button class="topbar-btn" id="btn-export-all" title="Export all conversations as OpenAI JSON">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/><circle cx="18" cy="5" r="3" fill="currentColor" stroke="none" opacity="0.7"/><text x="16.5" y="7" font-size="4" fill="white" font-weight="bold">A</text></svg>
+      Export All
+    </button>
+    <button class="topbar-btn" id="btn-unload-all" title="Unload all conversations and start fresh">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+      Unload All
+    </button>
+    <button class="topbar-btn" id="btn-reset-layout" title="Reset node layout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+      Reset
+    </button>
+    <button class="topbar-btn" id="btn-settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </button>
+    <button class="topbar-btn" id="btn-help" title="Help">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Help
+    </button>
+    <div class="topbar-sep"></div>
+    <div id="theme-picker">
+      <div class="theme-dot t-dark active" data-theme="dark" title="Dark"></div>
+      <div class="theme-dot t-light" data-theme="light" title="Light"></div>
+      <div class="theme-dot t-blue" data-theme="blue" title="Blue"></div>
+      <div class="theme-dot t-green" data-theme="green" title="Green"></div>
+      <div class="theme-dot t-purple" data-theme="purple" title="Purple"></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- LEFT SIDEBAR -->
+    <div id="sidebar-left">
+      <div id="sidebar-search-wrap">
+        <div class="search-wrap-inner">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="sidebar-search" placeholder="Search messages...">
+        </div>
+        <div class="search-opts">
+          <span style="font-size:11px;color:var(--text-muted)">Scope:</span>
+          <button class="search-scope-btn active" data-scope="current">Current</button>
+          <button class="search-scope-btn" data-scope="all">All</button>
+        </div>
+      </div>
+      <div class="conversations-header">
+        <span>Conversations</span>
+        <span class="conv-count" id="conv-count">0</span>
+      </div>
+      <div id="search-results-panel" style="display:none;flex-direction:column;border-bottom:1px solid var(--border-color);">
+        <div class="conversations-header" style="padding-bottom:2px;">
+          <span id="search-results-label">Messages</span>
+        </div>
+        <div id="search-results-list" style="overflow-y:auto;max-height:240px;padding:0 6px 6px;"></div>
+      </div>
+      <div id="conv-list"></div>
+    </div>
+
+    <!-- RESIZE HANDLE LEFT -->
+    <div class="resize-handle" id="rh-left"></div>
+
+    <!-- GRAPH AREA -->
+    <div id="graph-area">
+      <div id="drop-overlay">Drop JSON file here</div>
+      <div id="empty-state">
+        <h2>No conversation loaded</h2>
+        <p>Load a JSON export from OpenAI, Claude, DeepSeek, Grok, or Mistral to visualize the conversation tree.</p>
+        <div class="drop-zone-indicator">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 8px;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Drop files here or click Load File
+        </div>
+      </div>
+      <svg id="graph-svg">
+        <defs>
+          <filter id="glow-selected">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glow-search">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feFlood flood-color="#fbbf24" flood-opacity="0.5" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+            <feComposite in="SourceGraphic" in2="glow" operator="over"/>
+          </filter>
+          <radialGradient id="grad-user" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#60a5fa"/>
+            <stop offset="100%" stop-color="#1e40af"/>
+          </radialGradient>
+          <radialGradient id="grad-assistant" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#4ade80"/>
+            <stop offset="100%" stop-color="#166534"/>
+          </radialGradient>
+          <radialGradient id="grad-other" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#c084fc"/>
+            <stop offset="100%" stop-color="#6b21a8"/>
+          </radialGradient>
+          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="var(--border-light)"/>
+          </marker>
+        </defs>
+        <g id="graph-root"></g>
+      </svg>
+      <div id="graph-controls">
+        <button class="graph-ctrl-btn" id="btn-zoom-in" title="Zoom In">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="graph-ctrl-btn" id="btn-zoom-out" title="Zoom Out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="graph-ctrl-btn" id="btn-fit" title="Fit to screen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+        </button>
+        <button class="graph-ctrl-btn" id="btn-toggle-minimap" title="Toggle minimap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </button>
+      </div>
+      <div id="minimap">
+        <canvas id="minimap-canvas"></canvas>
+        <div id="minimap-viewport"></div>
+        <div id="minimap-label">Map</div>
+        <div id="minimap-drag-hint">ctrl+drag</div>
+      </div>
+    </div>
+
+    <!-- RESIZE HANDLE RIGHT -->
+    <div class="resize-handle" id="rh-right"></div>
+
+    <!-- RIGHT PANEL -->
+    <div id="panel-right">
+      <div id="panel-tabs">
+        <button class="panel-tab active" data-panel="node">Selected Node</button>
+        <button class="panel-tab" data-panel="branch">Branch</button>
+      </div>
+      <div id="panel-content">
+        <!-- Node panel -->
+        <div class="panel-tab-content active" id="ptab-node">
+          <div id="node-empty" class="no-selection">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <p>Click a node in the graph to view its content</p>
+          </div>
+          <div id="node-view" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+            <div class="node-header" id="node-header-bar">
+              <div style="display:flex;flex-direction:column;gap:4px;width:100%;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span class="node-role-badge" id="node-role-badge">User</span>
+                  <span id="node-model-info" style="font-size:11px;color:var(--text-muted)"></span>
+                  <span class="node-id-display" id="node-id-display"></span>
+                </div>
+                <div id="node-location-bar" style="display:none;font-size:11px;color:var(--text-muted);line-height:1.4;"></div>
+              </div>
+            </div>
+            <div class="content-toolbar">
+              <button class="view-mode-btn active" data-mode="rendered">Rendered</button>
+              <button class="view-mode-btn" data-mode="markdown">Markdown</button>
+              <button class="view-mode-btn" data-mode="html">HTML</button>
+              <button class="view-mode-btn" data-mode="json">JSON</button>
+              <div class="toolbar-sep"></div>
+              <button class="action-btn" id="btn-copy" title="Copy content">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+              <button class="action-btn" id="btn-export" title="Export as file">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn" id="btn-popout" title="Pop out window">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+              <button class="action-btn" id="btn-pdf" title="Save as PDF">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </button>
+              <button class="action-btn" id="btn-toggle-meta" title="Toggle metadata" style="font-size:10px;font-family:var(--font-mono)">M</button>
+              <button class="action-btn active" id="btn-toggle-highlight" title="Toggle search highlight" style="font-size:10px;font-family:var(--font-mono)" title="Highlight search terms">H</button>
+            </div>
+            <div class="content-scroll md-content" id="content-rendered"></div>
+            <div class="content-scroll code-view" id="content-markdown" style="display:none"></div>
+            <div class="content-scroll code-view" id="content-html" style="display:none"></div>
+            <div class="content-scroll code-view" id="content-json" style="display:none"></div>
+            <div class="meta-bar" id="meta-bar">
+              <div class="meta-row" id="meta-row"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Branch panel -->
+        <div class="panel-tab-content" id="ptab-branch">
+          <div id="branch-empty" class="no-selection">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M6 3v12"/><path d="M18 9a3 3 0 100-6 3 3 0 000 6z"/><path d="M6 21a3 3 0 100-6 3 3 0 000 6z"/><path d="M15 6a9 9 0 01-9 9"/></svg>
+            <p>Select a node to see the branch conversation</p>
+          </div>
+          <div id="branch-view" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+            <div class="content-toolbar">
+              <button class="view-mode-btn active" data-branch-mode="rendered">Rendered</button>
+              <button class="view-mode-btn" data-branch-mode="markdown">Markdown</button>
+              <button class="view-mode-btn" data-branch-mode="html">HTML</button>
+              <button class="view-mode-btn" data-branch-mode="json">JSON</button>
+              <div class="toolbar-sep"></div>
+              <span style="font-size:11px;color:var(--text-muted);padding:0 4px" id="branch-stats"></span>
+              <button class="action-btn" id="btn-copy-branch" title="Copy branch">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+              <button class="action-btn" id="btn-export-branch" title="Export branch">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </button>
+              <button class="action-btn" id="btn-popout-branch" title="Pop out branch">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+              <button class="action-btn" id="btn-export-chatgpt" title="Download as ChatGPT JSON" style="font-size:9px;font-family:var(--font-mono);width:auto;padding:0 6px;">GPT↓</button>
+              <button class="action-btn active" id="btn-toggle-highlight-branch" title="Toggle search highlight" style="font-size:10px;font-family:var(--font-mono)">H</button>
+            </div>
+            <!-- Branch search + filter bar -->
+            <div id="branch-filter-bar">
+              <div class="branch-filter-search-row">
+                <div class="branch-filter-search-wrap">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="branch-search-input" placeholder="Search in branch…">
+                </div>
+                <span id="branch-search-count"></span>
+              </div>
+              <div class="branch-filter-roles-row">
+                <span class="branch-filter-label">Show:</span>
+                <button class="branch-role-btn active" data-role="user">User</button>
+                <button class="branch-role-btn active" data-role="assistant">Assistant</button>
+                <button class="branch-role-btn active" data-role="system">System</button>
+                <button class="branch-role-btn active" data-role="other">Other</button>
+                <button class="branch-role-btn active" data-role="all" id="branch-role-all" style="margin-left:4px;border-style:dashed">All</button>
+              </div>
+              <div class="branch-filter-roles-row" style="margin-top:4px">
+                <span class="branch-filter-label">Search in:</span>
+                <button class="branch-scope-btn active" data-scope="user">User</button>
+                <button class="branch-scope-btn active" data-scope="assistant">Assistant</button>
+                <button class="branch-scope-btn active" data-scope="system">System</button>
+                <button class="branch-scope-btn active" data-scope="other">Other</button>
+              </div>
+            </div>
+            <div class="content-scroll" id="branch-content" style="font-size:13px;"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Branch index -->
+      <div id="branch-index-panel">
+        <div class="branch-index-header" id="branch-index-toggle">
+          <span>Branch Index</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div id="branch-index-body" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+          <div class="branch-search">
+            <input type="text" id="branch-index-search" placeholder="Filter messages...">
+          </div>
+          <div id="branch-list" style="overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip">
+  <div class="tt-role" id="tt-role"></div>
+  <div class="tt-preview" id="tt-preview"></div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="context-menu">
+  <!-- Conv items -->
+  <div class="ctx-item ctx-conv-only" id="ctx-show-only">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Show Only
+  </div>
+  <div class="ctx-item ctx-conv-only" id="ctx-restore-all" style="display:none">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+    Restore All
+  </div>
+  <div class="ctx-item ctx-conv-only" id="ctx-start-over">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Start Over
+  </div>
+  <div class="ctx-item ctx-conv-only" id="ctx-export">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export Conv
+  </div>
+  <!-- Node items -->
+  <div class="ctx-item ctx-node-only" id="ctx-node-copy">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    Copy Message
+  </div>
+  <div class="ctx-item ctx-node-only" id="ctx-node-select">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+    Select &amp; View
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+    <span id="ctx-delete-label">Delete</span>
+  </div>
+</div>
+
+<!-- LOAD MODE DIALOG -->
+<div class="modal-backdrop" id="modal-load-mode">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <h2>Load File</h2>
+      <button class="modal-close" onclick="closeModal('modal-load-mode')">✕</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
+      <p id="load-mode-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:4px;"></p>
+      <button class="topbar-btn" id="load-mode-add" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add to current project
+      </button>
+      <button class="topbar-btn" id="load-mode-replace" style="width:100%;justify-content:center;padding:10px;color:var(--accent-red);border-color:rgba(239,68,68,0.4);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        Unload all &amp; start fresh
+      </button>
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;">Unloading cannot be undone unless you use Start Over first.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="modal-settings">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto">
+      <div class="settings-body" id="settings-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="modal-backdrop" id="modal-help">
+  <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
+    <div class="modal-header">
+      <h2>Multiverse Viewer v6.0 — Help</h2>
+      <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;overflow:hidden;">
+      <div id="help-search-bar" style="padding:8px 12px;border-bottom:1px solid var(--border-color);flex-shrink:0;display:flex;align-items:center;gap:8px;">
+        <div style="position:relative;flex:1;">
+          <svg style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="help-search-input" type="text" placeholder="Search help topics and content…" style="width:100%;padding:6px 10px 6px 28px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-ui);font-size:13px;">
+        </div>
+        <span id="help-search-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap;min-width:60px;text-align:right;"></span>
+        <button id="help-search-clear" style="display:none;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;">✕</button>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div class="help-sidebar" id="help-sidebar"></div>
+        <div class="help-content" id="help-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+const state = {
+  conversations: [],       // array of { id, title, data (unified format), _originalData }
+  hiddenConversations: [], // stashed by "Show Only" — can be restored
+  deletedConversations: [], // stashed by "Delete Conv" — recovered by Start Over
+  activeConvId: null,
+  selectedNodeId: null,
+  searchQuery: '',
+  searchScope: 'current',  // 'current' | 'all'
+  searchMatches: new Map(), // convId -> Set of nodeIds
+  viewMode: 'rendered',    // rendered|markdown|html|json
+  showMeta: false,
+  settings: {
+    showSystem: true,
+    showOther: true,
+    tooltips: true,
+    tooltipDelay: 800,
+  },
+  transform: d3.zoomIdentity,
+  nodePositions: new Map(), // nodeId -> {x, y}
+  initialPositions: new Map(),
+};
+
+// Load persisted theme/settings
+const savedTheme = localStorage.getItem('mv-theme') || 'dark';
+document.body.setAttribute('data-theme', savedTheme);
+document.querySelector(`.theme-dot[data-theme="${savedTheme}"]`)?.classList.add('active');
+try {
+  const s = JSON.parse(localStorage.getItem('mv-settings') || '{}');
+  Object.assign(state.settings, s);
+} catch(e) {}
+
+// ============================================================
+// FORMAT DETECTION & CONVERSION
+// ============================================================
+function detectFormat(data) {
+  if (Array.isArray(data)) {
+    if (data.length && data[0]?.mapping) {
+      // Check if it's DeepSeek fragments format BEFORE assuming OpenAI
+      const firstMapping = data[0].mapping;
+      const firstNonRoot = Object.values(firstMapping).find(v => v.message);
+      if (firstNonRoot?.message?.fragments !== undefined) return 'deepseek-chat-array';
+      return 'openai-array';
+    }
+    if (data.length && (data[0]?.role || data[0]?.contentChunks)) return 'claude-array';
+    if (data.length && data[0]?.chat_messages) return 'mistral-array';
+  }
+  if (data.mapping && typeof data.mapping === 'object') {
+    const firstVal = Object.values(data.mapping).find(v => v.message) || Object.values(data.mapping)[0];
+    if (firstVal?.message?.fragments !== undefined) return 'deepseek-chat';
+    if (firstVal?.message?.content?.parts !== undefined || firstVal?.message?.author) return 'openai';
+  }
+  if (data.metadata?.platform === 'DeepSeek' && data.messages) return 'deepseek-exporter';
+  if (data.messages && data.messages[0]?.raw_html !== undefined) return 'deepseek-conv';
+  if (data.chat_messages && (data.account || data.uuid)) return 'mistral';
+  if (data.conversation && data.responses) return 'grok';
+  if (data.messages && (data.messages[0]?.role || data.messages[0]?.contentChunks)) return 'claude';
+  return 'unknown';
+}
+
+function convertToUnified(raw) {
+  const fmt = detectFormat(raw);
+  switch(fmt) {
+    case 'openai': return convertOpenAI(raw);
+    case 'openai-array': return raw.map(convertOpenAI);
+    case 'deepseek-exporter': return [convertDeepSeekExporter(raw)];
+    case 'deepseek-chat': return [convertDeepSeekChat(raw)];
+    case 'deepseek-chat-array': return raw.map(convertDeepSeekChat);
+    case 'deepseek-conv': return [convertDeepSeekConv(raw)];
+    case 'claude': return [convertClaude(raw)];
+    case 'claude-array': return raw.map(convertClaude);
+    case 'grok': return [convertGrok(raw)];
+    case 'mistral': return [convertMistral(raw)];
+    case 'mistral-array': return raw.map(convertMistral);
+    default: return [tryGenericConvert(raw)];
+  }
+}
+
+function convertOpenAI(data) {
+  // Already in correct format, normalize
+  const mapping = {};
+  for (const [id, node] of Object.entries(data.mapping || {})) {
+    const msg = node.message;
+    mapping[id] = {
+      id,
+      parent: node.parent || null,
+      children: node.children || [],
+      message: msg ? {
+        id: msg.id || id,
+        author: { role: (msg.author?.role || 'unknown').toLowerCase() },
+        content: { text: extractOpenAIText(msg) },
+        create_time: msg.create_time,
+        metadata: msg.metadata || {},
+      } : null
+    };
+  }
+  return {
+    conversation_id: data.conversation_id || data.id || genId(),
+    title: data.title || 'Untitled',
+    create_time: data.create_time,
+    update_time: data.update_time,
+    mapping,
+    _format: 'openai',
+  };
+}
+
+function extractOpenAIText(msg) {
+  if (!msg?.content) return '';
+  const c = msg.content;
+  if (typeof c === 'string') return c;
+  if (c.parts) return c.parts.map(p => typeof p === 'string' ? p : (p?.text || p?.image_url || JSON.stringify(p))).join('\n');
+  if (c.text) return c.text;
+  return JSON.stringify(c);
+}
+
+function convertDeepSeekExporter(data) {
+  const messages = data.messages || [];
+  const mapping = {};
+  let prevId = 'root';
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  messages.forEach((msg, i) => {
+    const id = `msg_${i}`;
+    let text = '';
+    if (typeof msg.content === 'string') text = msg.content;
+    else if (msg.content?.search_hint) text = `**Search:** ${msg.content.search_hint}\n\n`;
+    if (msg.content?.thinking_chain) text += `> *${msg.content.thinking_chain}*\n\n`;
+    if (msg.content?.final_answer) text += msg.content.final_answer;
+    if (!text && msg.content) text = JSON.stringify(msg.content);
+    mapping[id] = {
+      id, parent: prevId, children: [],
+      message: {
+        id, author: { role: msg.role || 'unknown' },
+        content: { text },
+        create_time: msg.timestamp || msg.create_time,
+        metadata: { model: data.metadata?.model },
+      }
+    };
+    mapping[prevId].children.push(id);
+    prevId = id;
+  });
+  return {
+    conversation_id: data.metadata?.conversation_id || genId(),
+    title: data.metadata?.title || 'DeepSeek Chat',
+    create_time: data.metadata?.create_time,
+    mapping, _format: 'deepseek-exporter',
+  };
+}
+
+function convertDeepSeekChat(data) {
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  for (const [id, node] of Object.entries(data.mapping || {})) {
+    const msg = node.message;
+    if (!msg) {
+      // preserve non-message nodes (like root)
+      mapping[id] = { id, parent: node.parent || null, children: node.children || [], message: null };
+      continue;
+    }
+    let text = '';
+    let role = 'unknown';
+    if (msg.fragments && msg.fragments.length > 0) {
+      const firstFrag = msg.fragments[0];
+      if (firstFrag.type === 'REQUEST') role = 'user';
+      else if (firstFrag.type === 'RESPONSE') role = 'assistant';
+      // Join all fragment contents
+      text = msg.fragments.map(f => f.content || f.text || '').join('\n\n');
+    }
+    mapping[id] = {
+      id,
+      parent: node.parent || 'root',
+      children: node.children || [],
+      message: {
+        id,
+        author: { role },
+        content: { text },
+        create_time: msg.inserted_at || msg.create_time,
+        metadata: { model: msg.model },
+      }
+    };
+  }
+  return {
+    conversation_id: data.id || genId(),
+    title: data.title || 'DeepSeek Chat',
+    create_time: data.inserted_at || data.create_time,
+    update_time: data.updated_at || data.update_time,
+    mapping,
+    _format: 'deepseek-chat',
+  };
+}
+
+function convertDeepSeekConv(data) {
+  const messages = data.messages || [];
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  let prevId = 'root';
+  messages.forEach((msg, i) => {
+    const id = `msg_${i}`;
+    // strip html tags for preview
+    const text = msg.raw_html ? msg.raw_html.replace(/<[^>]+>/g, '') : (msg.content || '');
+    mapping[id] = {
+      id, parent: prevId, children: [],
+      message: {
+        id, author: { role: msg.role || 'unknown' },
+        content: { text },
+        create_time: msg.timestamp,
+        metadata: {},
+      }
+    };
+    mapping[prevId].children.push(id);
+    prevId = id;
+  });
+  return { conversation_id: data.id || genId(), title: data.title || 'DeepSeek', mapping, _format: 'deepseek-conv' };
+}
+
+function convertClaude(data) {
+  const messages = data.messages || data;
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  let prevId = 'root';
+  const arr = Array.isArray(messages) ? messages : [messages];
+  arr.forEach((msg, i) => {
+    const id = msg.uuid || msg.id || `msg_${i}`;
+    let text = '';
+    if (typeof msg.content === 'string') text = msg.content;
+    else if (Array.isArray(msg.content)) text = msg.content.map(c => typeof c === 'string' ? c : (c?.text || '')).join('\n');
+    else if (Array.isArray(msg.contentChunks)) text = msg.contentChunks.map(c => c.text || '').join('');
+    mapping[id] = {
+      id, parent: prevId, children: [],
+      message: {
+        id, author: { role: (msg.role || 'unknown').toLowerCase() },
+        content: { text },
+        create_time: msg.createdAt || msg.created_at,
+        metadata: { model: msg.model },
+      }
+    };
+    mapping[prevId].children.push(id);
+    prevId = id;
+  });
+  return {
+    conversation_id: data.uuid || data.id || genId(),
+    title: data.name || data.title || 'Claude Chat',
+    create_time: data.created_at || data.createdAt,
+    mapping, _format: 'claude',
+  };
+}
+
+function convertGrok(data) {
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  const conv = data.conversation || {};
+  const responses = data.responses || [];
+  // Build sorted list
+  const allMsgs = [];
+  if (conv.human_messages) conv.human_messages.forEach(m => allMsgs.push({ ...m, _role: 'user' }));
+  responses.forEach(r => allMsgs.push({ ...r, _role: r.sender === 'human' ? 'user' : 'assistant' }));
+  allMsgs.sort((a, b) => (a.create_time || 0) - (b.create_time || 0));
+  let prevId = 'root';
+  allMsgs.forEach((msg, i) => {
+    const id = msg.id || msg.response_id || `msg_${i}`;
+    const text = msg.message || msg.text || msg.content || '';
+    mapping[id] = {
+      id, parent: prevId, children: [],
+      message: {
+        id, author: { role: msg._role },
+        content: { text },
+        create_time: msg.create_time,
+        metadata: { model: msg.model_slug },
+      }
+    };
+    mapping[prevId].children.push(id);
+    prevId = id;
+  });
+  return {
+    conversation_id: data.conversation?.id || genId(),
+    title: data.conversation?.title || 'Grok Chat',
+    mapping, _format: 'grok',
+  };
+}
+
+function convertMistral(data) {
+  const messages = data.chat_messages || data.messages || [];
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  let prevId = 'root';
+  messages.forEach((msg, i) => {
+    const id = msg.id || msg.uuid || `msg_${i}`;
+    let text = '';
+    if (typeof msg.content === 'string') text = msg.content;
+    else if (Array.isArray(msg.content)) text = msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n');
+    mapping[id] = {
+      id, parent: prevId, children: [],
+      message: {
+        id, author: { role: (msg.role || 'unknown').toLowerCase() },
+        content: { text },
+        create_time: msg.created_at || msg.timestamp,
+        metadata: { model: msg.model },
+      }
+    };
+    mapping[prevId].children.push(id);
+    prevId = id;
+  });
+  return {
+    conversation_id: data.uuid || data.id || genId(),
+    title: data.title || data.name || 'Mistral Chat',
+    mapping, _format: 'mistral',
+  };
+}
+
+function tryGenericConvert(data) {
+  // Best-effort for unknown formats
+  if (data.messages) return convertClaude(data);
+  return {
+    conversation_id: genId(),
+    title: 'Unknown Format',
+    mapping: { root: { id: 'root', parent: null, children: [], message: null } },
+    _format: 'unknown',
+    _original_data: data,
+  };
+}
+
+function genId() { return Math.random().toString(36).slice(2, 10); }
+
+// ============================================================
+// GRAPH LAYOUT & RENDERING
+// ============================================================
+let simulation = null;
+let zoom = null;
+let tooltipTimer = null;
+
+function getActiveConv() {
+  return state.conversations.find(c => c.id === state.activeConvId);
+}
+
+function getNodeRole(node) {
+  return node?.message?.author?.role || 'unknown';
+}
+
+function getNodeText(node) {
+  return node?.message?.content?.text || '';
+}
+
+function buildTreeData(conv) {
+  if (!conv) return null;
+  const { mapping } = conv.data;
+  // Find root
+  let rootId = Object.keys(mapping).find(id => !mapping[id].parent);
+  if (!rootId) rootId = 'root';
+
+  // Build d3 hierarchy
+  function buildNode(id, depth = 0) {
+    const node = mapping[id];
+    if (!node) return null;
+    const role = getNodeRole(node);
+    if (!state.settings.showSystem && role === 'system') {
+      // Still build children
+      return node.children.length ? buildNode(node.children[0], depth) : null;
+    }
+    const n = {
+      id,
+      data: node,
+      role,
+      text: getNodeText(node),
+      children: []
+    };
+    (node.children || []).forEach(cId => {
+      const child = buildNode(cId, depth + 1);
+      if (child) n.children.push(child);
+    });
+    return n;
+  }
+
+  return buildNode(rootId);
+}
+
+function renderGraph(conv) {
+  const svg = d3.select('#graph-svg');
+  const root = d3.select('#graph-root');
+  root.selectAll('*').remove();
+
+  if (!conv) {
+    document.getElementById('empty-state').style.display = '';
+    updateMinimap();
+    return;
+  }
+  document.getElementById('empty-state').style.display = 'none';
+
+  const treeData = buildTreeData(conv);
+  if (!treeData) return;
+
+  const W = document.getElementById('graph-area').offsetWidth;
+  const H = document.getElementById('graph-area').offsetHeight;
+
+  const hierarchy = d3.hierarchy(treeData);
+  const nodeCount = hierarchy.descendants().length;
+
+  // Compute layout
+  const nodeH = 70, nodeV = 90;
+  const treeLayout = d3.tree()
+    .nodeSize([nodeH, nodeV])
+    .separation((a, b) => a.parent === b.parent ? 1.1 : 1.4);
+
+  treeLayout(hierarchy);
+
+  // Rotate 90deg: x→y, y→x (top-down)
+  const nodes = hierarchy.descendants();
+  const links = hierarchy.links();
+
+  // Store positions
+  state.nodePositions.clear();
+  state.initialPositions.clear();
+  nodes.forEach(n => {
+    const pos = { x: n.x, y: n.y };
+    state.nodePositions.set(n.data.id, pos);
+    state.initialPositions.set(n.data.id, { ...pos });
+  });
+
+  // Links
+  const linkGroup = root.append('g').attr('class', 'links');
+  const linkElems = linkGroup.selectAll('path')
+    .data(links)
+    .enter().append('path')
+    .attr('class', 'link-line')
+    .attr('d', linkPath)
+    .attr('id', d => `link-${d.source.data.id}-${d.target.data.id}`);
+
+  // Nodes
+  const nodeGroup = root.append('g').attr('class', 'nodes');
+  const nodeElems = nodeGroup.selectAll('g.node')
+    .data(nodes)
+    .enter().append('g')
+    .attr('class', 'node')
+    .attr('id', d => `node-g-${d.data.id}`)
+    .attr('transform', d => `translate(${d.x},${d.y})`)
+    .call(d3.drag()
+      .on('start', dragStarted)
+      .on('drag', dragged)
+      .on('end', dragEnded))
+    .on('click', (event, d) => {
+      event.stopPropagation();
+      selectNode(d.data.id);
+    })
+    .on('contextmenu', (event, d) => {
+      event.stopPropagation();
+      showContextMenu(event, state.activeConvId, d.data.id);
+    })
+    .on('mouseenter', (event, d) => showTooltip(event, d))
+    .on('mousemove', (event, d) => moveTooltip(event))
+    .on('mouseleave', hideTooltip);
+
+  // Draw node shapes
+  nodeElems.each(function(d) {
+    const g = d3.select(this);
+    const role = d.data.role;
+    const r = 18;
+
+    if (role === 'system') {
+      g.append('circle')
+        .attr('r', r)
+        .attr('fill', 'none')
+        .attr('stroke', 'var(--node-system-border)')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '4,3')
+        .attr('class', 'node-circle node-shape')
+        .attr('data-nodeid', d.data.id);
+    } else {
+      const fillId = role === 'user' ? 'grad-user' : role === 'assistant' ? 'grad-assistant' : 'grad-other';
+      const borderColor = role === 'user' ? 'var(--node-user-border)' : role === 'assistant' ? 'var(--node-assistant-border)' : 'var(--node-other-border)';
+      g.append('circle')
+        .attr('r', r)
+        .attr('fill', `url(#${fillId})`)
+        .attr('stroke', borderColor)
+        .attr('stroke-width', 1.5)
+        .attr('class', 'node-circle node-shape')
+        .attr('data-nodeid', d.data.id);
+    }
+
+    // Branch count badge
+    if (d.children && d.children.length > 1) {
+      g.append('circle')
+        .attr('r', 8).attr('cx', r - 4).attr('cy', -(r - 4))
+        .attr('fill', 'var(--accent-yellow)').attr('stroke', 'var(--bg-primary)').attr('stroke-width', 1.5);
+      g.append('text')
+        .attr('x', r - 4).attr('y', -(r - 4)).attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
+        .attr('font-size', '9').attr('font-weight', '700').attr('fill', '#000')
+        .text(d.children.length);
+    }
+
+    // Role icon label
+    const roleChar = role === 'user' ? 'U' : role === 'assistant' ? 'A' : role === 'system' ? 'S' : '?';
+    g.append('text')
+      .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
+      .attr('font-size', '11').attr('font-weight', '700')
+      .attr('fill', role === 'system' ? 'var(--text-muted)' : 'white')
+      .attr('pointer-events', 'none')
+      .text(roleChar);
+  });
+
+  // Set up zoom
+  zoom = d3.zoom()
+    .scaleExtent([0.05, 4])
+    .on('zoom', (event) => {
+      root.attr('transform', event.transform);
+      state.transform = event.transform;
+      updateMinimapViewport();
+    });
+
+  svg.call(zoom).on('dblclick.zoom', null);
+
+  // Initial fit
+  fitGraph();
+  updateNodeHighlights();
+  updateMinimap();
+}
+
+function linkPath(d) {
+  const sx = d.source.x, sy = d.source.y;
+  const tx = d.target.x, ty = d.target.y;
+  const mx = sx, my = (sy + ty) / 2;
+  return `M${sx},${sy} C${mx},${my + (ty-sy)*0.2} ${tx},${my - (ty-sy)*0.2} ${tx},${ty}`;
+}
+
+function getNodeGElement(nodeId) {
+  return document.getElementById(`node-g-${nodeId}`);
+}
+
+function getNodeCurrentPos(nodeId) {
+  return state.nodePositions.get(nodeId) || { x: 0, y: 0 };
+}
+
+function updateNodePosition(nodeId, x, y) {
+  state.nodePositions.set(nodeId, { x, y });
+  const g = getNodeGElement(nodeId);
+  if (g) g.setAttribute('transform', `translate(${x},${y})`);
+  // Update links
+  redrawLinks();
+}
+
+function redrawLinks() {
+  const root = document.getElementById('graph-root');
+  const linkPaths = root.querySelectorAll('.link-line');
+  linkPaths.forEach(path => {
+    const id = path.id; // link-sourceId-targetId
+    const parts = id.replace('link-', '').split('-');
+    // IDs may have hyphens, so we need another approach
+    // Store on element
+    const sourceId = path.dataset.source;
+    const targetId = path.dataset.target;
+    if (!sourceId || !targetId) return;
+    const sp = getNodeCurrentPos(sourceId);
+    const tp = getNodeCurrentPos(targetId);
+    const mx = sp.x, my = (sp.y + tp.y) / 2;
+    path.setAttribute('d', `M${sp.x},${sp.y} C${mx},${my + (tp.y-sp.y)*0.2} ${tp.x},${my - (tp.y-sp.y)*0.2} ${tp.x},${tp.y}`);
+  });
+}
+
+// Store source/target on link elements after render
+function tagLinks() {
+  d3.selectAll('.link-line').each(function(d) {
+    if (d) {
+      this.dataset.source = d.source.data.id;
+      this.dataset.target = d.target.data.id;
+    }
+  });
+}
+
+// Drag behavior
+let dragStartShift = false;
+let dragStartPos = null;
+let dragBranchIds = [];
+
+function dragStarted(event, d) {
+  dragStartShift = event.sourceEvent?.shiftKey;
+  dragStartPos = { x: d.x, y: d.y };
+  if (!dragStartShift) {
+    // Collect entire subtree
+    dragBranchIds = collectSubtree(d.data.id);
+  } else {
+    dragBranchIds = [d.data.id];
+  }
+}
+
+function dragged(event, d) {
+  const dx = event.x - d.x;
+  const dy = event.y - d.y;
+  d.x = event.x;
+  d.y = event.y;
+
+  dragBranchIds.forEach(id => {
+    if (id === d.data.id) {
+      updateNodePosition(id, event.x, event.y);
+    } else {
+      const pos = getNodeCurrentPos(id);
+      updateNodePosition(id, pos.x + dx, pos.y + dy);
+    }
+  });
+  updateMinimap();
+}
+
+function dragEnded(event, d) {}
+
+function collectSubtree(nodeId) {
+  const conv = getActiveConv();
+  if (!conv) return [nodeId];
+  const ids = [nodeId];
+  const mapping = conv.data.mapping;
+  function walk(id) {
+    (mapping[id]?.children || []).forEach(cId => { ids.push(cId); walk(cId); });
+  }
+  walk(nodeId);
+  return ids;
+}
+
+function fitGraph() {
+  const area = document.getElementById('graph-area');
+  const W = area.offsetWidth, H = area.offsetHeight;
+  const positions = Array.from(state.nodePositions.values());
+  if (!positions.length) return;
+  const xs = positions.map(p => p.x);
+  const ys = positions.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const gW = maxX - minX + 80, gH = maxY - minY + 80;
+  const scale = Math.min(W / gW, H / gH, 1.5) * 0.85;
+  const tx = W / 2 - scale * (minX + maxX) / 2;
+  const ty = H / 2 - scale * (minY + maxY) / 2;
+  const t = d3.zoomIdentity.translate(tx, ty).scale(scale);
+  d3.select('#graph-svg').transition().duration(500).call(zoom.transform, t);
+}
+
+function resetLayout() {
+  if (!state.initialPositions.size) return;
+  state.initialPositions.forEach((pos, id) => {
+    state.nodePositions.set(id, { ...pos });
+  });
+  // Animate
+  d3.selectAll('g.node').each(function(d) {
+    const pos = state.initialPositions.get(d?.data?.id);
+    if (pos) {
+      d3.select(this).transition().duration(600).ease(d3.easeCubicInOut)
+        .attr('transform', `translate(${pos.x},${pos.y})`);
+      d.x = pos.x; d.y = pos.y;
+    }
+  });
+  setTimeout(() => { redrawLinks(); updateMinimap(); }, 650);
+}
+
+// ============================================================
+// NODE SELECTION & HIGHLIGHTING
+// ============================================================
+function selectNode(nodeId) {
+  state.selectedNodeId = nodeId;
+  updateNodeHighlights();
+  showNodeContent(nodeId);
+  showBranchContent(nodeId);
+  updateBranchIndex();
+}
+
+function getAncestors(nodeId) {
+  const conv = getActiveConv();
+  if (!conv) return new Set();
+  const ancestors = new Set();
+  let current = nodeId;
+  while (current) {
+    const node = conv.data.mapping[current];
+    if (!node || !node.parent) break;
+    ancestors.add(node.parent);
+    current = node.parent;
+  }
+  return ancestors;
+}
+
+function getDescendants(nodeId) {
+  const conv = getActiveConv();
+  if (!conv) return new Set();
+  const descendants = new Set();
+  function walk(id) {
+    (conv.data.mapping[id]?.children || []).forEach(cId => { descendants.add(cId); walk(cId); });
+  }
+  walk(nodeId);
+  return descendants;
+}
+
+function updateNodeHighlights() {
+  const sel = state.selectedNodeId;
+  const searchIds = getSearchMatchIds();
+  const ancestors = sel ? getAncestors(sel) : new Set();
+  const descendants = sel ? getDescendants(sel) : new Set();
+
+  d3.selectAll('g.node').each(function(d) {
+    if (!d) return;
+    const id = d.data?.id;
+    const circle = this.querySelector('.node-shape');
+    if (!circle) return;
+
+    // Remove all highlights
+    circle.style.outline = '';
+    circle.style.filter = '';
+    d3.select(this).style('opacity', 1);
+
+    if (sel) {
+      if (id === sel) {
+        // Selected: pink pulse
+        circle.style.filter = 'drop-shadow(0 0 8px rgba(244,114,182,0.8))';
+        circle.setAttribute('stroke', '#f472b6');
+        circle.setAttribute('stroke-width', '3');
+      } else if (ancestors.has(id)) {
+        circle.setAttribute('stroke', '#4a9eff');
+        circle.setAttribute('stroke-width', '2.5');
+        circle.style.filter = 'drop-shadow(0 0 5px rgba(74,158,255,0.5))';
+      } else if (descendants.has(id)) {
+        circle.setAttribute('stroke', '#4ade80');
+        circle.setAttribute('stroke-width', '2.5');
+        circle.style.filter = 'drop-shadow(0 0 5px rgba(74,222,128,0.5))';
+      } else {
+        d3.select(this).style('opacity', 0.35);
+        resetNodeStroke(d.data.role, circle);
+      }
+    } else {
+      resetNodeStroke(d.data.role, circle);
+    }
+
+    // Search highlight
+    if (searchIds.has(id)) {
+      circle.style.filter = 'drop-shadow(0 0 8px rgba(251,191,36,0.9))';
+      circle.setAttribute('stroke', '#fbbf24');
+      circle.setAttribute('stroke-width', '3');
+      d3.select(this).style('opacity', 1);
+    }
+  });
+}
+
+function resetNodeStroke(role, circle) {
+  if (role === 'user') { circle.setAttribute('stroke', 'var(--node-user-border)'); circle.setAttribute('stroke-width', '1.5'); }
+  else if (role === 'assistant') { circle.setAttribute('stroke', 'var(--node-assistant-border)'); circle.setAttribute('stroke-width', '1.5'); }
+  else if (role === 'system') { circle.setAttribute('stroke', 'var(--node-system-border)'); circle.setAttribute('stroke-width', '2'); }
+  else { circle.setAttribute('stroke', 'var(--node-other-border)'); circle.setAttribute('stroke-width', '1.5'); }
+}
+
+function getSearchMatchIds() {
+  const ids = new Set();
+  if (!state.searchQuery) return ids;
+  const conv = getActiveConv();
+  if (!conv) return ids;
+  // Always show matches for current conv on the graph
+  const matches = state.searchMatches.get(conv.id);
+  if (matches) matches.forEach(id => ids.add(id));
+  return ids;
+}
+
+// ============================================================
+// CONTENT DISPLAY
+// ============================================================
+function showNodeContent(nodeId) {
+  const conv = getActiveConv();
+  if (!conv) return;
+  const node = conv.data.mapping[nodeId];
+  if (!node || !node.message) return;
+
+  document.getElementById('node-empty').style.display = 'none';
+  document.getElementById('node-view').style.display = 'flex';
+
+  const role = getNodeRole(node);
+  const text = getNodeText(node);
+
+  // Header
+  const badge = document.getElementById('node-role-badge');
+  badge.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+  badge.className = `node-role-badge role-${role === 'assistant' ? 'assistant' : role === 'user' ? 'user' : role === 'system' ? 'system' : 'other'}`;
+  document.getElementById('node-id-display').textContent = nodeId.slice(0, 16) + (nodeId.length > 16 ? '…' : '');
+  const model = node.message?.metadata?.model || '';
+  document.getElementById('node-model-info').textContent = model;
+
+  // Location bar: breadcrumb + timestamp + depth
+  const locBar = document.getElementById('node-location-bar');
+  const { depth, breadcrumb } = getNodeLocation(conv, nodeId);
+  const ts = formatNodeDate(node.message?.create_time);
+  const locParts = [];
+  locParts.push(`<span style="color:var(--accent-teal);font-family:var(--font-mono)">↳${depth}</span>`);
+  if (ts) locParts.push(`<span style="font-family:var(--font-mono)">${ts}</span>`);
+  if (breadcrumb) locParts.push(`<span style="color:var(--text-muted)">${escapeHtml(conv.title)} › ${escapeHtml(breadcrumb)}</span>`);
+  else locParts.push(`<span style="color:var(--text-muted)">${escapeHtml(conv.title)}</span>`);
+  locBar.innerHTML = locParts.join('<span style="margin:0 5px;opacity:0.4">·</span>');
+  locBar.style.display = '';
+
+  // Content views
+  const rendered = DOMPurify.sanitize(marked.parse(text || '*(empty)*'));
+  const renderedDiv = document.getElementById('content-rendered');
+  renderedDiv.innerHTML = rendered;
+  addCodeCopyButtons(renderedDiv);
+
+  // Apply search highlights if active
+  const sq = state.searchQuery?.trim();
+  if (sq && state.highlightSearchTerms) {
+    highlightTextInElement(renderedDiv, sq);
+    const mdEl = document.getElementById('content-markdown');
+    mdEl.innerHTML = '';
+    const mdPre = document.createElement('span');
+    mdPre.textContent = text || '';
+    mdEl.appendChild(mdPre);
+    highlightTextInElement(mdEl, sq);
+  } else {
+    document.getElementById('content-markdown').textContent = text || '';
+  }
+
+  document.getElementById('content-html').textContent = rendered;
+  document.getElementById('content-json').textContent = JSON.stringify(node, null, 2);
+
+  // Metadata
+  const msg = node.message;
+  const metaItems = [];
+  if (msg.create_time) metaItems.push({ k: 'time', v: new Date(msg.create_time * 1000 || msg.create_time).toLocaleString() });
+  if (msg.metadata?.model) metaItems.push({ k: 'model', v: msg.metadata.model });
+  if (node.parent) metaItems.push({ k: 'parent', v: node.parent.slice(0, 12) });
+  if (node.children?.length) metaItems.push({ k: 'children', v: node.children.length });
+  const metaRow = document.getElementById('meta-row');
+  metaRow.innerHTML = metaItems.map(m => `<div class="meta-kv"><span class="meta-key">${m.k}:</span><span class="meta-val">${m.v}</span></div>`).join('');
+  document.getElementById('meta-bar').className = `meta-bar${state.showMeta ? ' visible' : ''}`;
+
+  applyViewMode();
+}
+
+function applyViewMode() {
+  ['rendered','markdown','html','json'].forEach(m => {
+    document.getElementById(`content-${m}`).style.display = m === state.viewMode ? '' : 'none';
+  });
+}
+
+// Branch view mode state
+if (!state.branchViewMode) state.branchViewMode = 'rendered';
+if (!state.branchVisibleRoles) state.branchVisibleRoles = new Set(['user','assistant','system','other']);
+if (!state.branchSearchScopes) state.branchSearchScopes = new Set(['user','assistant','system','other']);
+if (!state.branchSearchQuery) state.branchSearchQuery = '';
+if (state.highlightSearchTerms === undefined) state.highlightSearchTerms = true;
+
+function getBranchPath(nodeId) {
+  const conv = getActiveConv();
+  if (!conv) return [];
+  const path = [];
+  let current = nodeId;
+  while (current && current !== 'root') {
+    const node = conv.data.mapping[current];
+    if (!node) break;
+    if (node.message) path.unshift(node);
+    current = node.parent;
+  }
+  return path;
+}
+
+function showBranchContent(nodeId) {
+  const conv = getActiveConv();
+  if (!conv) return;
+  const path = getBranchPath(nodeId);
+  state._branchPath = path;
+  document.getElementById('branch-empty').style.display = 'none';
+  document.getElementById('branch-view').style.display = 'flex';
+  // Reset search on new node selection
+  state.branchSearchQuery = '';
+  const searchInput = document.getElementById('branch-search-input');
+  if (searchInput) searchInput.value = '';
+  const countEl = document.getElementById('branch-search-count');
+  if (countEl) countEl.textContent = '';
+  renderBranchContent();
+}
+
+function renderBranchContent() {
+  const path = state._branchPath;
+  if (!path) return;
+  const conv = getActiveConv();
+  const mode = state.branchViewMode;
+  const q = state.branchSearchQuery.trim().toLowerCase();
+  const visibleRoles = state.branchVisibleRoles;
+  const searchScopes = state.branchSearchScopes;
+  const branchContent = document.getElementById('branch-content');
+  branchContent.innerHTML = '';
+
+  if (mode === 'json') {
+    branchContent.style.fontFamily = 'var(--font-mono)';
+    branchContent.style.fontSize = '12px';
+    branchContent.style.whiteSpace = 'pre-wrap';
+    branchContent.style.wordBreak = 'break-all';
+    branchContent.style.color = 'var(--text-secondary)';
+    // Apply role filter to JSON too
+    const filtered = path.filter(n => visibleRoles.has(getNodeRole(n)));
+    branchContent.textContent = JSON.stringify(filtered.map(n => ({
+      id: n.id,
+      role: getNodeRole(n),
+      content: getNodeText(n),
+      create_time: n.message?.create_time,
+      model: n.message?.metadata?.model,
+    })), null, 2);
+    updateBranchStats(filtered.length, path.length);
+    return;
+  }
+  branchContent.style.fontFamily = '';
+  branchContent.style.fontSize = '13px';
+  branchContent.style.whiteSpace = '';
+  branchContent.style.wordBreak = '';
+  branchContent.style.color = '';
+
+  let visibleCount = 0;
+  let searchMatchCount = 0;
+
+  path.forEach(node => {
+    const role = getNodeRole(node);
+    const text = getNodeText(node);
+    const roleVisible = visibleRoles.has(role);
+    const inSearchScope = searchScopes.has(role);
+    const hasSearchHit = q && inSearchScope && text.toLowerCase().includes(q);
+
+    // Always render, hide via class
+    const wrap = document.createElement('div');
+    wrap.className = 'branch-msg-wrap';
+    const roleBg = role === 'user'
+      ? 'background:rgba(59,130,246,0.07);border-left:3px solid rgba(96,165,250,0.5);'
+      : role === 'assistant'
+      ? 'background:rgba(34,197,94,0.07);border-left:3px solid rgba(74,222,128,0.5);'
+      : role === 'system'
+      ? 'background:rgba(107,114,128,0.07);border-left:3px solid rgba(156,163,175,0.4);'
+      : 'background:rgba(168,85,247,0.07);border-left:3px solid rgba(192,132,252,0.5);';
+    wrap.style.cssText = `padding:12px 14px;margin-bottom:4px;border-radius:var(--radius-md);position:relative;${roleBg}`;
+
+    if (!roleVisible) { wrap.classList.add('hidden-role'); }
+    else if (q && inSearchScope && !hasSearchHit) { wrap.classList.add('no-search-match'); }
+    else { visibleCount++; if (hasSearchHit) searchMatchCount++; }
+
+    // Body content
+    let body;
+    if (mode === 'rendered') {
+      const bodyEl = document.createElement('div');
+      bodyEl.className = 'md-content';
+      bodyEl.style.fontSize = '13px';
+      const rendered = DOMPurify.sanitize(marked.parse(text || ''));
+      bodyEl.innerHTML = rendered;
+      if (q && hasSearchHit && state.highlightSearchTerms) highlightTextInElement(bodyEl, q);
+      body = bodyEl;
+    } else {
+      const pre = document.createElement('pre');
+      pre.style.cssText = 'font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;word-break:break-all;color:var(--text-secondary);margin:0;';
+      if (mode === 'markdown') {
+        pre.textContent = text || '';
+        if (q && hasSearchHit && state.highlightSearchTerms) highlightTextInElement(pre, q);
+      } else if (mode === 'html') {
+        pre.textContent = DOMPurify.sanitize(marked.parse(text || ''));
+        if (q && hasSearchHit && state.highlightSearchTerms) highlightTextInElement(pre, q);
+      }
+      body = pre;
+    }
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;flex-direction:column;gap:3px;margin-bottom:8px;';
+    const roleClass = role === 'assistant' ? 'assistant' : role === 'user' ? 'user' : role === 'system' ? 'system' : 'other';
+    const msgTs = formatNodeDate(node.message?.create_time);
+    let msgDepth = 0;
+    try {
+      let dc = node.id;
+      while (dc && conv && conv.data.mapping[dc] && conv.data.mapping[dc].parent && conv.data.mapping[dc].parent !== dc) {
+        msgDepth++;
+        dc = conv.data.mapping[dc].parent;
+        if (msgDepth > 200) break; // safety
+      }
+    } catch(e) {}
+
+    const topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;align-items:center;gap:6px;';
+
+    const roleBadge = document.createElement('span');
+    roleBadge.className = `node-role-badge role-${roleClass}`;
+    roleBadge.style.fontSize = '10px';
+    roleBadge.textContent = role;
+    topRow.appendChild(roleBadge);
+
+    const depthBadge = document.createElement('span');
+    depthBadge.style.cssText = 'font-size:10px;color:var(--accent-teal);font-family:var(--font-mono);background:rgba(0,212,170,0.1);padding:1px 4px;border-radius:3px;';
+    depthBadge.textContent = '↳' + msgDepth;
+    topRow.appendChild(depthBadge);
+
+    if (msgTs) {
+      const tsSpan = document.createElement('span');
+      tsSpan.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:var(--font-mono);';
+      tsSpan.textContent = msgTs;
+      topRow.appendChild(tsSpan);
+    }
+
+    const spacer = document.createElement('div');
+    spacer.style.flex = '1';
+    topRow.appendChild(spacer);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'branch-msg-copy-btn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.addEventListener('click', () => {
+      const copyText = mode === 'html' ? DOMPurify.sanitize(marked.parse(text || '')) : (text || '');
+      navigator.clipboard.writeText(copyText).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1500);
+      });
+    });
+    topRow.appendChild(copyBtn);
+    header.appendChild(topRow);
+    // Location row: node id + breadcrumb
+    const { breadcrumb } = getNodeLocation(conv, node.id);
+    if (breadcrumb) {
+      const locRow = document.createElement('div');
+      locRow.style.cssText = 'font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      locRow.textContent = breadcrumb;
+      header.appendChild(locRow);
+    }
+    wrap.appendChild(header);
+    wrap.appendChild(body);
+    if (mode === 'rendered') addCodeCopyButtons(wrap);
+    branchContent.appendChild(wrap);
+  });
+
+  updateBranchStats(visibleCount, path.length, q ? searchMatchCount : null);
+}
+
+function updateBranchStats(visible, total, searchHits) {
+  const el = document.getElementById('branch-stats');
+  const countEl = document.getElementById('branch-search-count');
+  el.textContent = visible === total ? `${total} messages` : `${visible}/${total} shown`;
+  if (countEl) countEl.textContent = searchHits !== null ? (searchHits ? `${searchHits} match${searchHits !== 1 ? 'es' : ''}` : '0 matches') : '';
+}
+
+function highlightTextInElement(el, query) {
+  // Walk text nodes and wrap matches
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+  const q = query.toLowerCase();
+  nodes.forEach(textNode => {
+    const val = textNode.nodeValue;
+    const lower = val.toLowerCase();
+    const idx = lower.indexOf(q);
+    if (idx === -1) return;
+    const parent = textNode.parentNode;
+    if (parent.classList?.contains('branch-search-hit')) return;
+    const before = document.createTextNode(val.slice(0, idx));
+    const mark = document.createElement('mark');
+    mark.className = 'branch-search-hit';
+    mark.textContent = val.slice(idx, idx + q.length);
+    const after = document.createTextNode(val.slice(idx + q.length));
+    parent.replaceChild(after, textNode);
+    parent.insertBefore(mark, after);
+    parent.insertBefore(before, mark);
+  });
+}
+
+function addCodeCopyButtons(container) {
+  container.querySelectorAll('pre').forEach(pre => {
+    if (pre.querySelector('.code-copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code')?.textContent || pre.textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+    pre.appendChild(btn);
+  });
+}
+
+// ============================================================
+// BRANCH INDEX
+// ============================================================
+function updateBranchIndex() {
+  const conv = getActiveConv();
+  const nodeId = state.selectedNodeId;
+  if (!conv || !nodeId) return;
+
+  const path = [];
+  let current = nodeId;
+  while (current && current !== 'root') {
+    const node = conv.data.mapping[current];
+    if (!node) break;
+    if (node.message) path.unshift(node);
+    current = node.parent;
+  }
+
+  const list = document.getElementById('branch-list');
+  const filter = document.getElementById('branch-index-search').value.toLowerCase();
+  list.innerHTML = '';
+  path.filter(n => !filter || getNodeText(n).toLowerCase().includes(filter)).forEach(node => {
+    const role = getNodeRole(node);
+    const text = getNodeText(node);
+    const item = document.createElement('div');
+    item.className = `branch-msg-item${node.id === nodeId ? ' selected' : ''}`;
+    item.innerHTML = `
+      <div class="bm-role" style="color:${role==='user'?'var(--accent-blue)':role==='assistant'?'var(--accent-green)':'var(--text-muted)'}">${role}</div>
+      <div class="bm-preview">${text.slice(0,80)}</div>
+    `;
+    item.addEventListener('click', () => {
+      selectNode(node.id);
+      scrollToNode(node.id);
+    });
+    list.appendChild(item);
+  });
+}
+
+function scrollToNode(nodeId, zoomIn = false) {
+  const g = getNodeGElement(nodeId);
+  if (!g || !zoom) return;
+  const pos = state.nodePositions.get(nodeId);
+  if (!pos) return;
+  const area = document.getElementById('graph-area');
+  const W = area.offsetWidth, H = area.offsetHeight;
+  const targetScale = zoomIn ? Math.max(state.transform.k, 1.4) : state.transform.k;
+  const t = d3.zoomIdentity
+    .translate(W / 2 - targetScale * pos.x, H / 2 - targetScale * pos.y)
+    .scale(targetScale);
+  d3.select('#graph-svg').transition().duration(450).ease(d3.easeCubicInOut).call(zoom.transform, t);
+}
+
+// ============================================================
+// SEARCH
+// ============================================================
+function highlightMatch(text, query) {
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return escapeHtml(text.slice(0, 120));
+  const start = Math.max(0, idx - 40);
+  const end = Math.min(text.length, idx + query.length + 80);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < text.length ? '…' : '';
+  const before = escapeHtml(text.slice(start, idx));
+  const match = escapeHtml(text.slice(idx, idx + query.length));
+  const after = escapeHtml(text.slice(idx + query.length, end));
+  return `${prefix}${before}<mark>${match}</mark>${after}${suffix}`;
+}
+
+function getNodeLocation(conv, nodeId) {
+  const mapping = conv.data.mapping;
+  // Walk up to root counting depth and collecting ancestor roles for breadcrumb
+  const ancestors = [];
+  let depth = 0;
+  let current = nodeId;
+  while (current) {
+    const n = mapping[current];
+    if (!n) break;
+    if (n.parent && n.parent !== current) {
+      const parent = mapping[n.parent];
+      if (parent?.message) {
+        const parentRole = getNodeRole(parent);
+        const parentSnippet = getNodeText(parent).slice(0, 24).replace(/\s+/g, ' ').trim();
+        ancestors.unshift({ role: parentRole, snippet: parentSnippet });
+      }
+      depth++;
+      current = n.parent;
+    } else break;
+  }
+  // Build a short breadcrumb from the last 2 meaningful ancestors
+  const crumbParts = ancestors.slice(-2).map(a => `${a.role}: ${a.snippet}${a.snippet.length >= 24 ? '…' : ''}`);
+  return { depth, breadcrumb: crumbParts.join(' › ') };
+}
+
+function formatNodeDate(t) {
+  if (!t) return null;
+  const ms = typeof t === 'number' ? (t > 1e10 ? t : t * 1000) : new Date(t).getTime();
+  if (!ms || isNaN(ms)) return null;
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${mo}-${day} ${h}:${mi}`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function runSearch(query) {
+  state.searchQuery = query;
+  state.searchMatches.clear();
+
+  const panel = document.getElementById('search-results-panel');
+  const resultsList = document.getElementById('search-results-list');
+
+  if (!query.trim()) {
+    panel.style.display = 'none';
+    resultsList.innerHTML = '';
+    renderConvList();
+    updateNodeHighlights();
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const convsToSearch = state.searchScope === 'all'
+    ? state.conversations
+    : state.conversations.filter(c => c.id === state.activeConvId);
+
+  // Collect matches per conv and all matching messages
+  const allMatchMsgs = []; // { conv, nodeId, node }
+
+  convsToSearch.forEach(conv => {
+    const matches = new Set();
+    Object.entries(conv.data.mapping).forEach(([id, node]) => {
+      if (!node.message) return;
+      const text = getNodeText(node).toLowerCase();
+      if (text.includes(q)) {
+        matches.add(id);
+        allMatchMsgs.push({ conv, nodeId: id, node });
+      }
+    });
+    if (matches.size) state.searchMatches.set(conv.id, matches);
+  });
+
+  // Render message results
+  const totalMatches = allMatchMsgs.length;
+  document.getElementById('search-results-label').textContent = `${totalMatches} message${totalMatches !== 1 ? 's' : ''} found`;
+  resultsList.innerHTML = '';
+
+  allMatchMsgs.forEach(({ conv, nodeId, node }) => {
+    const role = getNodeRole(node);
+    const text = getNodeText(node);
+    const item = document.createElement('div');
+    item.className = 'search-msg-item';
+
+    // Compute depth and breadcrumb
+    const { depth, breadcrumb } = getNodeLocation(conv, nodeId);
+    const dateStr = formatNodeDate(node.message?.create_time);
+    const roleColor = role === 'user' ? 'var(--accent-blue)' : role === 'assistant' ? 'var(--accent-green)' : role === 'system' ? 'var(--text-muted)' : 'var(--accent-purple)';
+
+    item.innerHTML = `
+      <div class="search-msg-item-header">
+        <span class="search-msg-role" style="color:${roleColor}">${role}</span>
+        <span class="search-msg-depth" title="Depth in thread">↳${depth}</span>
+        ${dateStr ? `<span class="search-msg-date">${dateStr}</span>` : ''}
+      </div>
+      <div class="search-msg-breadcrumb">${escapeHtml(conv.title)}${breadcrumb ? ` <span class="search-crumb-sep">›</span> ${escapeHtml(breadcrumb)}` : ''}</div>
+      <div class="search-msg-preview">${highlightMatch(text, query)}</div>
+      <div class="search-msg-nav">Click to jump · node <span class="search-msg-nodeid">${nodeId.slice(0,10)}</span></div>
+    `;
+    item.addEventListener('click', () => {
+      if (conv.id !== state.activeConvId) loadConversation(conv.id, true);
+      const jump = () => { selectNode(nodeId); scrollToNode(nodeId, true); };
+      conv.id !== state.activeConvId ? setTimeout(jump, 150) : jump();
+    });
+    resultsList.appendChild(item);
+  });
+
+  panel.style.display = totalMatches > 0 ? 'flex' : 'none';
+
+  renderConvList();
+  updateNodeHighlights();
+}
+
+// ============================================================
+// CONVERSATION MANAGEMENT
+// ============================================================
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const raw = JSON.parse(e.target.result);
+      const converted = convertToUnified(raw);
+      converted.forEach(data => {
+        const id = data.conversation_id || genId();
+        // Deep-clone original data for reset
+        const originalData = JSON.parse(JSON.stringify(data));
+        state.conversations.push({
+          id, title: data.title || 'Untitled',
+          data, format: data._format,
+          _originalData: originalData,
+        });
+      });
+      renderConvList();
+      if (!state.activeConvId && state.conversations.length) {
+        loadConversation(state.conversations[state.conversations.length - 1].id);
+      }
+      showNotif(`Loaded ${converted.length} conversation(s) from ${file.name}`, 'success');
+    } catch(err) {
+      showNotif('Error parsing file: ' + err.message, 'error');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function loadConversation(convId, preserveSearch = false) {
+  state.activeConvId = convId;
+  state.selectedNodeId = null;
+
+  if (!preserveSearch) {
+    state.searchQuery = '';
+    document.getElementById('sidebar-search').value = '';
+    document.getElementById('search-results-panel').style.display = 'none';
+    document.getElementById('search-results-list').innerHTML = '';
+    state.searchMatches.clear();
+  }
+
+  const conv = state.conversations.find(c => c.id === convId);
+  renderConvList();
+  renderGraph(conv);
+  tagLinks();
+  setTimeout(() => { updateMinimap(); if (preserveSearch) updateNodeHighlights(); }, 100);
+
+  document.getElementById('node-empty').style.display = '';
+  document.getElementById('node-view').style.display = 'none';
+  document.getElementById('branch-empty').style.display = '';
+  document.getElementById('branch-view').style.display = 'none';
+}
+
+function getConvLatestTime(conv) {
+  let latest = 0;
+  Object.values(conv.data.mapping).forEach(node => {
+    if (!node.message) return;
+    const t = node.message.create_time;
+    if (!t) return;
+    const ms = typeof t === 'number' ? (t > 1e10 ? t : t * 1000) : new Date(t).getTime();
+    if (ms > latest) latest = ms;
+  });
+  // Fall back to conversation-level update/create time
+  if (!latest) {
+    const ct = conv.data.update_time || conv.data.create_time;
+    if (ct) latest = typeof ct === 'number' ? (ct > 1e10 ? ct : ct * 1000) : new Date(ct).getTime();
+  }
+  return latest;
+}
+
+function formatConvDate(ms) {
+  if (!ms) return null;
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function renderConvList() {
+  const list = document.getElementById('conv-list');
+  list.innerHTML = '';
+  document.getElementById('conv-count').textContent = state.conversations.length;
+
+  let sorted = [...state.conversations].sort((a, b) => getConvLatestTime(b) - getConvLatestTime(a));
+
+  // During search: conversations with matches float to the top
+  if (state.searchQuery.trim()) {
+    sorted.sort((a, b) => {
+      const aHas = state.searchMatches.has(a.id) ? 1 : 0;
+      const bHas = state.searchMatches.has(b.id) ? 1 : 0;
+      if (bHas !== aHas) return bHas - aHas;
+      // Within same group, keep latest-first order
+      return getConvLatestTime(b) - getConvLatestTime(a);
+    });
+  }
+
+  sorted.forEach(conv => {
+    const item = document.createElement('div');
+    item.className = `conv-item${conv.id === state.activeConvId ? ' active' : ''}`;
+    item.dataset.convId = conv.id;
+    const matchCount = state.searchMatches.get(conv.id)?.size || 0;
+    const nodeCount = Object.values(conv.data.mapping).filter(n => n.message).length;
+    const dateStr = formatConvDate(getConvLatestTime(conv));
+    item.innerHTML = `
+      <div class="conv-item-title">${conv.title}</div>
+      ${dateStr ? `<div class="conv-item-date">${dateStr}</div>` : ''}
+      <div class="conv-item-meta">
+        <span>${conv.format || 'unknown'}</span>
+        <span>${nodeCount} msgs</span>
+        ${matchCount ? `<span class="conv-match-badge">${matchCount}</span>` : ''}
+      </div>
+    `;
+    item.addEventListener('click', () => loadConversation(conv.id));
+    item.addEventListener('contextmenu', e => showContextMenu(e, conv.id));
+    list.appendChild(item);
+  });
+}
+
+// ============================================================
+// TOOLTIP
+// ============================================================
+function showTooltip(event, d) {
+  if (!state.settings.tooltips) return;
+  clearTimeout(tooltipTimer);
+  tooltipTimer = setTimeout(() => {
+    const role = d.data?.role || 'unknown';
+    const text = d.data?.text || '';
+    document.getElementById('tt-role').textContent = role;
+    document.getElementById('tt-role').className = `tt-role ${role}`;
+    document.getElementById('tt-preview').textContent = text.slice(0, 200) + (text.length > 200 ? '…' : '');
+    const tt = document.getElementById('tooltip');
+    tt.style.left = (event.clientX + 12) + 'px';
+    tt.style.top = (event.clientY - 10) + 'px';
+    tt.classList.add('visible');
+  }, state.settings.tooltipDelay);
+}
+
+function moveTooltip(event) {
+  const tt = document.getElementById('tooltip');
+  if (tt.classList.contains('visible')) {
+    tt.style.left = (event.clientX + 12) + 'px';
+    tt.style.top = (event.clientY - 10) + 'px';
+  }
+}
+
+function hideTooltip() {
+  clearTimeout(tooltipTimer);
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+// ============================================================
+// MINIMAP
+// ============================================================
+function updateMinimap() {
+  const canvas = document.getElementById('minimap-canvas');
+  const mm = document.getElementById('minimap');
+  const ctx = canvas.getContext('2d');
+  canvas.width = mm.offsetWidth;
+  canvas.height = mm.offsetHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const positions = Array.from(state.nodePositions.entries());
+  if (!positions.length) return;
+
+  const xs = positions.map(([,p]) => p.x);
+  const ys = positions.map(([,p]) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const gW = maxX - minX + 60, gH = maxY - minY + 60;
+  const scale = Math.min(canvas.width / gW, canvas.height / gH) * 0.9;
+  const offX = (canvas.width - gW * scale) / 2 - minX * scale;
+  const offY = (canvas.height - gH * scale) / 2 - minY * scale;
+
+  const conv = getActiveConv();
+
+  // Draw links
+  ctx.strokeStyle = 'rgba(100,110,140,0.4)';
+  ctx.lineWidth = 0.5;
+  if (conv) {
+    Object.values(conv.data.mapping).forEach(node => {
+      if (!node.parent) return;
+      const sp = state.nodePositions.get(node.parent);
+      const tp = state.nodePositions.get(node.id);
+      if (!sp || !tp) return;
+      ctx.beginPath();
+      ctx.moveTo(sp.x * scale + offX, sp.y * scale + offY);
+      ctx.lineTo(tp.x * scale + offX, tp.y * scale + offY);
+      ctx.stroke();
+    });
+  }
+
+  // Draw nodes
+  positions.forEach(([id, pos]) => {
+    const nx = pos.x * scale + offX, ny = pos.y * scale + offY;
+    const node = conv?.data.mapping[id];
+    const role = getNodeRole(node);
+    ctx.beginPath();
+    ctx.arc(nx, ny, 3, 0, Math.PI * 2);
+    ctx.fillStyle = role === 'user' ? '#3b82f6' : role === 'assistant' ? '#22c55e' : role === 'system' ? '#6b7280' : '#a855f7';
+    if (id === state.selectedNodeId) ctx.fillStyle = '#f472b6';
+    ctx.fill();
+  });
+
+  // Store minimap transform for viewport calc
+  mm._mmScale = scale;
+  mm._mmOffX = offX;
+  mm._mmOffY = offY;
+  updateMinimapViewport();
+}
+
+function updateMinimapViewport() {
+  const mm = document.getElementById('minimap');
+  const vp = document.getElementById('minimap-viewport');
+  const scale = mm._mmScale;
+  const offX = mm._mmOffX;
+  const offY = mm._mmOffY;
+  if (!scale) return;
+
+  const area = document.getElementById('graph-area');
+  const W = area.offsetWidth, H = area.offsetHeight;
+  const t = state.transform;
+
+  // Viewport rect in graph coords
+  const x0 = (-t.x / t.k);
+  const y0 = (-t.y / t.k);
+  const w = W / t.k;
+  const h = H / t.k;
+
+  vp.style.left = (x0 * scale + offX) + 'px';
+  vp.style.top = (y0 * scale + offY) + 'px';
+  vp.style.width = (w * scale) + 'px';
+  vp.style.height = (h * scale) + 'px';
+}
+
+// ============================================================
+// CONTEXT MENU
+// ============================================================
+let ctxConvId = null;
+let ctxNodeId = null;
+let ctxMode = 'conv'; // 'conv' | 'node'
+
+function showContextMenu(e, convId, nodeId) {
+  e.preventDefault();
+  ctxConvId = convId;
+  ctxNodeId = nodeId || null;
+  ctxMode = nodeId ? 'node' : 'conv';
+  const cm = document.getElementById('context-menu');
+  cm.className = ctxMode === 'node' ? 'node-mode' : '';
+  document.getElementById('ctx-delete-label').textContent = ctxMode === 'node' ? 'Delete Node' : 'Delete Conv';
+  // Show Restore All only when there are hidden conversations
+  const restoreBtn = document.getElementById('ctx-restore-all');
+  restoreBtn.style.display = (ctxMode === 'conv' && state.hiddenConversations.length > 0) ? '' : 'none';
+  // Show offscreen first to measure dimensions
+  cm.style.visibility = 'hidden';
+  cm.style.display = 'block';
+  const cw = cm.offsetWidth, ch = cm.offsetHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const x = Math.min(e.clientX, vw - cw - 8);
+  const y = Math.min(e.clientY, vh - ch - 8);
+  cm.style.left = x + 'px';
+  cm.style.top = y + 'px';
+  cm.style.visibility = '';
+}
+document.getElementById('ctx-show-only').addEventListener('click', () => {
+  if (ctxConvId) {
+    // Stash hidden conversations (don't delete them)
+    const hidden = state.conversations.filter(c => c.id !== ctxConvId);
+    state.hiddenConversations.push(...hidden);
+    state.conversations = state.conversations.filter(c => c.id === ctxConvId);
+    loadConversation(ctxConvId);
+    showNotif(`Showing only "${state.conversations[0]?.title}". ${hidden.length} conversation${hidden.length !== 1 ? 's' : ''} hidden.`);
+  }
+  hideContextMenu();
+});
+
+document.getElementById('ctx-restore-all').addEventListener('click', () => {
+  if (state.hiddenConversations.length) {
+    state.conversations.push(...state.hiddenConversations);
+    state.hiddenConversations = [];
+    renderConvList();
+    showNotif(`Restored ${state.conversations.length} conversations`, 'success');
+  }
+  hideContextMenu();
+});
+
+document.getElementById('ctx-start-over').addEventListener('click', () => {
+  const totalConvs = state.conversations.length + state.hiddenConversations.length + state.deletedConversations.length;
+  const parts = [];
+  if (state.conversations.length) parts.push(`${state.conversations.length} visible`);
+  if (state.hiddenConversations.length) parts.push(`${state.hiddenConversations.length} hidden`);
+  if (state.deletedConversations.length) parts.push(`${state.deletedConversations.length} deleted`);
+  const msg = `Start Over will:\n• Restore all ${totalConvs} conversation${totalConvs !== 1 ? 's' : ''} (${parts.join(', ')})\n• Reset ALL conversations to their original loaded state (deleted nodes and edits will be lost)\n\nThis cannot be undone. Continue?`;
+  if (!confirm(msg)) { hideContextMenu(); return; }
+
+  // Merge all conversation pools
+  const allConvs = [...state.conversations, ...state.hiddenConversations, ...state.deletedConversations];
+  state.hiddenConversations = [];
+  state.deletedConversations = [];
+
+  // Reset each conversation's data from its original snapshot
+  allConvs.forEach(conv => {
+    if (conv._originalData) {
+      conv.data = JSON.parse(JSON.stringify(conv._originalData));
+    }
+  });
+
+  state.conversations = allConvs;
+  state.activeConvId = null;
+  state.selectedNodeId = null;
+  state.searchQuery = '';
+  state.searchMatches.clear();
+  state._branchPath = null;
+  state.nodePositions.clear();
+  state.initialPositions.clear();
+  document.getElementById('sidebar-search').value = '';
+  document.getElementById('search-results-panel').style.display = 'none';
+  document.getElementById('search-results-list').innerHTML = '';
+  document.getElementById('node-empty').style.display = '';
+  document.getElementById('node-view').style.display = 'none';
+  document.getElementById('branch-empty').style.display = '';
+  document.getElementById('branch-view').style.display = 'none';
+
+  renderConvList();
+  renderGraph(null);
+  showNotif(`Reset ${allConvs.length} conversation${allConvs.length !== 1 ? 's' : ''} to original state`, 'success');
+  hideContextMenu();
+});
+document.getElementById('ctx-export').addEventListener('click', () => {
+  if (ctxConvId) {
+    const conv = state.conversations.find(c => c.id === ctxConvId);
+    if (conv) exportJSON(conv.data, conv.title);
+  }
+  hideContextMenu();
+});
+document.getElementById('ctx-node-copy').addEventListener('click', () => {
+  if (ctxNodeId) {
+    const conv = getActiveConv();
+    const node = conv?.data.mapping[ctxNodeId];
+    if (node) navigator.clipboard.writeText(getNodeText(node)).then(() => showNotif('Message copied!', 'success'));
+  }
+  hideContextMenu();
+});
+document.getElementById('ctx-node-select').addEventListener('click', () => {
+  if (ctxNodeId) { selectNode(ctxNodeId); scrollToNode(ctxNodeId); }
+  hideContextMenu();
+});
+document.getElementById('ctx-delete').addEventListener('click', () => {
+  if (ctxMode === 'node' && ctxNodeId) {
+    // Remove node and detach from parent
+    const conv = getActiveConv();
+    if (conv) {
+      const node = conv.data.mapping[ctxNodeId];
+      if (node?.parent) {
+        const parent = conv.data.mapping[node.parent];
+        if (parent) parent.children = parent.children.filter(c => c !== ctxNodeId);
+      }
+      delete conv.data.mapping[ctxNodeId];
+      if (state.selectedNodeId === ctxNodeId) state.selectedNodeId = null;
+      renderGraph(conv);
+      tagLinks();
+    }
+  } else if (ctxConvId) {
+    const conv = state.conversations.find(c => c.id === ctxConvId);
+    if (conv) state.deletedConversations.push(conv);
+    state.conversations = state.conversations.filter(c => c.id !== ctxConvId);
+    if (state.activeConvId === ctxConvId) { state.activeConvId = null; renderGraph(null); }
+    renderConvList();
+  }
+  hideContextMenu();
+});
+function hideContextMenu() { document.getElementById('context-menu').style.display = 'none'; }
+document.addEventListener('click', hideContextMenu);
+
+// ============================================================
+// EXPORT FUNCTIONS
+// ============================================================
+function exportJSON(data, title) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (title || 'conversation') + '.json';
+  a.click();
+}
+
+function exportText(text, title, ext = 'md') {
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (title || 'message') + '.' + ext;
+  a.click();
+}
+
+function exportAsChatGPT(conv) {
+  if (!conv) return;
+  return convToOpenAIFormat(conv);
+}
+
+function convToOpenAIFormat(conv) {
+  const mapping = {};
+  Object.entries(conv.data.mapping).forEach(([id, node]) => {
+    const msg = node.message;
+    mapping[id] = {
+      id,
+      parent: node.parent,
+      children: node.children || [],
+      message: msg ? {
+        id: msg.id || id,
+        author: { role: msg.author?.role || 'unknown', name: null, metadata: {} },
+        create_time: msg.create_time || null,
+        update_time: msg.create_time || null,
+        content: {
+          content_type: 'text',
+          parts: [msg.content?.text || '']
+        },
+        status: 'finished_successfully',
+        end_turn: true,
+        weight: 1.0,
+        metadata: msg.metadata || {},
+        recipient: 'all',
+      } : null,
+    };
+  });
+  return {
+    title: conv.title || 'Exported Conversation',
+    create_time: conv.data.create_time || Date.now() / 1000,
+    update_time: conv.data.update_time || Date.now() / 1000,
+    mapping,
+    moderation_results: [],
+    current_node: null,
+    plugin_ids: null,
+    conversation_id: conv.data.conversation_id || conv.id,
+    conversation_template_id: null,
+    gizmo_id: null,
+    is_archived: false,
+    safe_urls: [],
+    id: conv.data.conversation_id || conv.id,
+  };
+}
+
+function exportAllAsChatGPT() {
+  if (!state.conversations.length) { showNotif('No conversations loaded', 'error'); return; }
+  const all = state.conversations.map(convToOpenAIFormat);
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `multiverse_export_${all.length}convs_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showNotif(`Exported ${all.length} conversation${all.length !== 1 ? 's' : ''} as ChatGPT JSON`, 'success');
+}
+
+function getCurrentContent() {
+  const conv = getActiveConv();
+  if (!conv || !state.selectedNodeId) return '';
+  const node = conv.data.mapping[state.selectedNodeId];
+  if (!node) return '';
+  if (state.viewMode === 'json') return JSON.stringify(node, null, 2);
+  if (state.viewMode === 'html') return document.getElementById('content-html').textContent;
+  return getNodeText(node);
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('visible'); }
+function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+
+// Settings
+function buildSettings() {
+  const body = document.getElementById('settings-body');
+  body.innerHTML = `
+    <div class="setting-group">
+      <h3>Node Visibility</h3>
+      <div class="setting-row">
+        <div><div class="setting-label">Show System Nodes</div><div class="setting-desc">Gray dashed nodes with system prompts</div></div>
+        <div class="toggle${state.settings.showSystem ? ' on' : ''}" data-setting="showSystem"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Show Other Nodes</div><div class="setting-desc">Purple nodes for unknown roles</div></div>
+        <div class="toggle${state.settings.showOther ? ' on' : ''}" data-setting="showOther"></div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <h3>Tooltips</h3>
+      <div class="setting-row">
+        <div><div class="setting-label">Show Tooltips</div><div class="setting-desc">Preview message content on hover</div></div>
+        <div class="toggle${state.settings.tooltips ? ' on' : ''}" data-setting="tooltips"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Tooltip Delay</div><div class="setting-desc">Time before tooltip appears</div></div>
+        <div class="setting-range">
+          <input type="range" min="500" max="10000" step="100" value="${state.settings.tooltipDelay}" data-range="tooltipDelay">
+          <span class="range-val" id="range-val-tooltipDelay">${state.settings.tooltipDelay}ms</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  body.querySelectorAll('.toggle').forEach(t => {
+    t.addEventListener('click', () => {
+      const key = t.dataset.setting;
+      state.settings[key] = !state.settings[key];
+      t.classList.toggle('on', state.settings[key]);
+      localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+      if (key === 'showSystem' || key === 'showOther') {
+        const conv = getActiveConv();
+        if (conv) renderGraph(conv);
+      }
+    });
+  });
+  body.querySelectorAll('input[type="range"]').forEach(r => {
+    r.addEventListener('input', () => {
+      const key = r.dataset.range;
+      state.settings[key] = parseInt(r.value);
+      document.getElementById(`range-val-${key}`).textContent = r.value + 'ms';
+      localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+    });
+  });
+}
+
+// Help content
+const helpTopics = [
+  { id: 'overview', label: '🗂 Overview', content: `
+    <h2>Multiverse Viewer v6.0</h2>
+    <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
+    <h3>Supported Formats</h3>
+    <table>
+      <tr><th>Platform</th><th>Format Type</th><th>Detection Signal</th></tr>
+      <tr><td><strong>OpenAI / ChatGPT</strong></td><td>Single or array with <code>mapping</code></td><td><code>mapping[].message.author.role</code></td></tr>
+      <tr><td><strong>Claude / Anthropic</strong></td><td>Messages array</td><td><code>role</code> + <code>contentChunks</code> or <code>createdAt</code></td></tr>
+      <tr><td><strong>DeepSeek (exporter)</strong></td><td>Metadata + messages</td><td><code>metadata.platform === "DeepSeek"</code></td></tr>
+      <tr><td><strong>DeepSeek (chat export)</strong></td><td>Mapping with fragments</td><td><code>mapping[].message.fragments[]</code></td></tr>
+      <tr><td><strong>DeepSeek (conversation)</strong></td><td>Messages with raw_html</td><td><code>messages[].raw_html</code></td></tr>
+      <tr><td><strong>Grok / xAI</strong></td><td>Conversation + responses</td><td><code>conversation</code> + <code>responses[]</code></td></tr>
+      <tr><td><strong>Mistral AI</strong></td><td>chat_messages array</td><td><code>chat_messages[]</code> + <code>account</code> or <code>uuid</code></td></tr>
+    </table>
+    <p>All formats are automatically converted to a unified internal structure before rendering. The original data is preserved in <code>_original_data</code> for debugging.</p>
+    <div class="tip"><strong>Tip:</strong> You can load multiple files at once — each becomes a separate conversation entry in the sidebar.</div>
+  `},
+  { id: 'loading', label: '📂 Loading & Unloading', content: `
+    <h2>Loading & Unloading Conversations</h2>
+    <h3>Loading Files</h3>
+    <ul>
+      <li>Click <strong>Load File</strong> in the top bar and select one or more <code>.json</code> files</li>
+      <li><strong>Drag and drop</strong> one or more JSON files directly onto the graph area — a teal dashed overlay appears to confirm the drop zone is active</li>
+      <li>You can load files from multiple platforms in the same session; each is listed separately in the sidebar</li>
+    </ul>
+    <h3>Format Detection</h3>
+    <p>Detection is fully automatic. The viewer inspects the JSON structure and picks the correct conversion path. If a file cannot be recognized, it falls back to a generic converter and displays what it can.</p>
+    <h3>Unloading</h3>
+    <p>Click <strong>Unload All</strong> in the top bar to clear every loaded conversation and return to a blank slate. A confirmation dialog appears first. This action cannot be undone — export anything important before unloading.</p>
+    <div class="tip"><strong>Tip:</strong> To remove a single conversation, right-click it in the sidebar and choose <strong>Delete Conv</strong>.</div>
+  `},
+  { id: 'sidebar', label: '🗃 Sidebar & Conversations', content: `
+    <h2>Left Sidebar</h2>
+    <h3>Conversations List</h3>
+    <p>All loaded conversations are listed here, sorted by the timestamp of their <strong>most recent message</strong> (newest first). Each entry shows:</p>
+    <ul>
+      <li><strong>Title</strong> — from the conversation's own title field</li>
+      <li><strong>Date</strong> — last message date in <code>YYYY-MM-DD</code> format</li>
+      <li><strong>Format badge</strong> — source platform (e.g. <em>deepseek-chat</em>, <em>openai</em>, <em>claude</em>)</li>
+      <li><strong>Message count</strong> — total nodes with messages</li>
+      <li><strong>Yellow match badge</strong> — count of search hits (only shown during active search)</li>
+    </ul>
+    <p>Click any conversation to load it into the graph. The active conversation is highlighted with a teal border.</p>
+    <h3>Sorting During Search</h3>
+    <p>When a search query is active, conversations containing matches float to the top of the list. Within each group (matched / unmatched), conversations remain sorted by date.</p>
+    <h3>Right-Click Context Menu</h3>
+    <ul>
+      <li><strong>Show Only</strong> — hides all other conversations, keeping only this one visible. The hidden conversations are <em>stashed</em>, not deleted — they can be restored</li>
+      <li><strong>Restore All</strong> — appears only after using Show Only. Brings back all hidden conversations without resetting any data</li>
+      <li><strong>Start Over</strong> — restores all hidden conversations <em>and</em> resets every conversation to its original loaded state. Any deleted nodes, modified data, or edits are permanently lost. <strong>Shows a confirmation warning before proceeding</strong></li>
+      <li><strong>Export Conv</strong> — downloads this single conversation as an OpenAI-compatible <code>.json</code> file</li>
+      <li><strong>Delete Conv</strong> — permanently removes this conversation from the session (cannot be undone; use Start Over to recover if the original data is intact)</li>
+    </ul>
+    <div class="tip"><strong>Tip:</strong> Use <strong>Show Only</strong> to focus on one conversation, then <strong>Restore All</strong> to bring back the others — no data is lost. Use <strong>Start Over</strong> only if you want to reset modifications.</div>
+    <div class="tip"><strong>Warning:</strong> <strong>Start Over</strong> is irreversible. It resets deleted nodes, modified mappings, and any structural edits back to the original JSON as it was when first loaded.</div>
+  `},
+  { id: 'graph', label: '🔵 Graph & Navigation', content: `
+    <h2>Graph Area</h2>
+    <h3>Layout</h3>
+    <p>Conversations are rendered as top-down tree diagrams using D3.js. Each node represents one message. Edges connect parent to child messages. Branch points (nodes with multiple children) show a <strong style="color:#fbbf24">yellow count badge</strong>.</p>
+    <h3>Panning & Zooming</h3>
+    <ul>
+      <li><strong>Scroll wheel</strong> — zoom in/out centred on the cursor</li>
+      <li><strong>Click + drag</strong> on the background — pan the view</li>
+      <li><strong>+ / − buttons</strong> (bottom-left) — zoom in/out by a fixed step</li>
+      <li><strong>Fit button</strong> (bottom-left) — zoom and pan to fit all nodes in view</li>
+      <li><strong>Reset button</strong> (top bar) — animate all nodes back to their calculated layout positions</li>
+    </ul>
+    <h3>Node Types</h3>
+    <table>
+      <tr><th>Appearance</th><th>Role</th><th>Description</th></tr>
+      <tr><td><strong style="color:#60a5fa">Blue circle (U)</strong></td><td>user</td><td>Human messages</td></tr>
+      <tr><td><strong style="color:#4ade80">Green circle (A)</strong></td><td>assistant</td><td>AI responses</td></tr>
+      <tr><td><strong style="color:#9ca3af">Gray dashed circle (S)</strong></td><td>system</td><td>System prompts</td></tr>
+      <tr><td><strong style="color:#c084fc">Purple circle (?)</strong></td><td>other</td><td>Unknown or tool roles</td></tr>
+    </table>
+    <h3>Selection Highlighting</h3>
+    <p>When you click a node, the graph applies layered highlighting to show context:</p>
+    <ul>
+      <li><strong style="color:#f472b6">Pink glow</strong> — the selected node itself</li>
+      <li><strong style="color:#60a5fa">Blue outline pulse</strong> — all ancestor nodes (the path from root to selection)</li>
+      <li><strong style="color:#4ade80">Green outline pulse</strong> — all descendant nodes (every child branch below)</li>
+      <li><strong>Dimmed (35% opacity)</strong> — all nodes not on the selected path</li>
+      <li><strong style="color:#fbbf24">Yellow glow</strong> — nodes matching an active search query (overrides dimming)</li>
+    </ul>
+    <h3>Minimap</h3>
+    <p>A small canvas overview appears in the bottom-right corner showing the full graph with a teal rectangle indicating the current viewport.</p>
+    <ul>
+      <li><strong>Click</strong> the minimap to jump the viewport to that position</li>
+      <li><strong>Ctrl + drag</strong> (or ⌘ + drag on Mac) to reposition the minimap anywhere in the graph area</li>
+      <li>The <strong>map icon button</strong> in the bottom-left controls hides/shows the minimap with a fade animation</li>
+    </ul>
+    <h3>Graph Controls (Bottom-Left)</h3>
+    <ul>
+      <li><strong>+</strong> — zoom in</li>
+      <li><strong>−</strong> — zoom out</li>
+      <li><strong>Fit icon</strong> — fit all nodes in view</li>
+      <li><strong>Map icon</strong> — toggle minimap visibility</li>
+    </ul>
+  `},
+  { id: 'nodes-interaction', label: '✥ Node Interaction', content: `
+    <h2>Interacting with Nodes</h2>
+    <h3>Selecting a Node</h3>
+    <p>Click any node to select it. The right panel updates immediately with the node's content. The graph highlights the selected node's ancestors (blue) and descendants (green) while dimming everything else.</p>
+    <h3>Dragging Nodes</h3>
+    <ul>
+      <li><strong>Drag a node</strong> — moves it and its entire subtree together, preserving internal layout</li>
+      <li><strong>Shift + drag</strong> — moves only that single node, leaving its children in place</li>
+      <li>Click <strong>Reset</strong> in the top bar to animate all nodes back to their auto-calculated positions</li>
+    </ul>
+    <h3>Node Right-Click Menu</h3>
+    <p>Right-clicking any node opens a context menu. It always repositions itself to avoid going off-screen.</p>
+    <ul>
+      <li><strong>Copy Message</strong> — copies the node's raw text content to the clipboard</li>
+      <li><strong>Select & View</strong> — selects the node, scrolls the graph to center on it, and switches to the Selected Node panel</li>
+      <li><strong>Delete Node</strong> — removes the node from the mapping and unlinks it from its parent. Its children become orphaned and disappear. This is permanent within the session.</li>
+    </ul>
+    <div class="tip"><strong>Tip:</strong> After deleting nodes, use <strong>Export All</strong> to save the modified conversation tree.</div>
+  `},
+  { id: 'selected-node', label: '📄 Selected Node Panel', content: `
+    <h2>Selected Node Panel</h2>
+    <p>Click any node in the graph to populate this panel. It shows the full content of that single message.</p>
+    <h3>Header Bar</h3>
+    <ul>
+      <li><strong>Role badge</strong> — color-coded: blue (User), green (Assistant), gray (System), purple (Other)</li>
+      <li><strong>Model name</strong> — if available in the message metadata (e.g. <em>deepseek-chat</em>)</li>
+      <li><strong>Node ID</strong> — truncated internal identifier (full ID shown in JSON view)</li>
+      <li><strong>Location bar</strong> — shows <code>↳N</code> depth, <code>YYYY-MM-DD HH:MM</code> timestamp, conversation title, and a breadcrumb of ancestor role snippets (e.g. <em>user: first 24 chars… › assistant: …</em>)</li>
+    </ul>
+    <h3>View Modes</h3>
+    <table>
+      <tr><th>Mode</th><th>What you see</th><th>Download format</th></tr>
+      <tr><td><strong>Rendered</strong></td><td>Markdown rendered to HTML with syntax-highlighted code blocks and copy buttons</td><td><code>.md</code></td></tr>
+      <tr><td><strong>Markdown</strong></td><td>Raw Markdown source text</td><td><code>.md</code></td></tr>
+      <tr><td><strong>HTML</strong></td><td>The rendered HTML source code</td><td><code>.html</code></td></tr>
+      <tr><td><strong>JSON</strong></td><td>The raw node object from the internal unified mapping</td><td><code>.json</code></td></tr>
+    </table>
+    <h3>Toolbar Buttons</h3>
+    <ul>
+      <li><strong>Copy (clipboard icon)</strong> — copies content in the current view mode to clipboard. Flashes green on success</li>
+      <li><strong>Export (download icon)</strong> — downloads a file in the format matching the active view mode</li>
+      <li><strong>Pop-out (external link icon)</strong> — opens the rendered HTML content in a new browser tab with clean styling</li>
+      <li><strong>PDF (document icon)</strong> — generates a PDF screenshot of the rendered content using html2canvas + jsPDF</li>
+      <li><strong>M</strong> — toggles the metadata bar below the content (shows timestamp, model, parent node ID, child count)</li>
+      <li><strong>H</strong> — toggles search term highlighting. When on (teal), every occurrence of the active search query is highlighted in yellow within the content. Synced with the Branch panel's H button</li>
+    </ul>
+    <h3>Search Highlighting</h3>
+    <p>When a global search is active and H is enabled, matched text is highlighted in yellow in the Rendered and Markdown views. The highlight updates instantly as you change the search query.</p>
+  `},
+  { id: 'branch', label: '🌿 Branch View Panel', content: `
+    <h2>Branch View Panel</h2>
+    <p>The Branch tab shows the <strong>complete conversation path</strong> from the root down to the selected node — every message in that thread, in chronological order, as a scrollable list.</p>
+    <h3>Message Cards</h3>
+    <p>Each message is displayed as a card with a role-colored background:</p>
+    <ul>
+      <li><strong style="color:#60a5fa">Blue tint + left border</strong> — User message</li>
+      <li><strong style="color:#4ade80">Green tint + left border</strong> — Assistant message</li>
+      <li><strong style="color:#9ca3af">Gray tint + left border</strong> — System message</li>
+      <li><strong style="color:#c084fc">Purple tint + left border</strong> — Other/unknown role</li>
+    </ul>
+    <p>Each card header shows: role badge, <code>↳N</code> depth indicator, <code>YYYY-MM-DD HH:MM</code> timestamp, a breadcrumb of the 1–2 preceding messages, and a <strong>Copy</strong> button that appears on hover.</p>
+    <h3>View Modes</h3>
+    <p>The same four modes as the Selected Node panel: Rendered / Markdown / HTML / JSON — applied to all messages in the branch simultaneously.</p>
+    <h3>Branch Search Bar</h3>
+    <ul>
+      <li>Type to filter messages in real time — non-matching messages are <strong>hidden</strong> completely</li>
+      <li>Matches are highlighted in yellow within each visible message card</li>
+      <li>A match count appears to the right of the search box</li>
+      <li>The search resets automatically when you select a different node</li>
+    </ul>
+    <h3>Role Filter: "Show:"</h3>
+    <p>Color-coded toggle pills: <strong>User / Assistant / System / Other / All</strong></p>
+    <ul>
+      <li>Click any pill to toggle that role's visibility on/off</li>
+      <li><strong>All</strong> selects or deselects all roles at once</li>
+      <li>Hidden messages are completely removed from view (not just dimmed)</li>
+      <li>The stats counter updates to show e.g. <em>3/8 shown</em></li>
+    </ul>
+    <h3>Search Scope: "Search in:"</h3>
+    <p>Controls <em>which roles are searched</em> (independent of visibility):</p>
+    <ul>
+      <li>Deselect a scope pill to exclude that role from search results</li>
+      <li>Out-of-scope roles remain fully visible — they're just not searched</li>
+      <li>Example: deselect User to only find matches inside assistant responses</li>
+    </ul>
+    <h3>Branch Toolbar</h3>
+    <ul>
+      <li><strong>Copy</strong> — copies all visible branch messages as plain text with role headers</li>
+      <li><strong>Export</strong> — downloads in the format matching the active view mode:<br>
+        Rendered → styled <code>.html</code> with role-colored blocks<br>
+        Markdown → <code>.md</code> with <code>---</code> separators<br>
+        HTML → raw rendered HTML per message<br>
+        JSON → structured <code>.json</code> array</li>
+      <li><strong>Pop-out</strong> — opens the full thread in a new browser tab with role-colored shading, timestamps, and per-message Copy buttons</li>
+      <li><strong>GPT↓</strong> — downloads the current conversation as an OpenAI-compatible <code>conversations.json</code> file (single conversation)</li>
+      <li><strong>H</strong> — toggles search highlighting (synced with the Selected Node panel)</li>
+    </ul>
+  `},
+  { id: 'search', label: '🔍 Search', content: `
+    <h2>Global Search</h2>
+    <h3>Using the Search Box</h3>
+    <p>Type in the search field at the top of the left sidebar to search message content in real time.</p>
+    <h3>Scope</h3>
+    <ul>
+      <li><strong>Current</strong> — searches only the active conversation</li>
+      <li><strong>All</strong> — searches all loaded conversations simultaneously</li>
+    </ul>
+    <h3>Search Results Panel</h3>
+    <p>A results panel appears above the conversation list showing every matching message. Each result card contains:</p>
+    <ul>
+      <li><strong>Role label</strong> — color-coded (blue/green/gray/purple)</li>
+      <li><strong>↳N depth</strong> — how deep in the tree the node sits (teal badge)</li>
+      <li><strong>Timestamp</strong> — <code>YYYY-MM-DD HH:MM</code> of that specific message</li>
+      <li><strong>Breadcrumb</strong> — conversation title and last 1–2 ancestor message snippets</li>
+      <li><strong>Preview snippet</strong> — surrounding context with the match highlighted in yellow</li>
+      <li><strong>Node ID</strong> — shown on hover alongside a "Click to jump" hint</li>
+    </ul>
+    <h3>Clicking a Result</h3>
+    <p>Clicking any result card:</p>
+    <ul>
+      <li>Switches to the conversation that contains the match (if different from the active one)</li>
+      <li>Selects the node</li>
+      <li>Smoothly pans and zooms the graph to center on that node (zooms in to at least 1.4× scale)</li>
+      <li><strong>Keeps the results panel open</strong> so you can click another result without re-searching</li>
+    </ul>
+    <h3>Graph Highlights</h3>
+    <p>All matching nodes in the current conversation's graph receive a yellow glow. This overrides the dimming effect from node selection, so matches stay visible even when a node is selected.</p>
+    <h3>Conversation Sorting</h3>
+    <p>During active search, conversations with matches rise to the top of the sidebar list. A yellow badge shows the hit count per conversation.</p>
+    <h3>Search Highlighting in Panels</h3>
+    <p>When you click a result and view the node content, the search term is highlighted in yellow in the Selected Node and Branch panels (if the <strong>H</strong> button is on). Turn H off to view the content without highlights.</p>
+    <h3>Clearing Search</h3>
+    <p>Delete the search text to clear results and restore normal sort order. Results also clear when you manually click a conversation in the sidebar.</p>
+  `},
+  { id: 'export', label: '💾 Exporting', content: `
+    <h2>Export Options</h2>
+    <h3>Selected Node Panel</h3>
+    <ul>
+      <li><strong>Copy</strong> — copies content to clipboard in the active view mode</li>
+      <li><strong>Export</strong> — saves as <code>.md</code> (Rendered or Markdown mode), <code>.html</code> (HTML mode), or <code>.json</code> (JSON mode)</li>
+      <li><strong>Pop-out</strong> — opens rendered content in a new tab with clean typography</li>
+      <li><strong>PDF</strong> — captures the rendered HTML as a PDF via html2canvas + jsPDF. The output is a pixel-accurate screenshot of the panel</li>
+    </ul>
+    <h3>Branch Panel</h3>
+    <ul>
+      <li><strong>Copy</strong> — copies all branch messages as plain text with <code>[ROLE]</code> headers and <code>---</code> separators</li>
+      <li><strong>Export</strong> — format depends on active view mode:
+        <ul>
+          <li><strong>Rendered</strong> → <code>.html</code> with full CSS styling, role-colored message blocks (matching the pop-out appearance)</li>
+          <li><strong>Markdown</strong> → <code>.md</code> with <code>**[ROLE]**</code> headers</li>
+          <li><strong>HTML</strong> → <code>.html</code> with raw rendered HTML, no extra CSS</li>
+          <li><strong>JSON</strong> → <code>.json</code> array of <code>{id, role, content, create_time, model}</code> objects</li>
+        </ul>
+      </li>
+      <li><strong>Pop-out</strong> — opens in a new tab with role-colored shading, depth/timestamp headers, and per-message Copy buttons</li>
+      <li><strong>GPT↓</strong> — downloads the current conversation as a single-item OpenAI <code>conversations.json</code> array</li>
+    </ul>
+    <h3>Project Export (Top Bar)</h3>
+    <ul>
+      <li><strong>Export All</strong> — exports every loaded conversation as a single OpenAI-format JSON array. Filename: <code>multiverse_export_Nconvs_YYYY-MM-DD.json</code>. This file can be re-imported into ChatGPT-compatible tools</li>
+    </ul>
+    <h3>OpenAI Export Format</h3>
+    <p>Exported conversations use the standard ChatGPT <code>conversations.json</code> structure:</p>
+    <ul>
+      <li><code>mapping</code> — the full node tree with parent/children links preserved</li>
+      <li><code>message.author.role</code> — user / assistant / system</li>
+      <li><code>message.content.parts[]</code> — text content array</li>
+      <li><code>create_time</code>, <code>update_time</code>, <code>conversation_id</code>, <code>title</code></li>
+    </ul>
+  `},
+  { id: 'settings', label: '⚙ Settings', content: `
+    <h2>Settings</h2>
+    <p>Click <strong>Settings</strong> in the top bar to open the settings panel.</p>
+    <h3>Node Visibility</h3>
+    <ul>
+      <li><strong>Show System Nodes</strong> — when off, gray dashed system prompt nodes are hidden from the graph entirely (their children are still rendered)</li>
+      <li><strong>Show Other Nodes</strong> — when off, purple unknown-role nodes are hidden</li>
+    </ul>
+    <h3>Tooltips</h3>
+    <ul>
+      <li><strong>Show Tooltips</strong> — when on, hovering a node shows a popup with the role label and first ~200 characters of the message content</li>
+      <li><strong>Tooltip Delay</strong> — slider from 500ms to 10,000ms controlling how long you must hover before the tooltip appears. Drag the slider and the value updates live</li>
+    </ul>
+    <p>All settings are saved to <code>localStorage</code> and persist across page reloads.</p>
+  `},
+  { id: 'themes', label: '🎨 Themes', content: `
+    <h2>Themes</h2>
+    <p>Click any of the five colored dots in the top-right corner of the toolbar to switch themes. The preference is saved to <code>localStorage</code> automatically.</p>
+    <table>
+      <tr><th>Dot color</th><th>Theme name</th><th>Description</th></tr>
+      <tr><td>Dark gray</td><td><strong>Dark</strong></td><td>Default. Deep dark backgrounds with teal accents</td></tr>
+      <tr><td>Light gray</td><td><strong>Light</strong></td><td>Soft light gray backgrounds with dark text</td></tr>
+      <tr><td>Dark navy</td><td><strong>Blue</strong></td><td>Deep navy blue theme with blue accent color</td></tr>
+      <tr><td>Dark green</td><td><strong>Green</strong></td><td>Forest green theme with bright green accents</td></tr>
+      <tr><td>Dark purple</td><td><strong>Purple</strong></td><td>Deep purple theme with lavender accents</td></tr>
+    </table>
+    <p>All CSS colors use custom properties (<code>--bg-primary</code>, <code>--accent-teal</code>, etc.) so every element respects the theme including the graph, panels, modals, and scrollbars.</p>
+  `},
+  { id: 'panels', label: '🖥 Panel Layout', content: `
+    <h2>Panel Layout</h2>
+    <h3>Three-Panel Layout</h3>
+    <ul>
+      <li><strong>Left sidebar</strong> — search bar + conversations list. Min width 160px, max 400px</li>
+      <li><strong>Center graph area</strong> — the interactive D3 tree visualization with grid background</li>
+      <li><strong>Right panel</strong> — Selected Node and Branch view tabs</li>
+    </ul>
+    <h3>Resizing Panels</h3>
+    <p>Drag the thin vertical dividers (resize handles) between the panels to resize them. The divider highlights teal when hovered. The minimap and graph viewport update in real time as you resize.</p>
+    <h3>Right Panel Tabs</h3>
+    <ul>
+      <li><strong>Selected Node</strong> — shows the content of the currently clicked node</li>
+      <li><strong>Branch</strong> — shows the full path from root to the selected node</li>
+    </ul>
+    <h3>Branch Index (Bottom of Right Panel)</h3>
+    <p>A collapsible panel at the bottom of the right panel listing all messages in the current branch. Click the <strong>Branch Index</strong> header to expand/collapse it. Use the filter input to search within the index. Clicking any entry selects that node and scrolls the graph to it.</p>
+    <h3>Print Mode</h3>
+    <p>When printing (<kbd>Ctrl+P</kbd> / <kbd>⌘P</kbd>), the layout switches to show only the right panel content, hiding the graph, sidebar, and toolbars.</p>
+  `},
+  { id: 'keyboard', label: '⌨ Keyboard & Mouse', content: `
+    <h2>Keyboard & Mouse Reference</h2>
+    <h3>Keyboard</h3>
+    <table>
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Close any open modal or context menu</td></tr>
+      <tr><td><kbd>Ctrl+P</kbd> / <kbd>⌘P</kbd></td><td>Print (shows right panel only)</td></tr>
+    </table>
+    <h3>Mouse — Graph Area</h3>
+    <table>
+      <tr><th>Action</th><th>Effect</th></tr>
+      <tr><td>Left click on node</td><td>Select node, update right panel</td></tr>
+      <tr><td>Right click on node</td><td>Open node context menu (Copy, Select & View, Delete)</td></tr>
+      <tr><td>Drag on node</td><td>Move node + entire subtree</td></tr>
+      <tr><td>Shift + drag on node</td><td>Move only that node</td></tr>
+      <tr><td>Scroll wheel</td><td>Zoom in / out</td></tr>
+      <tr><td>Click + drag on background</td><td>Pan the graph</td></tr>
+    </table>
+    <h3>Mouse — Sidebar</h3>
+    <table>
+      <tr><th>Action</th><th>Effect</th></tr>
+      <tr><td>Left click on conversation</td><td>Load that conversation into the graph</td></tr>
+      <tr><td>Right click on conversation</td><td>Open conversation context menu</td></tr>
+      <tr><td>Left click on search result</td><td>Jump to that node (zooms in)</td></tr>
+    </table>
+    <h3>Mouse — Minimap</h3>
+    <table>
+      <tr><th>Action</th><th>Effect</th></tr>
+      <tr><td>Left click</td><td>Pan the graph viewport to that position</td></tr>
+      <tr><td>Ctrl + drag (⌘ on Mac)</td><td>Reposition the minimap within the graph area</td></tr>
+    </table>
+  `},
+  { id: 'formats-detail', label: '🔧 Format Details', content: `
+    <h2>Format Conversion Details</h2>
+    <h3>OpenAI / ChatGPT</h3>
+    <p>The native format. Tree structure is preserved exactly. Each node has <code>parent</code>, <code>children[]</code>, and a <code>message</code> with <code>author.role</code> and <code>content.parts[]</code>. Both single conversation objects and arrays of conversations are supported.</p>
+    <h3>DeepSeek (Exporter Format)</h3>
+    <p>Identified by <code>metadata.platform === "DeepSeek"</code>. Messages may contain nested content objects: <code>search_hint</code>, <code>thinking_chain</code>, and <code>final_answer</code> — these are assembled into readable Markdown. Parent-child links are built from array order.</p>
+    <h3>DeepSeek (Chat Export / Mapping Format)</h3>
+    <p>Has a <code>mapping</code> object but messages use <code>fragments[]</code> instead of <code>content</code>. Each fragment has a <code>type</code> field: <code>REQUEST</code> → user role, <code>RESPONSE</code> → assistant role. Content is joined from all fragments.</p>
+    <h3>DeepSeek (Conversation Format)</h3>
+    <p>A <code>messages[]</code> array where each message may have a <code>raw_html</code> field. HTML tags are stripped for preview and content display.</p>
+    <h3>Claude / Anthropic</h3>
+    <p>A <code>messages[]</code> array (or a single object with a <code>messages</code> key). Each message has <code>role</code> and either a <code>content</code> string, a <code>content[]</code> array, or a <code>contentChunks[]</code> array. Timestamps come from <code>createdAt</code> or <code>created_at</code>.</p>
+    <h3>Grok / xAI</h3>
+    <p>Has a <code>conversation</code> object and a <code>responses[]</code> array. Human messages and AI responses are sorted by <code>create_time</code> and interleaved. Role is determined by <code>sender: "human"</code> vs <code>"ASSISTANT"</code>. Model metadata from <code>model_slug</code>.</p>
+    <h3>Mistral AI</h3>
+    <p>Has a <code>chat_messages[]</code> array (or <code>messages[]</code>) plus <code>account</code> or <code>uuid</code>. Content is extracted from <code>content[]</code> array items where <code>type === "text"</code>. UUIDs and timestamps are preserved.</p>
+    <h3>Unified Internal Format</h3>
+    <p>All formats are converted to:</p>
+    <ul>
+      <li><code>conversation_id</code>, <code>title</code>, <code>create_time</code>, <code>update_time</code></li>
+      <li><code>mapping</code> — object keyed by node ID, each with <code>id</code>, <code>parent</code>, <code>children[]</code>, and <code>message</code></li>
+      <li><code>message.author.role</code>, <code>message.content.text</code>, <code>message.create_time</code>, <code>message.metadata</code></li>
+      <li><code>_format</code> — the detected format name for debugging</li>
+    </ul>
+  `},
+];
+
+function buildHelp() {
+  const sidebar = document.getElementById('help-sidebar');
+  const content = document.getElementById('help-content');
+  if (sidebar._built) return; // only build once
+  sidebar._built = true;
+
+  // Sidebar topic buttons
+  sidebar.innerHTML = helpTopics.map((t, i) => `<button class="help-topic-btn${i === 0 ? ' active' : ''}" data-topic="${t.id}">${t.label}</button>`).join('');
+
+  // Content sections + search results container
+  content.innerHTML = `<div id="help-search-results" class="help-search-results"></div>` +
+    helpTopics.map((t, i) => `<div class="help-section${i === 0 ? ' active' : ''}" id="help-${t.id}">${t.content}</div>`).join('');
+
+  // Sidebar navigation
+  sidebar.querySelectorAll('.help-topic-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sidebar.querySelectorAll('.help-topic-btn').forEach(b => b.classList.remove('active'));
+      content.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('help-search-results').classList.remove('active');
+      btn.classList.add('active');
+      document.getElementById('help-' + btn.dataset.topic)?.classList.add('active');
+      // Clear search
+      const inp = document.getElementById('help-search-input');
+      if (inp) { inp.value = ''; }
+      document.getElementById('help-search-count').textContent = '';
+      document.getElementById('help-search-clear').style.display = 'none';
+      sidebar.querySelectorAll('.help-topic-btn').forEach(b => { b.classList.remove('has-match'); b.querySelector('.help-match-count')?.remove(); });
+    });
+  });
+
+  // Search
+  const searchInput = document.getElementById('help-search-input');
+  const searchCount = document.getElementById('help-search-count');
+  const searchClear = document.getElementById('help-search-clear');
+  const resultsDiv = document.getElementById('help-search-results');
+
+  function doHelpSearch(q) {
+    const trimmed = q.trim().toLowerCase();
+    // Clear match badges
+    sidebar.querySelectorAll('.help-topic-btn').forEach(b => { b.classList.remove('has-match'); b.querySelector('.help-match-count')?.remove(); });
+
+    if (!trimmed) {
+      resultsDiv.classList.remove('active');
+      content.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+      const firstActive = sidebar.querySelector('.help-topic-btn.active');
+      const topic = firstActive?.dataset.topic || helpTopics[0].id;
+      document.getElementById('help-' + topic)?.classList.add('active');
+      searchCount.textContent = '';
+      searchClear.style.display = 'none';
+      return;
+    }
+    searchClear.style.display = '';
+
+    // Search across all topics
+    const results = [];
+    const matchCounts = {};
+    helpTopics.forEach(topic => {
+      // Strip HTML from content for text search
+      const tmp = document.createElement('div');
+      tmp.innerHTML = topic.content;
+      const text = tmp.textContent;
+      let idx = 0, count = 0;
+      const lText = text.toLowerCase();
+      while ((idx = lText.indexOf(trimmed, idx)) !== -1) { count++; idx += trimmed.length; }
+      if (count > 0) {
+        matchCounts[topic.id] = count;
+        // Find up to 3 snippet locations
+        const snippets = [];
+        let si = 0;
+        while (snippets.length < 3 && (si = lText.indexOf(trimmed, si)) !== -1) {
+          const start = Math.max(0, si - 50);
+          const end = Math.min(text.length, si + trimmed.length + 80);
+          const prefix = start > 0 ? '…' : '';
+          const suffix = end < text.length ? '…' : '';
+          const before = text.slice(start, si).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          const match = text.slice(si, si + trimmed.length).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          const after = text.slice(si + trimmed.length, end).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          snippets.push(`${prefix}${before}<mark>${match}</mark>${after}${suffix}`);
+          si += trimmed.length;
+        }
+        results.push({ topic, count, snippets });
+      }
+    });
+
+    // Sort by match count descending
+    results.sort((a, b) => b.count - a.count);
+
+    // Update sidebar badges
+    results.forEach(r => {
+      const btn = sidebar.querySelector(`[data-topic="${r.topic.id}"]`);
+      if (btn) {
+        btn.classList.add('has-match');
+        const badge = document.createElement('span');
+        badge.className = 'help-match-count';
+        badge.textContent = r.count;
+        btn.appendChild(badge);
+      }
+    });
+
+    // Render results
+    content.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+    resultsDiv.classList.add('active');
+    const total = results.reduce((s, r) => s + r.count, 0);
+    searchCount.textContent = total ? `${total} match${total !== 1 ? 'es' : ''} in ${results.length} topic${results.length !== 1 ? 's' : ''}` : 'No results';
+
+    if (results.length === 0) {
+      resultsDiv.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:20px;text-align:center">No results for "<strong>${q}</strong>"</div>`;
+      return;
+    }
+
+    resultsDiv.innerHTML = results.map(r => `
+      <div class="help-result-item" data-topic="${r.topic.id}">
+        <div class="help-result-topic">${r.topic.label} <span style="font-weight:400;opacity:0.6">· ${r.count} match${r.count !== 1 ? 'es' : ''}</span></div>
+        ${r.snippets.map(s => `<div class="help-result-preview">${s}</div>`).join('')}
+      </div>
+    `).join('');
+
+    resultsDiv.querySelectorAll('.help-result-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const topic = item.dataset.topic;
+        resultsDiv.classList.remove('active');
+        content.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('help-' + topic)?.classList.add('active');
+        sidebar.querySelectorAll('.help-topic-btn').forEach(b => b.classList.remove('active'));
+        sidebar.querySelector(`[data-topic="${topic}"]`)?.classList.add('active');
+        searchInput.value = '';
+        searchCount.textContent = '';
+        searchClear.style.display = 'none';
+        sidebar.querySelectorAll('.help-topic-btn').forEach(b => { b.classList.remove('has-match'); b.querySelector('.help-match-count')?.remove(); });
+      });
+    });
+  }
+
+  searchInput.addEventListener('input', e => doHelpSearch(e.target.value));
+  searchClear.addEventListener('click', () => { searchInput.value = ''; doHelpSearch(''); searchInput.focus(); });
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { searchInput.value = ''; doHelpSearch(''); } });
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+let notifTimer;
+function showNotif(msg, type = '') {
+  clearTimeout(notifTimer);
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.className = `show ${type}`;
+  notifTimer = setTimeout(() => { n.className = ''; }, 3000);
+}
+
+// ============================================================
+// PANEL RESIZE
+// ============================================================
+function setupResize(handleId, targetId, side) {
+  const handle = document.getElementById(handleId);
+  let startX, startW;
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = document.getElementById(targetId).offsetWidth;
+    handle.classList.add('dragging');
+    const onMove = e => {
+      const dx = side === 'left' ? e.clientX - startX : startX - e.clientX;
+      const el = document.getElementById(targetId);
+      const min = parseInt(el.style.minWidth) || 160;
+      const max = parseInt(el.style.maxWidth) || 600;
+      el.style.width = Math.max(min, Math.min(max, startW + dx)) + 'px';
+      updateMinimap();
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+setupResize('rh-left', 'sidebar-left', 'left');
+setupResize('rh-right', 'panel-right', 'right');
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+// File input
+// File loading with project dialog
+let _pendingFiles = [];
+
+function handleIncomingFiles(files) {
+  _pendingFiles = Array.from(files);
+  if (!_pendingFiles.length) return;
+  const total = state.conversations.length + state.hiddenConversations.length + state.deletedConversations.length;
+  if (total === 0) {
+    // Nothing loaded yet — just load directly
+    _pendingFiles.forEach(loadFile);
+    _pendingFiles = [];
+    return;
+  }
+  // Ask user what to do
+  const desc = document.getElementById('load-mode-desc');
+  desc.textContent = `You have ${total} conversation${total !== 1 ? 's' : ''} loaded. What would you like to do with the ${_pendingFiles.length} incoming file${_pendingFiles.length !== 1 ? 's' : ''}?`;
+  openModal('modal-load-mode');
+}
+
+document.getElementById('load-mode-add').addEventListener('click', () => {
+  closeModal('modal-load-mode');
+  _pendingFiles.forEach(loadFile);
+  _pendingFiles = [];
+});
+
+document.getElementById('load-mode-replace').addEventListener('click', () => {
+  closeModal('modal-load-mode');
+  // Unload everything first
+  state.conversations = [];
+  state.hiddenConversations = [];
+  state.deletedConversations = [];
+  state.activeConvId = null;
+  state.selectedNodeId = null;
+  state.searchQuery = '';
+  state.searchMatches.clear();
+  state._branchPath = null;
+  state.nodePositions.clear();
+  state.initialPositions.clear();
+  document.getElementById('sidebar-search').value = '';
+  document.getElementById('search-results-panel').style.display = 'none';
+  document.getElementById('search-results-list').innerHTML = '';
+  document.getElementById('node-empty').style.display = '';
+  document.getElementById('node-view').style.display = 'none';
+  document.getElementById('branch-empty').style.display = '';
+  document.getElementById('branch-view').style.display = 'none';
+  if (document.getElementById('node-location-bar')) document.getElementById('node-location-bar').style.display = 'none';
+  renderConvList();
+  renderGraph(null);
+  // Now load the new files
+  _pendingFiles.forEach(loadFile);
+  _pendingFiles = [];
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  handleIncomingFiles(e.target.files);
+  e.target.value = '';
+});
+
+// Drag and drop on graph
+const graphArea = document.getElementById('graph-area');
+graphArea.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-overlay').classList.add('active'); });
+graphArea.addEventListener('dragleave', () => { document.getElementById('drop-overlay').classList.remove('active'); });
+graphArea.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('drop-overlay').classList.remove('active');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.json'));
+  handleIncomingFiles(files);
+});
+
+// Theme
+document.querySelectorAll('.theme-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    const theme = dot.dataset.theme;
+    document.body.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === theme));
+    localStorage.setItem('mv-theme', theme);
+  });
+});
+
+// Search
+document.getElementById('sidebar-search').addEventListener('input', e => runSearch(e.target.value));
+document.querySelectorAll('.search-scope-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.search-scope-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.searchScope = btn.dataset.scope;
+    runSearch(state.searchQuery);
+  });
+});
+
+// Panel tabs
+document.querySelectorAll('.panel-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel-tab-content').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`ptab-${tab.dataset.panel}`)?.classList.add('active');
+  });
+});
+
+// View mode buttons
+document.querySelectorAll('.view-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.viewMode = btn.dataset.mode;
+    applyViewMode();
+  });
+});
+
+// Action buttons
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const content = getCurrentContent();
+  navigator.clipboard.writeText(content).then(() => {
+    const btn = document.getElementById('btn-copy');
+    btn.classList.add('success');
+    setTimeout(() => btn.classList.remove('success'), 1500);
+    showNotif('Copied to clipboard!', 'success');
+  });
+});
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  const conv = getActiveConv();
+  if (!conv || !state.selectedNodeId) return;
+  const node = conv.data.mapping[state.selectedNodeId];
+  if (!node) return;
+  const text = getNodeText(node);
+  exportText(text, `message-${state.selectedNodeId.slice(0,8)}`);
+});
+
+document.getElementById('btn-popout').addEventListener('click', () => {
+  const content = document.getElementById('content-rendered').innerHTML;
+  const w = window.open('', '_blank', 'width=800,height=600');
+  w.document.write(`<!DOCTYPE html><html><head><title>Message</title><style>
+    body{font-family:system-ui,sans-serif;padding:24px;max-width:800px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f5f6fc}
+    pre{background:#f0f2f8;padding:12px;border-radius:6px;overflow-x:auto}
+    code{font-family:monospace;font-size:13px}
+  </style></head><body>${content}</body></html>`);
+  w.document.close();
+});
+
+document.getElementById('btn-pdf').addEventListener('click', async () => {
+  const el = document.getElementById('content-rendered');
+  showNotif('Generating PDF...');
+  try {
+    const canvas = await html2canvas(el, { backgroundColor: '#f5f6fc', scale: 2 });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const imgW = 595, imgH = canvas.height * imgW / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, imgH);
+    pdf.save('message.pdf');
+    showNotif('PDF saved!', 'success');
+  } catch(e) { showNotif('PDF error: ' + e.message, 'error'); }
+});
+
+document.getElementById('btn-toggle-meta').addEventListener('click', () => {
+  state.showMeta = !state.showMeta;
+  document.getElementById('meta-bar').className = `meta-bar${state.showMeta ? ' visible' : ''}`;
+});
+
+function setHighlight(on) {
+  state.highlightSearchTerms = on;
+  document.getElementById('btn-toggle-highlight').classList.toggle('active', on);
+  document.getElementById('btn-toggle-highlight-branch').classList.toggle('active', on);
+  // Re-render current content with updated highlight state
+  if (state.selectedNodeId) showNodeContent(state.selectedNodeId);
+  if (state._branchPath) renderBranchContent();
+}
+
+document.getElementById('btn-toggle-highlight').addEventListener('click', () => setHighlight(!state.highlightSearchTerms));
+document.getElementById('btn-toggle-highlight-branch').addEventListener('click', () => setHighlight(!state.highlightSearchTerms));
+
+document.getElementById('btn-copy-branch').addEventListener('click', () => {
+  const path = state._branchPath;
+  if (!path) return;
+  const text = path.map(n => `[${getNodeRole(n).toUpperCase()}]\n${getNodeText(n)}`).join('\n\n---\n\n');
+  navigator.clipboard.writeText(text).then(() => showNotif('Branch copied!', 'success'));
+});
+
+document.getElementById('btn-export-branch').addEventListener('click', () => {
+  const path = state._branchPath;
+  if (!path) return;
+  const conv = getActiveConv();
+  const mode = state.branchViewMode;
+  const safeName = (conv?.title || 'branch').replace(/[^a-z0-9]/gi, '_');
+
+  if (mode === 'rendered') {
+    const htmlParts = path.map(n => {
+      const role = getNodeRole(n);
+      const text = getNodeText(n);
+      const s = { user: { bg:'rgba(59,130,246,0.08)', border:'rgba(96,165,250,0.6)', label:'#3b82f6' }, assistant: { bg:'rgba(34,197,94,0.08)', border:'rgba(74,222,128,0.6)', label:'#22c55e' }, system: { bg:'rgba(107,114,128,0.08)', border:'rgba(156,163,175,0.5)', label:'#9ca3af' }, other: { bg:'rgba(168,85,247,0.08)', border:'rgba(192,132,252,0.6)', label:'#a855f7' } }[role] || { bg:'rgba(168,85,247,0.08)', border:'rgba(192,132,252,0.6)', label:'#a855f7' };
+      return `<div style="margin-bottom:8px;padding:14px 16px;border-radius:8px;background:${s.bg};border-left:3px solid ${s.border}"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${s.label};margin-bottom:8px;letter-spacing:.07em">${role}</div><div>${DOMPurify.sanitize(marked.parse(text || ''))}</div></div>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${conv?.title || 'Branch'}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;padding:32px;max-width:820px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f0f2f8}h1{font-size:17px;font-weight:600;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #d0d4e8}p{margin-bottom:10px}pre{background:#dde0ee;padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0}code{font-family:monospace;font-size:12.5px}blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}table{border-collapse:collapse;width:100%;margin:8px 0}td,th{padding:6px 10px;border:1px solid #c8cce0}th{background:#dde0ee}</style></head><body><h1>${conv?.title || 'Branch'}</h1>${htmlParts}</body></html>`;
+    exportText(html, safeName + '-branch', 'html');
+  } else if (mode === 'markdown') {
+    const text = path.map(n => `**[${getNodeRole(n).toUpperCase()}]**\n\n${getNodeText(n)}`).join('\n\n---\n\n');
+    exportText(text, safeName + '-branch', 'md');
+  } else if (mode === 'html') {
+    const text = path.map(n => {
+      const rendered = DOMPurify.sanitize(marked.parse(getNodeText(n) || ''));
+      return `<!-- [${getNodeRole(n).toUpperCase()}] -->\n${rendered}`;
+    }).join('\n\n');
+    exportText(text, safeName + '-branch', 'html');
+  } else if (mode === 'json') {
+    const json = JSON.stringify(path.map(n => ({
+      id: n.id, role: getNodeRole(n), content: getNodeText(n),
+      create_time: n.message?.create_time, model: n.message?.metadata?.model,
+    })), null, 2);
+    exportText(json, safeName + '-branch', 'json');
+  }
+});
+
+document.getElementById('btn-popout-branch').addEventListener('click', () => {
+  const path = state._branchPath;
+  if (!path) return;
+  const conv = getActiveConv();
+  const htmlParts = path.map(n => {
+    const role = getNodeRole(n);
+    const text = getNodeText(n);
+    const styles = {
+      user:      { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(96,165,250,0.6)',  label: '#3b82f6' },
+      assistant: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(74,222,128,0.6)',  label: '#22c55e' },
+      system:    { bg: 'rgba(107,114,128,0.08)', border: 'rgba(156,163,175,0.5)', label: '#9ca3af' },
+      other:     { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(192,132,252,0.6)', label: '#a855f7' },
+    };
+    const s = styles[role] || styles.other;
+    return `<div style="margin-bottom:8px;padding:14px 16px;border-radius:8px;background:${s.bg};border-left:3px solid ${s.border};">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${s.label};margin-bottom:8px;letter-spacing:.07em">${role}</div>
+      <div class="msg-body">${DOMPurify.sanitize(marked.parse(text || ''))}</div>
+    </div>`;
+  }).join('');
+  const w = window.open('', '_blank', 'width=860,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><title>${conv?.title || 'Branch'}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;padding:32px;max-width:820px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f0f2f8}
+    h1{font-size:17px;font-weight:600;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #d0d4e8;color:#111}
+    .msg-body p{margin-bottom:10px;color:#2a2d3e}
+    .msg-body p:last-child{margin-bottom:0}
+    .msg-body h1,.msg-body h2,.msg-body h3{font-weight:600;margin:14px 0 6px;color:#111}
+    .msg-body ul,.msg-body ol{margin:6px 0 6px 18px;color:#2a2d3e}
+    .msg-body li{margin-bottom:3px}
+    .msg-body pre{background:#dde0ee;padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0;position:relative}
+    .msg-body code{font-family:'Cascadia Code','Fira Code',monospace;font-size:12.5px}
+    .msg-body pre code{background:none;padding:0}
+    .msg-body :not(pre) > code{background:#dde0ee;padding:2px 5px;border-radius:3px;font-size:12px}
+    .msg-body blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}
+    .msg-body table{border-collapse:collapse;width:100%;margin:8px 0}
+    .msg-body td,.msg-body th{padding:6px 10px;border:1px solid #c8cce0;font-size:13px}
+    .msg-body th{background:#dde0ee;font-weight:600}
+    .msg-body a{color:#0077cc}
+    .copy-btn{float:right;margin-top:-2px;padding:2px 8px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:inherit;color:#4a5080}
+    .copy-btn:hover{background:#d0d4e8}
+  </style></head>
+  <body>
+    <h1>${conv?.title || 'Branch Conversation'}</h1>
+    ${htmlParts}
+    <script>
+      document.querySelectorAll('.msg-body').forEach((body, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.textContent = 'Copy';
+        btn.onclick = () => {
+          navigator.clipboard.writeText(body.innerText).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+          });
+        };
+        body.parentElement.querySelector('[style*="text-transform"]').after(btn);
+      });
+    <\/script>
+  </body></html>`);
+  w.document.close();
+});
+
+document.getElementById('btn-export-chatgpt').addEventListener('click', () => {
+  const conv = getActiveConv();
+  if (!conv) { showNotif('No conversation selected', 'error'); return; }
+  const output = convToOpenAIFormat(conv);
+  const blob = new Blob([JSON.stringify([output], null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (conv.title || 'conversation').replace(/[^a-z0-9]/gi, '_') + '_chatgpt.json';
+  a.click();
+  showNotif('Exported as ChatGPT JSON', 'success');
+});
+
+document.getElementById('btn-export-all').addEventListener('click', exportAllAsChatGPT);
+
+document.getElementById('btn-unload-all').addEventListener('click', () => {
+  const total = state.conversations.length + state.hiddenConversations.length + state.deletedConversations.length;
+  if (!total) { showNotif('Nothing loaded', ''); return; }
+  if (!confirm(`Unload all ${total} conversation${total !== 1 ? 's' : ''} (including any hidden or deleted ones)? This cannot be undone.`)) return;
+  state.conversations = [];
+  state.hiddenConversations = [];
+  state.deletedConversations = [];
+  state.activeConvId = null;
+  state.selectedNodeId = null;
+  state.searchQuery = '';
+  state.searchMatches.clear();
+  state._branchPath = null;
+  state.nodePositions.clear();
+  state.initialPositions.clear();
+  document.getElementById('sidebar-search').value = '';
+  document.getElementById('search-results-panel').style.display = 'none';
+  document.getElementById('search-results-list').innerHTML = '';
+  document.getElementById('node-empty').style.display = '';
+  document.getElementById('node-view').style.display = 'none';
+  document.getElementById('branch-empty').style.display = '';
+  document.getElementById('branch-view').style.display = 'none';
+  document.getElementById('node-location-bar').style.display = 'none';
+  renderConvList();
+  renderGraph(null);
+  showNotif('All conversations unloaded', 'success');
+});
+
+// Branch view mode buttons
+document.querySelectorAll('[data-branch-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-branch-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.branchViewMode = btn.dataset.branchMode;
+    renderBranchContent();
+  });
+});
+
+// Branch search
+document.getElementById('branch-search-input').addEventListener('input', e => {
+  state.branchSearchQuery = e.target.value;
+  renderBranchContent();
+});
+
+// Branch role visibility toggles ("Show:")
+document.querySelectorAll('.branch-role-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const role = btn.dataset.role;
+    if (role === 'all') {
+      // Toggle all on or all off based on current state
+      const allOn = ['user','assistant','system','other'].every(r => state.branchVisibleRoles.has(r));
+      if (allOn) {
+        state.branchVisibleRoles.clear();
+        document.querySelectorAll('.branch-role-btn:not([data-role="all"])').forEach(b => b.classList.remove('active'));
+        btn.classList.remove('active');
+      } else {
+        ['user','assistant','system','other'].forEach(r => state.branchVisibleRoles.add(r));
+        document.querySelectorAll('.branch-role-btn').forEach(b => b.classList.add('active'));
+      }
+    } else {
+      if (state.branchVisibleRoles.has(role)) {
+        state.branchVisibleRoles.delete(role);
+        btn.classList.remove('active');
+      } else {
+        state.branchVisibleRoles.add(role);
+        btn.classList.add('active');
+      }
+      // Sync "All" button state
+      const allBtn = document.getElementById('branch-role-all');
+      const allOn = ['user','assistant','system','other'].every(r => state.branchVisibleRoles.has(r));
+      allBtn.classList.toggle('active', allOn);
+    }
+    renderBranchContent();
+  });
+});
+
+// Branch search scope toggles ("Search in:")
+document.querySelectorAll('.branch-scope-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const scope = btn.dataset.scope;
+    if (state.branchSearchScopes.has(scope)) {
+      state.branchSearchScopes.delete(scope);
+      btn.classList.remove('active');
+    } else {
+      state.branchSearchScopes.add(scope);
+      btn.classList.add('active');
+    }
+    renderBranchContent();
+  });
+});
+
+// Graph controls
+document.getElementById('btn-zoom-in').addEventListener('click', () => {
+  d3.select('#graph-svg').transition().duration(300).call(zoom.scaleBy, 1.4);
+});
+document.getElementById('btn-zoom-out').addEventListener('click', () => {
+  d3.select('#graph-svg').transition().duration(300).call(zoom.scaleBy, 0.7);
+});
+document.getElementById('btn-fit').addEventListener('click', fitGraph);
+document.getElementById('btn-reset-layout').addEventListener('click', resetLayout);
+
+// Modals
+document.getElementById('btn-settings').addEventListener('click', () => { buildSettings(); openModal('modal-settings'); });
+document.getElementById('btn-help').addEventListener('click', () => {
+  const sidebar = document.getElementById('help-sidebar');
+  sidebar._built = false; // allow rebuild each open so search resets
+  buildHelp();
+  openModal('modal-help');
+  setTimeout(() => document.getElementById('help-search-input')?.focus(), 100);
+});
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.classList.remove('visible'); });
+});
+
+// Branch index toggle
+document.getElementById('branch-index-toggle').addEventListener('click', () => {
+  const body = document.getElementById('branch-index-body');
+  const icon = document.querySelector('#branch-index-toggle svg');
+  const visible = body.style.display !== 'none';
+  body.style.display = visible ? 'none' : 'flex';
+  icon.style.transform = visible ? 'rotate(180deg)' : '';
+});
+document.getElementById('branch-index-search').addEventListener('input', updateBranchIndex);
+
+// Minimap click to navigate
+// Minimap toggle
+document.getElementById('btn-toggle-minimap').addEventListener('click', () => {
+  const mm = document.getElementById('minimap');
+  const hidden = mm.classList.toggle('hidden');
+  const btn = document.getElementById('btn-toggle-minimap');
+  btn.style.color = hidden ? 'var(--text-muted)' : '';
+  btn.style.opacity = hidden ? '0.5' : '';
+});
+
+// Minimap interactions: ctrl+drag to move, plain click to navigate
+(function() {
+  const mm = document.getElementById('minimap');
+  let isDragging = false;
+  let dragStartX, dragStartY, startLeft, startBottom;
+
+  mm.addEventListener('mousedown', e => {
+    if (e.ctrlKey || e.metaKey) {
+      // Start drag-to-reposition
+      e.preventDefault();
+      isDragging = true;
+      mm.classList.add('dragging');
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      // Read current position
+      const area = document.getElementById('graph-area');
+      const areaRect = area.getBoundingClientRect();
+      const mmRect = mm.getBoundingClientRect();
+      startLeft = mmRect.left - areaRect.left;
+      startBottom = areaRect.bottom - mmRect.bottom;
+
+      const onMove = e => {
+        if (!isDragging) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        const area = document.getElementById('graph-area');
+        const areaRect = area.getBoundingClientRect();
+        const newLeft = Math.max(8, Math.min(areaRect.width - mm.offsetWidth - 8, startLeft + dx));
+        const newBottom = Math.max(8, Math.min(areaRect.height - mm.offsetHeight - 8, startBottom - dy));
+        mm.style.left = newLeft + 'px';
+        mm.style.bottom = newBottom + 'px';
+        mm.style.right = 'auto';
+      };
+      const onUp = () => {
+        isDragging = false;
+        mm.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+  });
+
+  mm.addEventListener('click', e => {
+    if (isDragging || e.ctrlKey || e.metaKey) return;
+    const rect = mm.getBoundingClientRect();
+    const mmX = e.clientX - rect.left;
+    const mmY = e.clientY - rect.top;
+    if (!mm._mmScale) return;
+    const gx = (mmX - mm._mmOffX) / mm._mmScale;
+    const gy = (mmY - mm._mmOffY) / mm._mmScale;
+    const area = document.getElementById('graph-area');
+    const t = d3.zoomIdentity
+      .translate(area.offsetWidth / 2 - state.transform.k * gx, area.offsetHeight / 2 - state.transform.k * gy)
+      .scale(state.transform.k);
+    d3.select('#graph-svg').transition().duration(300).call(zoom.transform, t);
+  });
+})();
+
+// Window resize
+window.addEventListener('resize', () => {
+  updateMinimap();
+  if (zoom && state.nodePositions.size) fitGraph();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('visible'));
+    hideContextMenu();
+  }
+});
+
+// Init
+renderConvList();
+renderGraph(null);
+console.log('Multiverse Viewer v6.0 loaded. Drop a JSON file to get started.');
+</script>
+</body>
+</html>
