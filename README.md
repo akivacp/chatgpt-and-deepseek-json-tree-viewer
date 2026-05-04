@@ -1,8 +1,6 @@
-
 # 🌳 ChatGPT JSON Tree Viewer
 
 *A standalone, offline, multi-platform conversation explorer and branching tree visualizer.*
-
 
 ## 📷 Screenshots
 
@@ -12,20 +10,19 @@
 
 ## 🧭 Overview
 
-**ChatGPT JSON Tree Viewer** is a **single-file HTML application** that loads exported AI conversation data and converts it into an **interactive branching tree**, complete with metadata inspection, Markdown rendering, multi-format compatibility, full-text search, and a developer-grade UI.
+**ChatGPT JSON Tree Viewer** is a **single-file HTML application** that loads exported AI conversation data and converts it into an **interactive branching tree**, complete with metadata inspection, Markdown rendering, multi-format compatibility, full-text search, and a polished UI.
 
-Everything runs **100 percent locally**, right inside your browser.\
+Everything runs **100 percent locally**, right inside your browser.
 No servers, no uploads, no telemetry.
 
 This tool supports exports from:
 
-- **ChatGPT Multiverse exports**
-- **ChatGPT conversations.json** (many conversations in one file)
-- **DeepSeek Chat** & **DeepSeek Exporter**
+- **ChatGPT / OpenAI** (single conversation and `conversations.json`)
+- **DeepSeek** (Chat export, Exporter format, Conversation format)
 - **Claude (Anthropic)**
 - **xAI Grok**
 - **Mistral AI**
-- And arbitrary JSON structures that can be normalized into OpenAI-style node maps
+- **GLM / Zhipu AI**
 
 The viewer auto-detects format, auto-converts it, and presents it visually.
 
@@ -33,255 +30,229 @@ The viewer auto-detects format, auto-converts it, and presents it visually.
 
 ## 🚀 Features
 
-### 🔍 **Universal Format Detection**
+### 🔍 Universal Format Detection
 
-The viewer intelligently identifies and converts many AI export formats:
+The viewer intelligently identifies and converts all major AI export formats:
 
-- **OpenAI Multiverse**
-- **OpenAI conversations.json**
-- **DeepSeek Chat (mapping format)**
-- **DeepSeek Exporter**
-- **Claude (chunked contentChunks)**
-- **xAI Grok conversation objects**
-- **Mistral AI chat\_messages format**
+| Format | Detection |
+|---|---|
+| OpenAI / ChatGPT | Single conversation or `conversations.json` array |
+| DeepSeek Chat | Mapping with `fragments[]` |
+| DeepSeek Exporter | `metadata.platform === "DeepSeek"` |
+| DeepSeek Conversation | `messages[].raw_html` |
+| Claude / Anthropic | `messages[]` with `role` + `contentChunks` |
+| Grok / xAI | `conversation` + `responses[]` |
+| Mistral AI | `chat_messages[]` |
+| GLM / Zhipu AI | `chat.history.messages` |
 
-It reconstructs:
-
-- Parent/child mapping
-- Assistant/user/system roles
-- Timestamps
-- Conversation titles
-- Linear or branching structure
+It reconstructs parent/child mapping, roles, timestamps, titles, and linear or branching structure.
 
 ---
 
-### 🌳 **Interactive Graph Viewer**
+### 🌳 Interactive Graph Viewer
 
-- Force-directed layout optimized for chat trees
-- Drag nodes to reorganize branches
-- Zoom & pan with trackpad/mouse wheel
-- Automatic centering & focus on selected nodes
-- Themed node colors (User, Assistant, System, Other)
-- Highlight ancestors, descendants, search matches, and selected node
-- Dimming non-relevant parts when a node is highlighted
-- Smooth animated pulses for selected/ancestor/descendant nodes
+- D3.js tree layout with pan, zoom, and fit-to-screen
+- Drag nodes to reposition — moves entire subtree by default; **Shift+drag** to move only the selected node
+- **Reset Layout** — animates all nodes back to their original positions
+- Color-coded nodes: 🔵 User · 🟢 Assistant · ⭕ System (dashed) · 🟣 Other
+- Selected node pulses pink; ancestors pulse blue; descendants pulse green; everything else dims
+- Search-matching nodes highlighted with yellow glow
+- **Right-click a node** for: Copy Message, Select & View, Delete Node
+- **Minimap** in the bottom corner — click to navigate; Ctrl+drag to reposition it; toggle button to show/hide
 
 ---
 
-### 📑 **Right-Panel Message Viewer**
+### 📑 Selected Node Panel
 
-Tabbed content modes:
+Four view modes:
 
-- **Rendered Markdown → HTML**
-- **Raw Markdown**
-- **HTML source**
-- **Original JSON fragment**
+- **Rendered** — Markdown rendered to HTML with syntax-highlighted code blocks
+- **Markdown** — raw source text
+- **HTML** — rendered HTML source
+- **JSON** — raw node object from the internal mapping
 
 Each mode includes:
 
-- **Copy**
-- **Export**
-- **Pop-Out window**
-- **PDF generation** (via jsPDF + html2canvas)
+- **Copy** — copies content in the active view mode
+- **Export** — downloads a format-matched file
+- **Pop-Out** — opens in a new browser tab
+- **PDF** — via jsPDF + html2canvas
+- **M** — toggles metadata bar (timestamp, model, parent ID, child count) plus a **level chain** showing every ancestor's depth and position-at-level; click any row to jump to that node
+- **H** — toggles search term highlighting (synced with Branch panel)
 
-Sticky UI ensures tools always stay visible.
-
----
-
-### 📂 **Branch Reconstruction Sidebar**
-
-A unique feature of your viewer:
-
-- Shows the **entire linear branch** from the selected node back to the root
-- Each item clickable
-- Local branch search built-in
-- Auto-scroll and highlight the current position
-- Collapsible sidebar mode (tiny icon mode)
+The node header shows a **location bar** with depth (↳N), timestamp, and ancestor breadcrumb.
 
 ---
 
-### 🔎 **Global Search Engine**
+### 🌿 Branch View Panel
 
-Search every message across:
+Shows the full conversation path from root to the selected node, in order.
 
-- ChatGPT multiverse files
-- Multi-conversation conversations.json
-- Claude messages
-- Grok responses
-- DeepSeek exports
-- Mistral conversations
+Each message card displays:
+- Role badge with color-tinted background (blue / green / gray / purple)
+- Depth indicator, timestamp, and ancestor breadcrumb
+- **Copy button** on hover
 
-The search UI shows:
+**Filter bar** (three rows):
+1. **Show:** — toggle which roles are visible (User / Assistant / System / Other / All)
+2. **Search bar** — real-time filter; non-matching messages hidden completely; matches highlighted in yellow
+3. **Only in:** — narrows which roles are searched and shown in results
 
-- Snippets
-- Role labels
-- Conversation match count badges
-- Click to instantly jump to that node, even across different conversations
+**View modes:** Rendered / Markdown / HTML / JSON — export downloads in the matching format.
 
----
+**Toolbar buttons:**
+- **Copy** — copies all branch messages as plain text
+- **Export** — format-matched file download
+- **Pop-out** — opens styled thread in a new tab with role shading and per-message copy buttons
+- **GPT↓** — exports the current conversation as an OpenAI-compatible `conversations.json`
+- **H** — toggles search highlighting
 
-### 🗂️ **Conversation List (for conversations.json)**
-
-When you load a **conversations.json**, the left sidebar becomes a selector UI:
-
-- Sorts conversations by date
-- Shows date, title, message count
-- Indicates which conversations contain search matches
-- Click to switch instantly
-- “Close Conversation” button to return to multi-conversation mode
+**Branch Index** (collapsible bottom panel) — lists all messages in the branch with depth and position-at-level badge (e.g. `3,2/5`); click to scroll and pulse the target message.
 
 ---
 
-### 🎨 **Built-in Themes**
+### 🔎 Global Search
 
-Users can switch seamlessly between:
-
-- **Dark** (default)
-- **Light**
-
-
-Themes apply to:
-
-- Graph
-- Sidebar
-- Right-panel viewer
-- Tooltips
-- Minimap
-- Search UI
-- Buttons
-
-No reload required.
+- Real-time search across the current conversation or **all loaded conversations**
+- Result cards show: role, depth (↳N), timestamp, conversation breadcrumb, and highlighted preview snippet
+- Clicking a result selects the node, zooms in, and centers the graph — result list stays open for continued browsing
+- Matching nodes highlighted with yellow glow on the graph
+- Conversations with matches float to the top of the sidebar with a match count badge
 
 ---
 
-### 🛠️ **Developer Tools Panel**
+### 🗂️ Project & Conversation Management
 
-Options include:
-
-- Show/hide **system nodes**
-- Toggle **auto-format detection**
-- Toggle **tooltips**
-- Adjust tooltip linger duration (500 ms to 10 seconds)
-
----
-
-### 🗺️ **Minimap**
-
-A live-updating minimap renders the entire graph shape.\
-Your current viewport rectangle is shown in real time.
-
-Great for huge multiverse branches.
+- Load **multiple files** at once; each becomes a separate conversation entry
+- **Load dialog** — when files are already open, choose to add to the current project or start fresh
+- Sidebar sorted by most-recent message date (`YYYY-MM-DD`)
+- **Right-click a conversation** for:
+  - **Show Only** — hides others (non-destructive; stashed, not deleted)
+  - **Restore All** — brings hidden conversations back
+  - **Start Over** — resets all conversations (visible, hidden, deleted) to their original loaded state; warns before proceeding
+  - **Export Conv** — downloads as OpenAI JSON
+  - **Delete Conv** — stashes to a recovery pool (recoverable via Start Over)
+- **Close Conversation** — removes only the active conversation; switches to next if others are loaded
+- **Unload All** — clears all conversation pools for a fresh start
+- **Export All** (top bar) — exports every loaded conversation as a single OpenAI `conversations.json` array
 
 ---
 
-### ↔️ **Resizable Panels**
+### 🎨 Themes
 
-Drag handles allow resizing:
+Five themes, switchable without reload:
 
-- Left sidebar
-- Right message viewer
+- **Dark** (default if OS is in dark mode)
+- **Light** (default if OS is in light mode)
+- **Blue**
+- **Green**
+- **Purple**
 
-Perfect for ultra-wide monitors or portrait screens.
+Theme preference is saved to `localStorage` and applied on every future visit. On first visit, the theme is chosen automatically based on your OS `prefers-color-scheme` setting.
+
+---
+
+### ⚙️ Settings
+
+- **Show system nodes** — toggle visibility of system/prompt nodes (dashed circles)
+- **Show other nodes** — toggle visibility of non-standard role nodes (purple circles)
+- **Show tooltips** — enable/disable hover previews on graph nodes
+- **Tooltip delay** — adjust how long to hover before the tooltip appears (500ms–10,000ms)
+
+All settings saved to `localStorage`.
+
+---
+
+### 🗺️ Minimap
+
+A live-updating canvas minimap shows the full graph with a teal rectangle for the current viewport.
+
+- Click to jump the viewport to any position
+- **Ctrl+drag** (⌘+drag on Mac) to reposition the minimap anywhere in the graph area
+- Toggle button to hide/show
+
+---
+
+### ↔️ Resizable Panels
+
+Drag handles between the left sidebar, graph, and right panel to resize. The minimap and graph update in real time.
+
+---
+
+### 📚 Help & Changelog
+
+- **Help** button opens a modal with 15 detailed topics and full-text search
+- **What's New** tab inside Help shows a versioned changelog
+- **License & Credits** topic lists the MIT license, all third-party libraries, and fonts used
 
 ---
 
 ## 📥 Installation
 
-No installation required.\
-Just download and open in your browser:
+No installation required. Download and open in your browser:
 
 ```
 chatgpt-json-tree-viewer.html
 ```
 
-Everything runs locally.
-
-> Works best on Chrome, Edge, Brave, or Firefox.
+Everything runs locally. Works best on Chrome, Edge, Brave, or Firefox.
 
 ---
 
 ## 📘 Usage Guide
 
-### 1. **Load a JSON File**
+### 1. Load a JSON File
 
-Click:
+Click **Load File** in the top bar, or **drag and drop** a `.json` file onto the graph area.
 
-**Load Conversation JSON**
+If conversations are already loaded, a dialog asks whether to add to the current project or start fresh.
 
-Works with:
+### 2. Explore the Graph
 
-- ChatGPT export folders
-- ChatGPT multiverse exports
-- DeepSeek Chat exports
-- conversations.json
-- Claude message arrays
-- Mistral / Grok chat files
+- Scroll to zoom; click and drag the background to pan
+- Click a node to select it and view its content
+- Drag a node to move it with its subtree (Shift+drag for single node)
+- Right-click a node for Copy, Select & View, or Delete
 
-You can also **drag and drop** onto the button.
+### 3. Search Messages
 
----
+Type in the **search bar** in the left sidebar. Switch between **Current** and **All** scope. Click any result to jump to that node in the graph.
 
-### 2. **Explore the Graph**
+Use the **branch search bar** to filter messages within the current branch view.
 
-- Scroll to zoom
-- Drag empty space to pan
-- Drag nodes to reposition
-- Hover to see live tooltips
-- Click a node to open its message
+### 4. Inspect Message Content
 
----
+Select a node and use the **Selected Node** or **Branch** tab in the right panel. Switch view modes (Rendered / Markdown / HTML / JSON), then Copy, Export, Pop-Out, or generate a PDF.
 
-### 3. **Search Messages**
+### 5. Manage Conversations
 
-#### Global Search
+When multiple conversations are loaded, use the sidebar to switch between them. Right-click for Show Only, Restore All, Start Over, Export, or Delete.
 
-Use the search bar in the left sidebar.
+### 6. Customize
 
-Results display:
-
-- Conversation
-- Preview text
-- Role
-- Highlighted match
-
-#### Branch Search
-
-Open the Branch tab and use the branch search bar.
+Click **Settings** in the top bar to toggle node types and tooltips. Click the colored dots (top-right) to switch themes.
 
 ---
 
-### 4. **Inspect Message Content**
+## 🛠️ Libraries Used
 
-Choose a viewer tab:
+| Library | Version | License |
+|---|---|---|
+| D3.js | v7.9.0 | BSD 3-Clause |
+| marked.js | v9.1.6 | MIT |
+| DOMPurify | v3.0.6 | Apache 2.0 / MIT |
+| html2canvas | v1.4.1 | MIT |
+| jsPDF | v2.5.1 | MIT |
 
-- Rendered
-- Markdown
-- HTML
-- Original JSON
-
-Then use:
-
-- **Copy**
-- **Export**
-- **Pop-Out**
-- **PDF**
+Fonts (SIL Open Font License): DM Sans, Literata, JetBrains Mono — served via Google Fonts CDN.
 
 ---
 
-### 5. **Switch Conversations**
+## 📄 License
 
-When loading `conversations.json`:
-
-- All conversations appear in the sidebar
-- Click to open any of them instantly
-- “Close Conversation” returns to overview mode
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
-
-### 6. **Use Developer Tools**
-
-Click **Developer Tools** to toggle advanced controls.
-
 
 ## Star History
 
