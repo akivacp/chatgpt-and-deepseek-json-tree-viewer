@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.0</title>
+<title>ChatGPT JSON Tree Viewer v7.0.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -915,7 +915,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.0</span>
+      <span class="logo-version">v7.0.1</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1265,7 +1265,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.0 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.0.1 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1677,8 +1677,11 @@ function getActiveConv() {
 function getNodeRole(node) {
   const role = node?.message?.author?.role || 'unknown';
   const text = (node?.message?.content?.text || '').trim();
-  // Smarter system detection: empty text, bracket-only content, or known system patterns
+  // Explicit system role always wins
   if (role === 'system') return 'system';
+  // Only apply heuristics to unknown/tool roles — never reclassify user or assistant
+  if (role === 'user' || role === 'assistant') return role;
+  // For other/unknown roles: empty text, bracket-only content, or known system patterns
   if (!text) return 'system';
   if (/^\[[^\]]+\]$/.test(text)) return 'system';
   if (text.toLowerCase().includes('model_editable_context')) return 'system';
@@ -2189,7 +2192,8 @@ function showNodeContent(nodeId) {
   // Build depth map for full conversation
   const depthNodes = new Map(); // depth -> [{id, node}]
   const depthOf = new Map();
-  const bfsQueue = [{ id: 'root', depth: -1 }];
+  const _rootId = Object.keys(conv.data.mapping).find(id => !conv.data.mapping[id].parent) || 'root';
+  const bfsQueue = [{ id: _rootId, depth: -1 }];
   while (bfsQueue.length) {
     const { id, depth } = bfsQueue.shift();
     const n = conv.data.mapping[id];
@@ -2558,7 +2562,8 @@ function updateBranchIndex() {
   // BFS to compute depth and position-at-level for every node in the tree
   const depthNodes = new Map(); // depth -> [nodeId, ...]
   const depthOf = new Map();    // nodeId -> depth
-  const queue = [{ id: 'root', depth: -1 }];
+  const _bfsRootId = Object.keys(conv.data.mapping).find(id => !conv.data.mapping[id].parent) || 'root';
+  const queue = [{ id: _bfsRootId, depth: -1 }];
   while (queue.length) {
     const { id, depth } = queue.shift();
     const n = conv.data.mapping[id];
@@ -3345,7 +3350,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.0</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.0.1</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4482,7 +4487,15 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.0', date: '2025-05-04', latest: true,
+    version: 'v7.0.1', date: '2025-05-04', latest: true,
+    items: [
+      { type: 'fix', text: '<strong>Metadata level chain showed "undefined" on OpenAI files</strong> — BFS depth calculation was hardcoded to start at <code>root</code>; OpenAI files use a UUID as their root node, causing all levels to show as undefined' },
+      { type: 'fix', text: '<strong>Branch Index depth badges also affected</strong> — same hardcoded root issue fixed for position-at-level badges in the Branch Index panel' },
+      { type: 'fix', text: '<strong>Empty assistant nodes misclassified as system</strong> — the smart system-detection heuristic was incorrectly reclassifying <code>role: assistant</code> nodes with empty text (OpenAI placeholder nodes) as system nodes, causing them to be hidden or collapsed' },
+    ]
+  },
+  {
+    version: 'v7.0', date: '2025-05-04', latest: false,
     items: [
       { type: 'new', text: '<strong>System theme detection</strong> — automatically defaults to Light or Dark based on your OS preference; manual selection still overrides and saves as before' },
       { type: 'new', text: '<strong>GLM / Zhipu AI format support</strong> — auto-detects and converts <code>chat.history.messages</code> structure from Zhipu GLM models' },
@@ -4572,7 +4585,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.0 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.0.1 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
