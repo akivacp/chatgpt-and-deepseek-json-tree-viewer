@@ -888,6 +888,10 @@ body {
       Help
     </button>
     <div class="topbar-sep"></div>
+    <a href="https://github.com/akivacp/chatgpt-json-tree-viewer" target="_blank" rel="noopener" style="font-size:11px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:5px;opacity:0.6;transition:opacity 0.2s;white-space:nowrap;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      chatgpt-json-tree-viewer
+    </a>
     <div id="theme-picker">
       <div class="theme-dot t-dark active" data-theme="dark" title="Dark"></div>
       <div class="theme-dot t-light" data-theme="light" title="Light"></div>
@@ -3376,6 +3380,57 @@ const helpTopics = [
       <li><code>message.author.role</code>, <code>message.content.text</code>, <code>message.create_time</code>, <code>message.metadata</code></li>
       <li><code>_format</code> — the detected format name for debugging</li>
     </ul>
+  `},
+  { id: 'license', label: '📜 License & Credits', content: `
+    <h2>License & Credits</h2>
+    <h3>This Project</h3>
+    <p><strong>chatgpt-json-tree-viewer</strong> is released under the <strong>MIT License</strong>.</p>
+    <p>Copyright © <a href="https://github.com/akivacp/chatgpt-json-tree-viewer" target="_blank" style="color:var(--accent-teal)">akivacp</a>. You are free to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of this software, provided the original copyright notice and permission notice are included in all copies or substantial portions.</p>
+    <div class="tip"><strong>MIT in plain English:</strong> Do whatever you want with it. Just keep the copyright notice.</div>
+    <h3>Third-Party Libraries</h3>
+    <table>
+      <tr><th>Library</th><th>Version</th><th>License</th><th>Author / Source</th></tr>
+      <tr>
+        <td><strong>D3.js</strong></td>
+        <td>v7.9.0</td>
+        <td>BSD 3-Clause</td>
+        <td><a href="https://d3js.org" target="_blank" style="color:var(--accent-teal)">Mike Bostock / Observable</a></td>
+      </tr>
+      <tr>
+        <td><strong>marked.js</strong></td>
+        <td>v9.1.6</td>
+        <td>MIT</td>
+        <td><a href="https://marked.js.org" target="_blank" style="color:var(--accent-teal)">Christopher Jeffrey</a></td>
+      </tr>
+      <tr>
+        <td><strong>DOMPurify</strong></td>
+        <td>v3.0.6</td>
+        <td>Apache 2.0 / MIT</td>
+        <td><a href="https://github.com/cure53/DOMPurify" target="_blank" style="color:var(--accent-teal)">Cure53</a></td>
+      </tr>
+      <tr>
+        <td><strong>html2canvas</strong></td>
+        <td>v1.4.1</td>
+        <td>MIT</td>
+        <td><a href="https://html2canvas.hertzen.com" target="_blank" style="color:var(--accent-teal)">Niklas von Hertell</a></td>
+      </tr>
+      <tr>
+        <td><strong>jsPDF</strong></td>
+        <td>v2.5.1</td>
+        <td>MIT</td>
+        <td><a href="https://github.com/parallax/jsPDF" target="_blank" style="color:var(--accent-teal)">James Hall / parallax</a></td>
+      </tr>
+    </table>
+    <h3>Fonts</h3>
+    <table>
+      <tr><th>Font</th><th>License</th><th>Usage</th></tr>
+      <tr><td><strong>DM Sans</strong></td><td>SIL Open Font License 1.1</td><td>UI text, buttons, labels</td></tr>
+      <tr><td><strong>Literata</strong></td><td>SIL Open Font License 1.1</td><td>Content body text</td></tr>
+      <tr><td><strong>JetBrains Mono</strong></td><td>SIL Open Font License 1.1</td><td>Code blocks, IDs, timestamps</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted)">All fonts are served via Google Fonts CDN. The SIL Open Font License allows free use in any project, commercial or otherwise.</p>
+    <h3>All libraries are loaded via CDN</h3>
+    <p>All third-party code is loaded from <code>cdnjs.cloudflare.com</code> and <code>fonts.googleapis.com</code>. No code is bundled or modified. The viewer requires an internet connection on first load for these resources; once cached by the browser, it works offline.</p>
   `},
 ];
 
