@@ -1,0 +1,5294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌳 ChatGPT JSON Tree Viewer</title>
+<link rel="icon" type="image/svg+xml" 
+href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxMiIgZmlsbD0iIzFiNWUyMCIvPgogIDxnIHN0cm9rZT0iI2E1ZDZhNyIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbGw9Im5vbmUiPgogICAgPHBhdGggZD0iTTMyIDEyYy04IDAtMTQgNC0xNCAxMHM2IDEwIDE0IDEwIDE0LTQgMTQtMTAtNi0xMC0xNC0xMHoiLz4KICAgIDxwYXRoIGQ9Ik0yOCAzMGwtNCA2Ii8+CiAgICA8cGF0aCBkPSJNMTQgMzZjLTYgMC0xMCAzLTEwIDdzNCA3IDEwIDcgMTAtMyAxMC03LTQtNy0xMC03eiIvPgogICAgPHBhdGggZD0iTTEyIDUwbC0zIDUiLz4KICAgIDxwYXRoIGQ9Ik01MCAzNmMtNiAwLTEwIDMtMTAgN3M0IDcgMTAgNyAxMC0zIDEwLTctNC03LTEwLTd6Ii8+CiAgICA8cGF0aCBkPSJNNDggNTBsLTMgNSIvPgogIDwvZz4KPC9zdmc+" />
+
+<style>
+/* =============================== */
+/*            GLOBAL               */
+/* =============================== */
+:root{
+  --top-nav-height: 75px;
+  --color-user: #3B82F6;
+  --color-assistant: #10A37F;
+  --color-system: #666;
+  --color-other: #8B5CF6;
+  --color-highlight: #FFD700;
+  --color-ancestor: #1E90FF;
+  --color-descendant: #32CD32;
+  --color-dim: rgba(0, 0, 0, 0.1);
+  --color-selected: #FF4081;
+  
+  /* Theme variables - default to dark */
+  --bg-primary: #2c3e50;
+  --bg-secondary: #34495e;
+  --bg-sidebar: linear-gradient(to bottom, #2c3e50, #34495e);
+  --bg-graph: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --text-primary: #ecf0f1;
+  --text-secondary: #95a5a6;
+  --border-color: #1a252f;
+  --hover-bg: rgba(255,255,255,0.1);
+  --card-bg: rgba(255,255,255,0.05);
+  --shadow-color: rgba(0,0,0,0.3);
+  --right-panel-bg: linear-gradient(to bottom, #2c3e50, #34495e);
+  --right-panel-text: #ecf0f1;
+}
+
+/* Light theme */
+.light-theme {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-sidebar: linear-gradient(to bottom, #ffffff, #f8f9fa);
+  --bg-graph: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  --text-primary: #2c3e50;
+  --text-secondary: #6c757d;
+  --border-color: #dee2e6;
+  --hover-bg: rgba(0,0,0,0.05);
+  --card-bg: rgba(0,0,0,0.03);
+  --shadow-color: rgba(0,0,0,0.1);
+  --right-panel-bg: linear-gradient(to bottom, #ffffff, #f8f9fa);
+  --right-panel-text: #2c3e50;
+}
+
+/* Format badges */
+.format-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.format-openai { background: linear-gradient(to right, #10a37f, #0e8e6c); color: white; }
+.format-deepseek { background: linear-gradient(to right, #0ea5e9, #0d8fd8); color: white; }
+.format-claude { background: linear-gradient(to right, #d946ef, #c026d3); color: white; }
+.format-grok { background: linear-gradient(to right, #f97316, #ea580c); color: white; }
+.format-mistral { background: linear-gradient(to right, #8b5cf6, #7c3aed); color: white; }
+.format-multi { background: linear-gradient(to right, #8B5CF6, #7C3AED); color: white; }
+
+/* =============================== */
+/*            GLOBAL               */
+/* =============================== */
+html, body{
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: background-color 0.3s ease;
+}
+
+button{
+  font-family: inherit;
+}
+
+/* =============================== */
+/*             TOP BAR             */
+/* =============================== */
+#topNav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to right, var(--bg-primary), var(--bg-secondary));
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 100000;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  flex-wrap: wrap;
+  min-height: 55px;
+  box-sizing: border-box;
+}
+
+#loadJsonBtn,
+#resetLayoutBtn,
+#closeConversationBtn{
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+#loadJsonBtn:hover,
+#resetLayoutBtn:hover,
+#closeConversationBtn:hover{
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+#closeConversationBtn {
+  background: linear-gradient(to right, #ef4444, #dc2626);
+  display: none;
+}
+
+#closeConversationBtn:hover {
+  background: linear-gradient(to right, #dc2626, #b91c1c);
+}
+
+#fileLabel{
+  font-size: 14px;
+  color: var(--text-primary);
+  user-select: none;
+  font-weight: 500;
+  flex: 1;
+  min-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+#conversionStatus{
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  background: var(--card-bg);
+  border-radius: 6px;
+  display: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Theme selector */
+#themeSelector {
+  margin-left: auto;
+  margin-right: 10px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+#themeBtn {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+#themeBtn:hover {
+  background: var(--hover-bg);
+}
+
+#themeDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px var(--shadow-color);
+  padding: 8px 0;
+  display: none;
+  z-index: 100001;
+  min-width: 150px;
+}
+
+.theme-option {
+  padding: 8px 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-option:hover {
+  background: var(--hover-bg);
+}
+
+.theme-option.active {
+  background: rgba(16, 163, 127, 0.2);
+  color: #10a37f;
+  font-weight: 600;
+}
+
+.theme-option .theme-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+/* =============================== */
+/*        FORMAT BADGE             */
+/* =============================== */
+#formatBadge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  display: none;
+  margin-left: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+#formatBadge.align-right {
+  margin-left: auto;
+  margin-right: 10px;
+}
+
+/* =============================== */
+/*           SETTINGS              */
+/* =============================== */
+#settingsContainer{
+  position: relative;
+  flex-shrink: 0;
+}
+
+#settingsBtn{
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+#settingsBtn:hover{
+  background: var(--hover-bg);
+}
+
+#settingsMenu{
+  position: absolute;
+  top: 42px;
+  left: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px var(--shadow-color);
+  padding: 12px;
+  display: none;
+  z-index: 100001;
+  min-width: 240px;
+}
+
+.settingsRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin: 8px 0;
+}
+
+.settingsRow input[type="checkbox"] {
+  accent-color: #10a37f;
+}
+
+.settingsRow input[type="range"] {
+  width: 80px;
+  accent-color: #10a37f;
+}
+
+.settingsRow .range-value {
+  min-width: 40px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* =============================== */
+/*           LEFT SIDEBAR          */
+/* =============================== */
+#leftSidebar{
+  position: fixed;
+  top: var(--top-nav-height);
+  left: 0;
+  width: 260px;
+  height: calc(100vh - var(--top-nav-height));
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  z-index: 9999;
+  box-shadow: 2px 0 10px var(--shadow-color);
+  transition: width 0.3s ease;
+  overflow-x: hidden;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 15px 10px 15px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.3s ease;
+  background: var(--card-bg);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.section-header:hover {
+  background: var(--hover-bg);
+}
+
+.section-header .toggle-icon {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.section-header.collapsed .toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.section-content {
+  padding: 0 15px 15px 15px;
+  background: var(--card-bg);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.section-content.collapsed {
+  padding: 0 15px;
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Search section */
+#searchContainer {
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+#searchBar{
+  width: calc(100% - 24px);
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#searchBar:focus {
+  outline: none;
+  border-color: #10a37f;
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+}
+
+#searchBar::placeholder {
+  color: var(--text-secondary);
+}
+
+#leftSearchResults{
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.search-result-item{
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.search-result-item:hover{
+  background: rgba(16, 163, 127, 0.2);
+  border-color: #10a37f;
+  transform: translateX(5px);
+}
+
+.search-result-item b {
+  color: #10a37f;
+  display: block;
+  margin-bottom: 5px;
+  word-wrap: break-word;
+}
+
+/* Conversations section */
+.conversation-item {
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.conversation-item:hover {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.3);
+  transform: translateX(3px);
+}
+
+.conversation-item.active {
+  background: rgba(16, 163, 127, 0.25);
+  border-color: #10a37f;
+  box-shadow: 0 0 0 1px #10a37f;
+}
+
+.conversation-item.has-search-matches {
+  background: rgba(255, 193, 7, 0.15);
+  border-color: rgba(255, 193, 7, 0.3);
+  border-left: 4px solid #ffc107;
+}
+
+.conversation-item.has-search-matches .search-match-count {
+  display: inline-block;
+  background: #ffc107;
+  color: #2c3e50;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 5px;
+}
+
+.conversation-item .date {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.conversation-item .title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+  color: var(--text-primary);
+  word-wrap: break-word;
+}
+
+.conversation-item .meta {
+  color: var(--text-secondary);
+  font-size: 11px;
+  display: block;
+}
+
+.conversations-empty {
+  padding: 15px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-style: italic;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.conversations-loading {
+  padding: 15px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.conversations-loading::after {
+  content: '';
+  animation: loading-dots 1.5s infinite;
+}
+
+@keyframes loading-dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+/* =============================== */
+/*        RIGHT VIEWER PANEL       */
+/* =============================== */
+#rightViewer{
+  position: fixed;
+  top: var(--top-nav-height);
+  right: 0;
+  width: 420px;
+  height: calc(100vh - var(--top-nav-height));
+  background: var(--right-panel-bg);
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  z-index: 9999;
+  box-shadow: -2px 0 10px var(--shadow-color);
+  color: var(--right-panel-text);
+}
+
+#viewerHeader {
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 100;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+#viewerTabs{
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.viewerTab{
+  padding: 8px 16px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+}
+.viewerTab:hover {
+  background: var(--hover-bg);
+  transform: translateY(-2px);
+}
+.viewerTab.active{
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
+  color: white;
+  border-color: #0c7a5c;
+  box-shadow: 0 2px 8px rgba(16, 163, 127, 0.3);
+}
+
+.viewerSubTab{
+  padding: 6px 12px;
+  background: var(--card-bg);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  margin: 2px;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.viewerSubTab:hover {
+  background: var(--hover-bg);
+  transform: translateY(-1px);
+}
+.viewerSubTab.active{
+  background: linear-gradient(to right, #4CAF50, #45a049);
+  color: white;
+  border-color: #3d8b40;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+#viewerButtons{
+  display: flex;
+  gap: 10px;
+  margin: 15px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 65px;
+  background: var(--bg-primary);
+  padding: 12px;
+  z-index: 99;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  border: 1px solid var(--border-color);
+}
+
+#viewerButtons button{
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#viewerButtons button:hover{
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+#copyBtn,
+#exportBtn,
+#popoutBtn,
+#pdfBtn,
+#toggleMetaBtn{
+  display: inline-block;
+}
+
+/* Branch index sidebar */
+#branchIndexContainer {
+  position: fixed;
+  top: 120px;
+  right: 425px;
+  width: 250px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px var(--shadow-color);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  max-height: 70vh;
+  overflow: hidden;
+  display: none;
+}
+
+#branchIndexContainer.collapsed {
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+}
+
+#branchIndexToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: linear-gradient(to right, #10a37f, #0e8e6c);
+  border-bottom: 1px solid #0c7a5c;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+#branchIndexToggle:hover {
+  background: linear-gradient(to right, #0e8e6c, #0c7a5c);
+}
+
+#branchIndexContainer.collapsed #branchIndexToggle {
+  border-bottom: none;
+  height: 100%;
+  border-radius: 12px;
+}
+
+#branchIndexSearch {
+  padding: 12px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  display: none;
+}
+
+#branchIndexSearch input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+#branchIndexSearch input:focus {
+  outline: none;
+  border-color: #10a37f;
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+}
+
+#branchIndexSearch input::placeholder {
+  color: var(--text-secondary);
+}
+
+#branchIndex {
+  max-height: calc(70vh - 110px);
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.branch-index-item {
+  padding: 10px;
+  margin: 6px 0;
+  background: var(--card-bg);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  border-left: 4px solid var(--border-color);
+  transition: all 0.3s ease;
+  color: var(--text-primary);
+}
+
+.branch-index-item:hover {
+  background: rgba(33, 150, 243, 0.2);
+  border-left-color: #2196F3;
+  transform: translateX(5px);
+}
+
+.branch-index-item.current {
+  background: rgba(76, 175, 80, 0.2);
+  border-left-color: #4CAF50;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.branch-index-item b {
+  color: #10a37f;
+  display: block;
+  margin-bottom: 4px;
+}
+
+#viewerContent{
+  padding: 20px;
+  font-size: 14px;
+  white-space: normal;
+  min-height: 200px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  margin: 15px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  color: var(--text-primary);
+}
+
+/* Selected node info styles */
+.selected-node-info {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-left: 4px solid #10a37f;
+}
+
+.selected-node-info .node-type {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.selected-node-info .node-type.user {
+  background: linear-gradient(to right, #3B82F6, #1D4ED8);
+  color: white;
+}
+
+.selected-node-info .node-type.assistant {
+  background: linear-gradient(to right, #10B981, #0C7A5C);
+  color: white;
+}
+
+.selected-node-info .node-type.system {
+  background: linear-gradient(to right, #666, #444);
+  color: white;
+}
+
+.selected-node-info .node-type.other {
+  background: linear-gradient(to right, #8B5CF6, #6D28D9);
+  color: white;
+}
+
+.selected-node-info .timestamp {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+  display: block;
+}
+
+/* Message highlight for jumping */
+.message.highlighted {
+  animation: highlight-pulse 2s ease-in-out;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes highlight-pulse {
+  0% { 
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.5);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0.2);
+    transform: scale(1.01);
+  }
+  100% { 
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0);
+    transform: scale(1);
+  }
+}
+
+/* =============================== */
+/*            MAIN GRAPH           */
+/* =============================== */
+#graph{
+  position: fixed;
+  left: 260px;
+  top: var(--top-nav-height);
+  width: calc(100vw - 260px - 420px);
+  height: calc(100vh - var(--top-nav-height));
+  background: var(--bg-graph);
+  overflow: hidden;
+}
+
+#graph::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.05) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(255,255,255,0.05) 2px, transparent 2px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+.light-theme #graph::before {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(0,0,0,0.05) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(0,0,0,0.05) 2px, transparent 2px);
+}
+
+/* =============================== */
+/*             MINIMAP             */
+/* =============================== */
+#minimap{
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 150px;
+  background: rgba(255,255,255,0.9);
+  border: 2px solid rgba(0,0,0,0.2);
+  border-radius: 10px;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  backdrop-filter: blur(5px);
+}
+
+.light-theme #minimap {
+  background: rgba(255,255,255,0.95);
+  border: 2px solid rgba(0,0,0,0.1);
+}
+
+/* =============================== */
+/*        DRAG HANDLES (PANELS)    */
+/* =============================== */
+.drag-handle{
+  position: absolute;
+  width: 8px;
+  cursor: ew-resize;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
+  z-index: 1000000;
+  transition: background 0.3s ease;
+}
+
+.drag-handle:hover {
+  background: linear-gradient(to right, rgba(16, 163, 127, 0.5), rgba(16, 163, 127, 0.7));
+}
+
+.light-theme .drag-handle {
+  background: linear-gradient(to right, rgba(0,0,0,0.05), rgba(0,0,0,0.1));
+}
+
+.light-theme .drag-handle:hover {
+  background: linear-gradient(to right, rgba(16, 163, 127, 0.3), rgba(16, 163, 127, 0.5));
+}
+
+#leftDragHandle{
+  right: 0;
+}
+
+#rightDragHandle{
+  left: 0;
+}
+
+/* =============================== */
+/*              TOOLTIP            */
+/* =============================== */
+#tooltip{
+  position: absolute;
+  max-width: 400px;
+  max-height: 400px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13px;
+  box-shadow: 0 8px 25px var(--shadow-color);
+  z-index: 999999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#tooltipContent {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+#tooltipContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+#tooltipContent::-webkit-scrollbar-track {
+  background: var(--card-bg);
+  border-radius: 3px;
+}
+
+#tooltipContent::-webkit-scrollbar-thumb {
+  background: #10a37f;
+  border-radius: 3px;
+}
+
+#tooltipCopyBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+  z-index: 10;
+  display: none;
+}
+
+#tooltip:hover #tooltipCopyBtn {
+  display: block;
+}
+
+#tooltipCopyBtn:hover {
+  background: rgba(16, 163, 127, 0.2);
+  border-color: #10a37f;
+}
+
+/* =============================== */
+/*            NODES/LINKS           */
+/* =============================== */
+.node-circle{
+  cursor: grab;
+  transition: all 0.3s ease;
+  pointer-events: all;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.node-circle:active{
+  cursor: grabbing;
+}
+
+.node-circle:hover {
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+  transform: scale(1.1);
+}
+
+.node-text{
+  font-size: 11px;
+  font-weight: 600;
+  fill: white;
+  cursor: pointer;
+  user-select: none;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  paint-order: stroke;
+  stroke: rgba(0,0,0,0.5);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.light-theme .node-text {
+  fill: #2c3e50;
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+  stroke: rgba(255,255,255,0.5);
+}
+
+.node-text:hover{
+  fill: var(--color-highlight);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.match-check{
+  font-size: 20px;
+  fill: limegreen;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px limegreen);
+}
+
+/* =============================== */
+/*           SEARCH HIGHLIGHT      */
+/* =============================== */
+@keyframes pulse{
+  0%{ 
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px #ffcc00);
+  }
+  50%{ 
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px #ffcc00);
+  }
+  100%{ 
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px #ffcc00);
+  }
+}
+
+.node.search-match circle{
+  stroke: #ffcc00 !important;
+  stroke-width: 6px !important;
+  filter: drop-shadow(0 0 10px #ffcc00) !important;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.node.search-match text{
+  fill: #ffcc00 !important;
+  font-weight: bold;
+}
+
+/* =============================== */
+/*       SELECTED NODE HIGHLIGHT   */
+/* =============================== */
+@keyframes selected-pulse {
+  0% { 
+    stroke-width: 6px;
+    filter: drop-shadow(0 0 20px #FF4081) drop-shadow(0 0 30px #FF4081);
+  }
+  50% { 
+    stroke-width: 8px;
+    filter: drop-shadow(0 0 30px #FF4081) drop-shadow(0 0 40px #FF4081);
+  }
+  100% { 
+    stroke-width: 6px;
+    filter: drop-shadow(0 0 20px #FF4081) drop-shadow(0 0 30px #FF4081);
+  }
+}
+
+.selected-node circle{
+  stroke: var(--color-selected) !important;
+  stroke-width: 6px !important;
+  filter: drop-shadow(0 0 20px #FF4081) drop-shadow(0 0 30px #FF4081) !important;
+  animation: selected-pulse 2s infinite ease-in-out !important;
+  z-index: 1000 !important;
+}
+
+.selected-node text{
+  fill: var(--color-selected) !important;
+  font-weight: bold !important;
+  font-size: 12px !important;
+}
+
+.node.selected-node .node-circle {
+  r: 26px !important;
+}
+
+.node.search-match.selected-node circle{
+  stroke: var(--color-selected) !important;
+  animation: selected-pulse 2s infinite ease-in-out !important;
+  r: 26px !important;
+}
+
+.node.search-match.selected-node text{
+  fill: var(--color-selected) !important;
+}
+
+/* =============================== */
+/*       ANCESTOR/DESCENDANT       */
+/* =============================== */
+@keyframes ancestor-pulse {
+  0% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #1E90FF);
+  }
+  50% { 
+    stroke-width: 5px;
+    filter: drop-shadow(0 0 12px #1E90FF);
+  }
+  100% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #1E90FF);
+  }
+}
+
+.ancestor-node circle{
+  stroke: #1E90FF !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 10px #1E90FF) !important;
+  animation: ancestor-pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes descendant-pulse {
+  0% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #32CD32);
+  }
+  50% { 
+    stroke-width: 5px;
+    filter: drop-shadow(0 0 12px #32CD32);
+  }
+  100% { 
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #32CD32);
+  }
+}
+
+.descendant-node circle{
+  stroke: #32CD32 !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 10px #32CD32) !important;
+  animation: descendant-pulse 2.5s infinite ease-in-out;
+}
+
+.dim-node{
+  opacity: 0.15;
+  transition: opacity 0.3s ease;
+}
+
+.highlight-faded .selected-node,
+.highlight-faded .ancestor-node,
+.highlight-faded .descendant-node{
+  opacity: 0.4 !important;
+}
+
+.link {
+  stroke: rgba(255,255,255,0.6);
+  stroke-width: 2;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.light-theme .link {
+  stroke: rgba(0,0,0,0.4);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.link:hover {
+  stroke: rgba(255,255,255,0.9);
+  stroke-width: 3;
+}
+
+.light-theme .link:hover {
+  stroke: rgba(0,0,0,0.7);
+}
+
+/* =============================== */
+/*          SYSTEM NODE STYLE      */
+/* =============================== */
+.system-node .node-circle{
+  fill: none !important;
+  stroke: var(--color-system) !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 5,5;
+}
+
+/* =============================== */
+/*        BRANCH CONVERSATION      */
+/* =============================== */
+.branch-conversation .user-message {
+  border-left: 6px solid var(--color-user);
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.1));
+}
+
+.branch-conversation .assistant-message {
+  border-left: 6px solid var(--color-assistant);
+  background: linear-gradient(to right, rgba(16, 163, 127, 0.05), rgba(16, 163, 127, 0.1));
+}
+
+.branch-conversation .system-message {
+  border-left: 6px solid var(--color-system);
+  background: linear-gradient(to right, rgba(102, 102, 102, 0.05), rgba(102, 102, 102, 0.1));
+}
+
+.branch-conversation .other-message {
+  border-left: 6px solid var(--color-other);
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), rgba(139, 92, 246, 0.1));
+}
+
+.branch-conversation .message-content pre {
+  background: linear-gradient(to right, var(--bg-primary), var(--bg-secondary));
+  padding: 15px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  position: relative;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.branch-conversation .message-content code {
+  background: rgba(44, 62, 80, 0.1);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.branch-conversation .message-content blockquote {
+  border-left: 4px solid #3498db;
+  margin: 15px 0;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-style: italic;
+  background: rgba(52, 152, 219, 0.05);
+  padding: 10px 15px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Message copy button */
+.message-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-weight: 600;
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.message:hover .message-copy-btn {
+  opacity: 1;
+}
+
+.message-copy-btn:hover {
+  background: linear-gradient(to bottom, rgba(76, 175, 80, 0.9), rgba(76, 175, 80, 0.8));
+  color: white;
+  border-color: rgba(76, 175, 80, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.message-copy-btn.copied {
+  background: linear-gradient(to bottom, #4CAF50, #45a049);
+  color: white;
+  border-color: #3d8b40;
+}
+
+/* Code block copy button */
+.code-block-wrapper {
+  position: relative;
+  margin: 15px 0;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-weight: 600;
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.code-block-wrapper:hover .code-copy-btn {
+  opacity: 1;
+}
+
+.code-copy-btn:hover {
+  background: linear-gradient(to bottom, rgba(76, 175, 80, 0.9), rgba(76, 175, 80, 0.8));
+  color: white;
+  border-color: rgba(76, 175, 80, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.code-copy-btn.copied {
+  background: linear-gradient(to bottom, #4CAF50, #45a049);
+  color: white;
+  border-color: #3d8b40;
+}
+
+/* =============================== */
+/*              PRINT             */
+/* =============================== */
+@media print{
+  body, html{
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  body *{
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #rightViewer, #rightViewer *{
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #rightViewer{
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #viewerTabs, #subTabsContainer, #viewerButtons, #branchIndexContainer{
+    display: none !important;
+  }
+
+  #viewerContent{
+    padding: 20px !important;
+    font-size: 14px !important;
+    overflow: visible !important;
+  }
+
+  #graph, svg, canvas, #minimap, #leftSidebar{
+    display: none !important;
+    height: 0 !important;
+  }
+}
+</style>
+</head>
+
+<body>
+  <div id="topNav">
+    <button id="loadJsonBtn">Load Conversation JSON</button>
+    <button id="resetLayoutBtn">Reset Layout</button>
+    <button id="closeConversationBtn">Close Conversation</button>
+
+    <div id="settingsContainer">
+      <button id="settingsBtn">Settings ▼</button>
+      <div id="settingsMenu">
+        <label class="settingsRow">
+          <input type="checkbox" id="toggleSystemNodes">
+          <span>Show system nodes</span>
+        </label>
+        <label class="settingsRow">
+          <input type="checkbox" id="toggleOtherNodes" checked>
+          <span>Show other nodes (purple)</span>
+        </label>
+        <label class="settingsRow">
+          <input type="checkbox" id="toggleTooltip" checked>
+          <span>Show Message Previews</span>
+        </label>
+        <label class="settingsRow">
+          <span>Preview timer (ms)</span>
+          <input type="range" id="tooltipTimerRange" min="500" max="10000" step="500" value="2000">
+          <span class="range-value" id="tooltipTimerValue">500</span>
+        </label>
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 10px 0;">
+        <div class="settingsRow" style="justify-content: center;">
+          <button id="showHelpBtn" style="background: linear-gradient(to right, #3B82F6, #1D4ED8); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;">Show Help Topics</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="fileLabel">(no file loaded)</div>
+    <div id="conversionStatus"></div>
+    
+    <div id="themeSelector">
+      <button id="themeBtn">Themes ▼</button>
+      <div id="themeDropdown">
+        <div class="theme-option active" data-theme="dark">
+          <div class="theme-icon" style="background: #2c3e50;"></div>
+          <span>Dark</span>
+        </div>
+        <div class="theme-option" data-theme="light">
+          <div class="theme-icon" style="background: #ffffff; border: 1px solid #ccc;"></div>
+          <span>Light</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="formatBadge"></div>
+  </div>
+
+  <div id="leftSidebar">
+    <!-- Search Messages Section -->
+    <div class="section-header" id="searchSectionHeader" data-section="search">
+      <span>Search Messages</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="section-content" id="searchSectionContent">
+      <div id="searchContainer">
+        <input id="searchBar" type="text" placeholder="Search all messages..." />
+      </div>
+      <div id="leftSearchResults"></div>
+    </div>
+    
+    <!-- Conversations Section -->
+    <div class="section-header" id="conversationsSectionHeader" data-section="conversations">
+      <span>Conversations</span>
+      <span class="toggle-icon">▼</span>
+    </div>
+    <div class="section-content" id="conversationsSectionContent">
+      <div id="conversationsList" class="conversations-empty">
+        Load a conversations.json file to see conversations
+      </div>
+    </div>
+    
+    <div id="leftDragHandle" class="drag-handle"></div>
+  </div>
+
+  <div id="rightViewer">
+    <div id="viewerHeader">
+      <div id="viewerTabs">
+        <div class="viewerTab active" data-mode="node">Selected Node</div>
+        <div class="viewerTab" data-mode="branch">Branch Conversation</div>
+      </div>
+      
+      <div id="subTabsContainer" style="padding: 10px 15px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; gap: 8px; flex-wrap: wrap;">
+        <div class="viewerSubTab active" data-submode="rendered">Rendered</div>
+        <div class="viewerSubTab" data-submode="markdown">Markdown</div>
+        <div class="viewerSubTab" data-submode="html">HTML</div>
+        <div class="viewerSubTab" data-submode="original">Original</div>
+      </div>
+
+      <div id="viewerButtons">
+        <button id="copyBtn">Copy</button>
+        <button id="exportBtn">Export</button>
+        <button id="popoutBtn">Pop-Out</button>
+        <button id="pdfBtn">PDF</button>
+        <button id="toggleMetaBtn" title="Toggle metadata visibility">Hide Info</button>
+      </div>
+    </div>
+
+    <div id="viewerContent"><div style="color: var(--text-secondary); text-align: center; padding: 40px; font-style: italic;">Select a node to view its content.</div></div>
+    <div id="rightDragHandle" class="drag-handle"></div>
+  </div>
+
+  <!-- Branch Index Sidebar -->
+  <div id="branchIndexContainer" class="collapsed">
+    <div id="branchIndexToggle" title="Branch Index - Click to expand/collapse">📋</div>
+    <div id="branchIndexSearch">
+      <div style="position: relative;">
+        <input type="text" id="branchSearchInput" placeholder="Search in branch..." style="width: 100%; padding-right: 30px; box-sizing: border-box;" />
+        <button id="clearBranchSearch" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; padding: 2px 5px;">×</button>
+      </div>
+    </div>
+    <div id="branchIndex"></div>
+  </div>
+
+  <svg id="graph"></svg>
+  <canvas id="minimap"></canvas>
+  <div id="tooltip">
+    <button id="tooltipCopyBtn">Copy</button>
+    <div id="tooltipContent"></div>
+  </div>
+
+  <!-- Help Topics Modal -->
+  <div id="helpModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000000; align-items: center; justify-content: center;">
+    <div style="background: var(--bg-secondary); width: 90%; max-width: 900px; height: 80vh; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color);">
+      <!-- Modal Header -->
+      <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to right, var(--bg-primary), var(--bg-secondary));">
+        <h2 style="margin: 0; color: var(--text-primary);">Multiverse Viewer Help Guide</h2>
+        <button id="closeHelpBtn" style="background: none; border: none; color: var(--text-primary); font-size: 24px; cursor: pointer; padding: 0 10px;">×</button>
+      </div>
+      
+      <!-- Modal Content -->
+      <div style="flex: 1; overflow: hidden; display: flex;">
+        <!-- Left Sidebar - Topics -->
+        <div style="width: 250px; background: var(--card-bg); border-right: 1px solid var(--border-color); overflow-y: auto;">
+          <div id="helpTopicsList" style="padding: 15px;"></div>
+        </div>
+        
+        <!-- Right Content - Details -->
+        <div style="flex: 1; padding: 25px; overflow-y: auto;">
+          <div id="helpContent">
+            <h3 style="margin-top: 0; color: var(--text-primary);">Welcome to Multiverse Viewer v6.0</h3>
+            <p style="color: var(--text-secondary); line-height: 1.6;">
+              This tool helps you visualize and explore conversation trees from various AI platforms. 
+              Select a topic from the sidebar to learn more about specific features.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div style="padding: 15px 25px; border-top: 1px solid var(--border-color); background: var(--card-bg); display: flex; justify-content: space-between; align-items: center;">
+        <div style="color: var(--text-secondary); font-size: 13px;">
+          <span id="currentTopic">Getting Started</span>
+        </div>
+        <div>
+          <button id="prevTopicBtn" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 16px; border-radius: 6px; margin-right: 10px; cursor: pointer; font-size: 13px;">← Previous</button>
+          <button id="nextTopicBtn" style="background: linear-gradient(to right, #10a37f, #0e8e6c); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+  // GLOBAL VARIABLES
+  let currentFormat = "unknown";
+  let originalJSON = null;
+  let convertedJSON = null;
+  let conversationsList = [];
+  let currentConversationIndex = -1;
+  let searchResultsAcrossAllConversations = [];
+  let currentTheme = 'dark';  // only 'dark' or 'light'
+  let showTooltips = true;
+  let tooltipLingerMs = 500;
+  let showOtherNodes = true;
+  let showSystemNodes = false;
+  let showMetadata = true;
+  
+  let rootHierarchy = null;
+  let originalPositions = new Map();
+  let activeNode = null;
+  let allNodes = [];
+  let allLinks = [];
+  let svg, g, zoom;
+  
+  let currentMode = "node";
+  let currentSubMode = "rendered";
+  let currentRenderedContent = "";
+  let currentNodeData = null;
+  let currentBranchNode = null;
+  
+  let lastLoadedJSON = null;
+  let isDragging = false;
+  let highlightFadeApplied = false;
+  
+  const tooltip = document.getElementById("tooltip");
+  const tooltipContent = document.getElementById("tooltipContent");
+  const tooltipCopyBtn = document.getElementById("tooltipCopyBtn");
+  let tooltipHideTimer = null;
+
+  // FORMAT CONSTANTS
+  const FORMATS = {
+    OPENAI_MULTIVERSE: "openai_multiverse",
+    DEEPSEEK_EXPORTER: "deepseek_exporter",
+    OPENAI_CONVERSATIONS_ARRAY: "openai_conversations_array",
+    CLAUDE_ANTHROPIC: "claude_anthropic",
+    XAI_GROK: "xai_grok", 
+    MISTRAL_AI: "mistral_ai",
+    DEEPSEEK_CHAT_EXPORT: "deepseek_chat_export",
+    DEEPSEEK_CONVERSATION: "deepseek_conversation",  // new format
+    ZHIPU_GLM: "zhipu_glm", // added GLM format
+    UNKNOWN: "unknown"
+  };
+
+  // INITIALIZATION FUNCTIONS
+  function initialize() {
+    updateTopNavHeight();
+    initializeCollapsibleSections();
+    initializeThemeSystem();
+    initializeSettings();
+    initializeMetadataToggle();
+    initializeHelpSystem();
+    initializeEventListeners();
+    switchMode("node", "rendered");
+  }
+
+  function updateTopNavHeight() {
+    const h = document.getElementById("topNav").offsetHeight;
+    document.documentElement.style.setProperty("--top-nav-height", h + "px");
+  }
+
+  function initializeCollapsibleSections() {
+    const sections = ['search', 'conversations'];
+    
+    sections.forEach(section => {
+      const header = document.getElementById(`${section}SectionHeader`);
+      const content = document.getElementById(`${section}SectionContent`);
+      
+      header.addEventListener('click', function() {
+        const isCollapsed = this.classList.contains('collapsed');
+        this.classList.toggle('collapsed');
+        content.classList.toggle('collapsed');
+      });
+    });
+  }
+
+  function initializeThemeSystem() {
+    const savedTheme = localStorage.getItem('multiverseTheme') || 'dark';
+    currentTheme = savedTheme;
+    applyTheme(currentTheme);
+    
+    const themeBtn = document.getElementById('themeBtn');
+    const themeDropdown = document.getElementById('themeDropdown');
+    
+    themeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themeDropdown.style.display = themeDropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    
+    document.querySelectorAll('.theme-option').forEach(option => {
+      option.addEventListener('click', function() {
+        const theme = this.dataset.theme;
+        document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        applyTheme(theme);
+        themeDropdown.style.display = 'none';
+      });
+      
+      if (option.dataset.theme === currentTheme) {
+        option.classList.add('active');
+      }
+    });
+    
+    window.addEventListener('click', () => {
+      themeDropdown.style.display = 'none';
+    });
+  }
+
+  function applyTheme(theme) {
+    // Only allow 'dark' or 'light'
+    if (theme !== 'dark' && theme !== 'light') theme = 'dark';
+    currentTheme = theme;
+    localStorage.setItem('multiverseTheme', theme);
+    document.body.classList.remove('light-theme');  // only one class needed
+    if (theme === 'light') {
+      document.body.classList.add('light-theme');
+    }
+  }
+
+  function initializeSettings() {
+    showTooltips = localStorage.getItem('multiverseShowTooltips') !== 'false';
+    tooltipLingerMs = parseInt(localStorage.getItem('multiverseTooltipTimer') || '500');
+    showSystemNodes = localStorage.getItem('multiverseShowSystemNodes') === 'true';
+    showOtherNodes = localStorage.getItem('multiverseShowOtherNodes') !== 'false';
+    
+    document.getElementById('toggleTooltip').checked = showTooltips;
+    document.getElementById('toggleSystemNodes').checked = showSystemNodes;
+    document.getElementById('toggleOtherNodes').checked = showOtherNodes;
+    document.getElementById('tooltipTimerRange').value = tooltipLingerMs;
+    document.getElementById('tooltipTimerValue').textContent = tooltipLingerMs;
+    
+    document.getElementById('toggleTooltip').addEventListener('change', function(e) {
+      showTooltips = e.target.checked;
+      localStorage.setItem('multiverseShowTooltips', showTooltips);
+    });
+    
+    document.getElementById('toggleSystemNodes').addEventListener('change', function(e) {
+      showSystemNodes = e.target.checked;
+      localStorage.setItem('multiverseShowSystemNodes', showSystemNodes);
+      if (lastLoadedJSON) buildTree(lastLoadedJSON);
+      refreshBranchView(); // Refresh branch view when setting changes
+    });
+    
+    document.getElementById('toggleOtherNodes').addEventListener('change', function(e) {
+      showOtherNodes = e.target.checked;
+      localStorage.setItem('multiverseShowOtherNodes', showOtherNodes);
+      updateOtherNodesVisibility();
+      refreshBranchView(); // Refresh branch view when setting changes
+    });
+    
+    const timerRange = document.getElementById('tooltipTimerRange');
+    const timerValue = document.getElementById('tooltipTimerValue');
+    
+    timerRange.addEventListener('input', function(e) {
+      tooltipLingerMs = parseInt(e.target.value);
+      timerValue.textContent = tooltipLingerMs;
+      localStorage.setItem('multiverseTooltipTimer', tooltipLingerMs);
+    });
+  }
+
+  function initializeMetadataToggle() {
+    const toggleBtn = document.getElementById('toggleMetaBtn');
+    const savedShowMetadata = localStorage.getItem('multiverseShowMetadata');
+    
+    if (savedShowMetadata !== null) {
+      showMetadata = savedShowMetadata === 'true';
+    }
+    
+    updateMetadataToggleButton();
+    
+    toggleBtn.addEventListener('click', function() {
+      showMetadata = !showMetadata;
+      localStorage.setItem('multiverseShowMetadata', showMetadata);
+      updateMetadataToggleButton();
+      
+      if (currentNodeData) {
+        switchMode(currentMode, currentSubMode);
+      }
+    });
+  }
+
+  function updateMetadataToggleButton() {
+    const toggleBtn = document.getElementById('toggleMetaBtn');
+    if (toggleBtn) {
+      if (showMetadata) {
+        toggleBtn.innerHTML = 'Hide Info';
+        toggleBtn.title = 'Hide metadata (role, date, ID)';
+      } else {
+        toggleBtn.innerHTML = 'Show Info';
+        toggleBtn.title = 'Show metadata (role, date, ID)';
+      }
+    }
+  }
+
+  
+function initializeHelpSystem() {
+  const helpTopics = [
+    { 
+      id: 'getting-started', 
+      title: '🚀 Getting Started', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Welcome to Multiverse Viewer v6.0</h3>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Multiverse Viewer is a powerful tool for visualizing and exploring conversation trees from various AI platforms including OpenAI, DeepSeek, Claude, Grok/xAI, and Mistral AI.
+        </p>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10a37f;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Quick Start Guide</h4>
+          <ol style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+            <li><strong>Load a JSON file</strong>: Click "Load Conversation JSON" or drag & drop a file</li>
+            <li><strong>Navigate the graph</strong>: Click nodes to select, drag to rearrange branches</li>
+            <li><strong>View content</strong>: Use the right panel to see message details</li>
+            <li><strong>Search</strong>: Use the search bar to find specific messages</li>
+            <li><strong>Explore branches</strong>: Switch to "Branch Conversation" mode to see full conversation threads</li>
+          </ol>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 20px;">Supported Formats</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+          <span class="format-badge format-openai">OpenAI</span>
+          <span class="format-badge format-deepseek">DeepSeek</span>
+          <span class="format-badge format-claude">Claude</span>
+          <span class="format-badge format-grok">Grok/xAI</span>
+          <span class="format-badge format-mistral">Mistral AI</span>
+          <span class="format-badge format-multi">Multi-Conversation</span>
+        </div>
+        
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          The tool automatically detects the format of your JSON files and converts them to a unified visualization format.
+        </p>
+      `
+    },
+    { 
+      id: 'loading-conversations', 
+      title: '📁 Loading Conversations', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Loading Conversation Files</h3>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Single Conversation Files</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          You can load individual conversation files from any supported platform:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>OpenAI chat exports (with mapping structure)</li>
+          <li>DeepSeek chat exports (JSON format)</li>
+          <li>Claude conversation JSON</li>
+          <li>Grok/xAI conversation files</li>
+          <li>Mistral AI chat exports</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Multiple Conversations</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          You can also load files containing multiple conversations:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>OpenAI conversations.json (multiple conversations in one file)</li>
+          <li>DeepSeek exporter multi-conversation files</li>
+          <li>Arrays of conversation objects</li>
+        </ul>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3B82F6;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Loading Methods</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+            <div style="text-align: center;">
+              <div style="font-size: 24px;">📄</div>
+              <div style="font-weight: 600; color: var(--text-primary); margin: 5px 0;">Click to Load</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Use the "Load Conversation JSON" button</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 24px;">📤</div>
+              <div style="font-weight: 600; color: var(--text-primary); margin: 5px 0;">Drag & Drop</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Drag JSON files onto the load button</div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Conversations List</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          When loading multi-conversation files, they appear in the left sidebar. You can:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Click any conversation to load it</li>
+          <li>See conversation dates and message counts</li>
+          <li>Search across all loaded conversations</li>
+          <li>Use the "Close Conversation" button to clear current view</li>
+        </ul>
+      `
+    },
+    { 
+      id: 'navigating-graph', 
+      title: '🌳 Navigating the Graph', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Graph Navigation & Interaction</h3>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #8B5CF6;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Node Colors & Meanings</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(to right, #3B82F6, #1D4ED8);"></div>
+              <div>
+                <div style="font-weight: 600; color: var(--text-primary);">Blue</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">User messages</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(to right, #10B981, #0C7A5C);"></div>
+              <div>
+                <div style="font-weight: 600; color: var(--text-primary);">Green</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Assistant messages</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px dashed #666;"></div>
+              <div>
+                <div style="font-weight: 600; color: var(--text-primary);">Gray Dashed</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">System messages</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(to right, #8B5CF6, #6D28D9);"></div>
+              <div>
+                <div style="font-weight: 600; color: var(--text-primary);">Purple</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Other/unknown roles</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Basic Interactions</h4>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>Click a node</strong>: Selects the node and shows its content</li>
+          <li><strong>Drag a node</strong>: Moves the node and its entire branch</li>
+          <li><strong>Hold Shift while dragging</strong>: Moves only the selected node</li>
+          <li><strong>Hover over a node</strong>: Shows a preview of the message</li>
+          <li><strong>Mouse wheel</strong>: Zoom in/out</li>
+          <li><strong>Click + drag empty space</strong>: Pan around the graph</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Visual Highlights</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          When you select a node, the graph automatically highlights:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><span style="color: #FF4081; font-weight: 600;">Selected node</span>: Pink pulsating highlight</li>
+          <li><span style="color: #1E90FF; font-weight: 600;">Ancestors</span>: Blue outline (nodes leading to selection)</li>
+          <li><span style="color: #32CD32; font-weight: 600;">Descendants</span>: Green outline (nodes branching from selection)</li>
+          <li><span style="color: var(--text-secondary); font-weight: 600;">Other nodes</span>: Dimmed to reduce visual clutter</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Reset Layout</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          If the graph becomes messy or you want to return to the original layout:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Click the "Reset Layout" button in the top navigation</li>
+          <li>This will animate all nodes back to their original positions</li>
+          <li>Useful after extensive dragging and reorganization</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Minimap</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          The minimap in the bottom-right corner shows:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>An overview of the entire conversation graph</li>
+          <li>A yellow dashed rectangle showing your current viewport</li>
+          <li>Miniature versions of all nodes (maintaining color coding)</li>
+        </ul>
+      `
+    },
+    { 
+      id: 'search-features', 
+      title: '🔍 Search Features', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Search & Discovery</h3>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #FFD700;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Search Types</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+            <div style="text-align: center;">
+              <div style="font-size: 24px;">📝</div>
+              <div style="font-weight: 600; color: var(--text-primary); margin: 5px 0;">Within Conversation</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Search current conversation only</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 24px;">📚</div>
+              <div style="font-weight: 600; color: var(--text-primary); margin: 5px 0;">Cross-Conversation</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Search all loaded conversations</div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">How Search Works</h4>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>Real-time search</strong>: Results update as you type</li>
+          <li><strong>Case-insensitive</strong>: Searches ignore capitalization</li>
+          <li><strong>Full-text search</strong>: Searches through all message content</li>
+          <li><strong>Visual highlighting</strong>: Matching nodes get yellow pulsating borders</li>
+          <li><strong>Results list</strong>: Clickable results appear in the left sidebar</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Search Results Display</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          When searching across multiple conversations:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Conversations with matches show match counts in yellow badges</li>
+          <li>Results are grouped by conversation</li>
+          <li>Each result shows: role icon, message preview, and source conversation</li>
+          <li>Click any result to load that conversation and jump to the matching node</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Search Tips</h4>
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <ul style="color: var(--text-secondary); line-height: 1.6; margin: 0; padding-left: 20px;">
+            <li>Use specific keywords for better results</li>
+            <li>Search for code snippets by including language keywords (e.g., "def function", "import numpy")</li>
+            <li>Look for role-specific content by searching with "user:" or "assistant:" prefixes</li>
+            <li>Clear the search bar to remove all highlights and return to normal view</li>
+            <li>Combine with node selection to see context around search results</li>
+          </ul>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Branch Search</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          In Branch Conversation mode, you can also search within the current branch:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Use the search box in the Branch Index sidebar</li>
+          <li>Filters messages in the current conversation branch</li>
+          <li>Updates the branch index in real-time</li>
+          <li>Shows counts of filtered vs. total messages</li>
+        </ul>
+      `
+    },
+    { 
+      id: 'viewing-modes', 
+      title: '📊 Viewing Modes', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Content Viewing Modes</h3>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #10a37f;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Two Main Modes</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+            <div style="text-align: center; padding: 15px; background: rgba(16, 163, 127, 0.1); border-radius: 8px;">
+              <div style="font-size: 24px;">🎯</div>
+              <div style="font-weight: 600; color: var(--text-primary); margin: 5px 0;">Selected Node</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">View single message details</div>
+            </div>
+            <div style="text-align: center; padding: 15px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+              <div style="font-size: 24px;">🌿</div>
+              <div style="font-weight: 600; color: var(--text-primary); margin: 5px 0;">Branch Conversation</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">View full conversation thread</div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">View Formats (Sub-modes)</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Each main mode supports four viewing formats:
+        </p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+          <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Rendered</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Markdown rendered as HTML with syntax highlighting</div>
+          </div>
+          <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Markdown</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Raw markdown source text</div>
+          </div>
+          <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">HTML</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Generated HTML from markdown</div>
+          </div>
+          <div style="background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Original</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Original JSON data structure</div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Selected Node Mode</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          When viewing a single node, you see:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>The message content in your chosen format</li>
+          <li>Role badge (User, Assistant, System, or Other)</li>
+          <li>Node ID and timestamp (if available)</li>
+          <li>Original platform metadata</li>
+          <li>Copy buttons for code blocks</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Branch Conversation Mode</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          When viewing a branch conversation, you see:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>The complete conversation thread leading to the selected node</li>
+          <li>Messages displayed in chronological order</li>
+          <li>Visual separation between different roles</li>
+          <li>Copy buttons for individual messages</li>
+          <li>Branch Index sidebar for quick navigation</li>
+          <li>Conversation summary with message counts</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Metadata Toggle</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Use the "Hide Info"/"Show Info" button to:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Show/hide role badges, timestamps, and IDs</li>
+          <li>Focus purely on message content</li>
+          <li>Toggle conversation summaries in branch view</li>
+          <li>Your preference is saved between sessions</li>
+        </ul>
+      `
+    },
+    { 
+      id: 'branch-features', 
+      title: '📋 Branch Features', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Branch Conversation Features</h3>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4CAF50;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">What is a Branch?</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 0;">
+            A branch is the complete conversation thread that leads to a selected node, showing all ancestors in chronological order. This helps you understand the context and flow of the conversation.
+          </p>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Accessing Branch View</h4>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Select any node in the graph</li>
+          <li>Switch to "Branch Conversation" mode using the top tabs</li>
+          <li>Or click directly in the Branch Index sidebar</li>
+          <li>The branch automatically opens when you select "Branch Conversation" mode</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Branch Index Sidebar</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          The collapsible sidebar on the right provides:
+        </p>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <div style="display: flex; align-items: start; gap: 15px; margin-bottom: 10px;">
+            <div style="font-size: 20px; flex-shrink: 0;">📋</div>
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary);">Message List</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">All messages in the branch with role icons</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: start; gap: 15px; margin-bottom: 10px;">
+            <div style="font-size: 20px; flex-shrink: 0;">🔍</div>
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary);">Search Within Branch</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Filter messages by content</div>
+            </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: start; gap: 15px;">
+            <div style="font-size: 20px; flex-shrink: 0;">🎯</div>
+            <div>
+              <div style="font-weight: 600; color: var(--text-primary);">Quick Navigation</div>
+              <div style="font-size: 13px; color: var(--text-secondary);">Click any message to jump to it</div>
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Branch Navigation</h4>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>Click messages in Branch Index</strong>: Jump directly to that message</li>
+          <li><strong>Current message highlight</strong>: Green highlight shows which message you're viewing</li>
+          <li><strong>Scroll automatically</strong>: When clicking in Branch Index, the view scrolls to that message</li>
+          <li><strong>Visual pulse</strong>: Messages you jump to pulse briefly to help you locate them</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Message Features in Branch View</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Each message in branch view includes:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>Copy button</strong>: Copy individual message content</li>
+          <li><strong>Role identification</strong>: Clear visual distinction between user/assistant/system</li>
+          <li><strong>Timestamp</strong>: When the message was created (if available)</li>
+          <li><strong>Code block handling</strong>: Syntax highlighting and copy buttons for code</li>
+          <li><strong>Markdown rendering</strong>: Proper formatting of markdown elements</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Conversation Summary</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          At the bottom of each branch view, you'll find:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li>Total message count in the branch</li>
+          <li>Breakdown by role (user, assistant, system, other)</li>
+          <li>Information about filtered/hidden messages (based on settings)</li>
+          <li>Visual statistics to understand conversation composition</li>
+        </ul>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid var(--border-color);">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Tip: Understanding Conversation Flow</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 0;">
+            Use branch view to analyze how conversations develop. Look for patterns in user-assistant exchanges, identify where topics change, and understand how context builds throughout the conversation.
+          </p>
+        </div>
+      `
+    },
+    { 
+      id: 'customization', 
+      title: '🎨 Customization', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Customization Options</h3>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #d946ef;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Theme Selection</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6;">
+            Choose between Light and Dark themes to match your preference or lighting conditions:
+          </p>
+          
+          <div style="display: flex; gap: 20px; margin-top: 10px;">
+            <div style="text-align: center;">
+              <div style="width: 40px; height: 40px; margin: 0 auto; border-radius: 8px; background: #2c3e50; border: 2px solid #10a37f;"></div>
+              <div style="font-size: 11px; color: var(--text-primary); margin-top: 5px;">Dark</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="width: 40px; height: 40px; margin: 0 auto; border-radius: 8px; background: #ffffff; border: 2px solid #dee2e6;"></div>
+              <div style="font-size: 11px; color: var(--text-primary); margin-top: 5px;">Light</div>
+            </div>
+          </div>
+          
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-top: 10px; font-size: 13px;">
+            Your theme preference is saved automatically and will be used in future sessions.
+          </p>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Settings Menu</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Access advanced customization through the Settings menu:
+        </p>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary);">Show system nodes</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Toggle visibility of system messages</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary);">Show other nodes (purple)</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Toggle visibility of non-standard roles</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary);">Show Message Previews</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Toggle tooltips on node hover</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+            <div style="font-weight: 600; color: var(--text-primary);">Preview timer (ms)</div>
+            <div style="font-size: 12px; color: var(--text-secondary);">Adjust tooltip display duration</div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Panel Layout</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Customize the workspace layout by:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>Dragging panel dividers</strong>: Adjust widths of left sidebar, graph, and right viewer</li>
+          <li><strong>Collapsible sections</strong>: Click section headers in the left sidebar to collapse/expand</li>
+          <li><strong>Branch Index</strong>: Collapse/expand using the toggle button</li>
+          <li><strong>Minimap</strong>: Always visible in the bottom-right corner</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Node Display Settings</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Control which types of nodes are displayed:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>System nodes</strong>: Often contain metadata or system prompts (dashed circles)</li>
+          <li><strong>Other nodes</strong>: Messages with non-standard roles (purple circles)</li>
+          <li><strong>Filtering effects</strong>: Hidden nodes are removed from branch views and counts</li>
+          <li><strong>Performance</strong>: Hiding nodes can improve performance with large conversations</li>
+        </ul>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Tooltip Customization</h4>
+        <p style="color: var(--text-secondary); line-height: 1.6;">
+          Adjust how message previews work:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 20px;">
+          <li><strong>Enable/disable tooltips</strong>: Turn previews on or off entirely</li>
+          <li><strong>Adjust display time</strong>: Set how long tooltips stay visible (500ms to 10,000ms)</li>
+          <li><strong>Hover behavior</strong>: Tooltips appear when hovering over nodes</li>
+          <li><strong>Copy functionality</strong>: Copy button appears when hovering over tooltips</li>
+        </ul>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid var(--border-color);">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Tip: Customize for Your Workflow</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 0;">
+            Set up the viewer to match your analysis style. If you're focusing on user-assistant exchanges, hide system nodes. If you're reviewing long conversations, increase tooltip display time. The settings are saved per browser, so you can have different setups on different devices.
+          </p>
+        </div>
+      `
+    },
+    
+    { 
+      id: 'troubleshooting', 
+      title: '❓ Troubleshooting', 
+      content: `
+        <h3 style="color: var(--text-primary); margin-top: 0;">Troubleshooting & FAQs</h3>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ef4444;">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Common Issues</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6;">
+            Solutions to frequently encountered problems:
+          </p>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">File Loading Issues</h4>
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">❌ "Unrecognized file format"</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Ensure you're loading a supported format. Check that the JSON is valid and comes from a supported platform (OpenAI, DeepSeek, Claude, Grok, or Mistral). Try opening the file in a text editor to verify it's valid JSON.
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">❌ "No valid conversations found"</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> The file might be empty or in an unexpected structure. Check if the file contains the expected conversation data. For multi-conversation files, ensure it's an array of conversation objects.
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">❌ File loads but graph is empty</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Check if system nodes are hidden (Settings → "Show system nodes"). Some conversations might start with system messages. Also try resetting the layout with the "Reset Layout" button.
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Display & Performance Issues</h4>
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">🐌 Slow performance with large conversations</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Hide system and other nodes in Settings. Close other tabs/applications. Use search to focus on specific parts of the conversation rather than rendering everything at once.
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">🔍 Search not finding expected results</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Search is case-insensitive but looks for exact substring matches. Try simpler search terms. Check if you're searching within the current conversation or across all conversations (indicated in search results).
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">🎨 Visual glitches or overlapping nodes</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Use the "Reset Layout" button. Try zooming out (mouse wheel) to see the full graph. If nodes are overlapping, drag them apart or reset the layout.
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Export & Copy Issues</h4>
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">📋 Copy button not working</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Ensure you're not in a sandboxed environment that blocks clipboard access. Try clicking the copy button again. For large content, there may be a brief delay.
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">🖨️ PDF export failing</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> PDF generation requires sufficient memory. Try exporting smaller sections. Ensure you have an active internet connection (required for the PDF library). Try the HTML export as an alternative.
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">📄 Pop-out window blocked</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>Solution:</strong> Check if your browser is blocking pop-ups. Allow pop-ups for this page. Alternatively, use the export functions to save content locally.
+            </div>
+          </div>
+        </div>
+        
+        <h4 style="color: var(--text-primary); margin-top: 15px;">Frequently Asked Questions</h4>
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Q: Can I load multiple files at once?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>A:</strong> Currently, you can load one file at a time, but if that file contains multiple conversations (like OpenAI's conversations.json), all conversations will be loaded and accessible from the sidebar.
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Q: Is my data sent to a server?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>A:</strong> No, all processing happens locally in your browser. Your conversation data never leaves your computer.
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Q: How do I save my work?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>A:</strong> Use the export functions (Copy, Export, PDF) to save content. Your settings (theme, node visibility, etc.) are automatically saved in your browser's local storage.
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Q: Can I use this offline?</div>
+            <div style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+              <strong>A:</strong> Yes, once loaded, the page works offline. However, initial loading requires internet to download the libraries (D3.js, marked, etc.). These are cached by your browser for subsequent uses.
+            </div>
+          </div>
+        </div>
+        
+        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid var(--border-color);">
+          <h4 style="margin-top: 0; color: var(--text-primary);">Still having issues?</h4>
+          <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 0;">
+            If you're experiencing problems not covered here, try these general troubleshooting steps:
+          </p>
+          <ul style="color: var(--text-secondary); line-height: 1.6; margin-top: 10px; padding-left: 20px;">
+            <li>Refresh the page and reload your file</li>
+            <li>Clear your browser cache and try again</li>
+            <li>Try a different browser (Chrome, Firefox, Edge are all supported)</li>
+            <li>Check browser console for error messages (F12 → Console tab)</li>
+            <li>Ensure your JSON file is valid (try opening it in a text editor)</li>
+          </ul>
+        </div>
+      `
+    }
+  ];
+
+  // ... rest of the initializeHelpSystem() function remains the same ...
+  
+
+
+    const topicsList = document.getElementById('helpTopicsList');
+    helpTopics.forEach((topic, index) => {
+      const topicDiv = document.createElement('div');
+      topicDiv.className = 'help-topic-item';
+      topicDiv.innerHTML = `
+        <div style="padding: 10px 12px; margin: 5px 0; background: var(--card-bg); border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border-left: 3px solid transparent;" 
+             data-topic-id="${topic.id}" data-index="${index}">
+          <div style="font-weight: 600; font-size: 13px; color: var(--text-primary);">${topic.title}</div>
+        </div>
+      `;
+      topicsList.appendChild(topicDiv);
+    });
+
+    let currentTopicIndex = 0;
+    
+    function showTopic(index) {
+      if (index < 0 || index >= helpTopics.length) return;
+      currentTopicIndex = index;
+      const topic = helpTopics[index];
+      document.getElementById('helpContent').innerHTML = topic.content;
+      document.getElementById('currentTopic').textContent = topic.title;
+      
+      document.querySelectorAll('.help-topic-item').forEach((item, i) => {
+        const div = item.querySelector('div');
+        if (i === index) {
+          div.style.borderLeftColor = '#10a37f';
+          div.style.background = 'rgba(16, 163, 127, 0.1)';
+        } else {
+          div.style.borderLeftColor = 'transparent';
+          div.style.background = 'var(--card-bg)';
+        }
+      });
+      
+      document.getElementById('prevTopicBtn').style.opacity = index === 0 ? '0.5' : '1';
+      document.getElementById('nextTopicBtn').style.opacity = index === helpTopics.length - 1 ? '0.5' : '1';
+    }
+
+    document.getElementById('showHelpBtn').addEventListener('click', () => {
+      document.getElementById('helpModal').style.display = 'flex';
+      showTopic(0);
+    });
+
+    document.getElementById('closeHelpBtn').addEventListener('click', () => {
+      document.getElementById('helpModal').style.display = 'none';
+    });
+
+    document.getElementById('prevTopicBtn').addEventListener('click', () => {
+      if (currentTopicIndex > 0) showTopic(currentTopicIndex - 1);
+    });
+
+    document.getElementById('nextTopicBtn').addEventListener('click', () => {
+      if (currentTopicIndex < helpTopics.length - 1) showTopic(currentTopicIndex + 1);
+    });
+
+    document.querySelectorAll('.help-topic-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const index = parseInt(this.querySelector('div').dataset.index);
+        showTopic(index);
+      });
+    });
+
+    document.getElementById('helpModal').addEventListener('click', (e) => {
+      if (e.target.id === 'helpModal') {
+        document.getElementById('helpModal').style.display = 'none';
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('helpModal').style.display === 'flex') {
+        document.getElementById('helpModal').style.display = 'none';
+      }
+    });
+  }
+
+  // Helper function to check if node should be displayed based on settings
+  function shouldDisplayNode(data) {
+    if (isSystemData(data)) {
+      return showSystemNodes;
+    }
+    
+    const isOtherNode = !isSystemData(data) && 
+                       data.role !== "user" && 
+                       data.role !== "assistant" && 
+                       data.role !== "system";
+    
+    if (isOtherNode) {
+      return showOtherNodes;
+    }
+    
+    return true;
+  }
+
+  // Function to filter nodes based on settings
+  function filterNodesBySettings(nodes) {
+    return nodes.filter(n => shouldDisplayNode(n.data));
+  }
+
+  // Function to refresh branch view when settings change
+  function refreshBranchView() {
+    if (currentMode === "branch" && currentBranchNode) {
+      switchMode("branch", currentSubMode);
+    }
+  }
+
+  function initializeEventListeners() {
+    // Window events
+    window.addEventListener('load', updateTopNavHeight);
+    window.addEventListener('resize', updateTopNavHeight);
+    window.addEventListener('resize', updateBranchIndexPosition);
+    
+    // Load JSON button
+    document.getElementById("loadJsonBtn").addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json,application/json";
+      input.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        document.getElementById("fileLabel").innerText = file ? file.name : "(no file loaded)";
+        if (file) loadJSON(file);
+      };
+      input.click();
+    });
+
+    // Drag and drop for load button
+    const loadBtn = document.getElementById('loadJsonBtn');
+    loadBtn.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.style.background = 'linear-gradient(to right, #0c7a5c, #0a6548)';
+    });
+
+    loadBtn.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.style.background = 'linear-gradient(to right, #10a37f, #0e8e6c)';
+    });
+
+    loadBtn.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.style.background = 'linear-gradient(to right, #10a37f, #0e8e6c)';
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/json') {
+        document.getElementById("fileLabel").innerText = file.name;
+        loadJSON(file);
+      }
+    });
+
+    // Reset layout button
+    document.getElementById("resetLayoutBtn").onclick = resetLayout;
+
+    // Close conversation button
+    document.getElementById('closeConversationBtn').addEventListener('click', closeConversation);
+
+    // Search input
+    document.getElementById("searchBar").addEventListener("input", () => {
+      const q = document.getElementById("searchBar").value.trim();
+      if (conversationsList.length > 0) {
+        performCrossConversationSearch(q);
+      } else {
+        performSearchInCurrentConversation(q);
+      }
+    });
+
+    // Copy button
+    document.getElementById("copyBtn").onclick = copyContent;
+
+    // Export button
+    document.getElementById("exportBtn").onclick = exportContent;
+
+    // PDF button
+    document.getElementById("pdfBtn").onclick = exportToPDF;
+
+    // Popout button
+    document.getElementById("popoutBtn").onclick = popoutContent;
+
+    // Tooltip copy button
+    tooltipCopyBtn.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      const content = tooltipContent.innerHTML;
+      try {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        const text = tempDiv.textContent || tempDiv.innerText || '';
+        await navigator.clipboard.writeText(text);
+        tooltipCopyBtn.textContent = 'Copied!';
+        setTimeout(() => tooltipCopyBtn.textContent = 'Copy', 2000);
+      } catch (err) {
+        console.error('Failed to copy tooltip content:', err);
+        tooltipCopyBtn.textContent = 'Failed';
+        setTimeout(() => tooltipCopyBtn.textContent = 'Copy', 2000);
+      }
+    });
+
+    // Tooltip events
+    tooltip.addEventListener("mouseenter", () => {
+      if (!showTooltips) return;
+      clearTooltipHideTimer();
+      tooltip.style.opacity = 1;
+      tooltip.style.pointerEvents = "auto";
+    });
+
+    tooltip.addEventListener("mouseleave", () => {
+      if (!showTooltips) return;
+      scheduleTooltipHide(tooltipLingerMs);
+    });
+
+    // Settings menu
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsMenu = document.getElementById("settingsMenu");
+    const settingsContainer = document.getElementById("settingsContainer");
+
+    settingsBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      settingsMenu.style.display = settingsMenu.style.display !== "block" ? "block" : "none";
+    });
+
+    window.addEventListener("click", (e) => {
+      if (!settingsContainer.contains(e.target)){
+        settingsMenu.style.display = "none";
+      }
+    });
+
+    // Branch index toggle
+    document.getElementById('branchIndexToggle').addEventListener('click', function() {
+      const container = document.getElementById('branchIndexContainer');
+      const isCollapsed = container.classList.contains('collapsed');
+      container.classList.toggle('collapsed');
+      this.textContent = isCollapsed ? '✕' : '📋';
+      document.getElementById('branchIndexSearch').style.display = isCollapsed ? 'block' : 'none';
+    });
+
+    // Branch search
+    document.getElementById('branchSearchInput')?.addEventListener('input', function(e) {
+      const filter = e.target.value.trim();
+      if (currentBranchNode) {
+        updateBranchIndexWithFilter(currentBranchNode, filter);
+      }
+    });
+
+    // Clear branch search
+    document.getElementById('clearBranchSearch')?.addEventListener('click', function() {
+      document.getElementById('branchSearchInput').value = '';
+      if (currentBranchNode) {
+        updateBranchIndexWithFilter(currentBranchNode, '');
+      }
+    });
+
+    // Panel dragging
+    initializePanelDragging();
+  }
+
+  function initializePanelDragging() {
+    // Left panel
+    const sidebar = document.getElementById("leftSidebar");
+    const leftHandle = document.getElementById("leftDragHandle");
+    const graph = document.getElementById("graph");
+    const searchBar = document.getElementById("searchBar");
+
+    let leftDown = false;
+    leftHandle.addEventListener("mousedown", () => leftDown = true);
+    window.addEventListener("mouseup", () => leftDown = false);
+
+    window.addEventListener("mousemove", (e) => {
+      if (!leftDown) return;
+      const newWidth = Math.max(180, Math.min(500, e.clientX));
+      sidebar.style.width = newWidth + "px";
+      const padding = 15;
+      const searchBarWidth = newWidth - (2 * padding) - 24;
+      searchBar.style.width = Math.max(100, searchBarWidth) + "px";
+      graph.style.left = newWidth + "px";
+      graph.style.width = "calc(100vw - " + newWidth + "px - " + document.getElementById("rightViewer").offsetWidth + "px)";
+      updateBranchIndexPosition();
+      updateMinimap();
+    });
+
+    // Right panel
+    const viewer = document.getElementById("rightViewer");
+    const rightHandle = document.getElementById("rightDragHandle");
+
+    let rightDown = false;
+    rightHandle.addEventListener("mousedown", () => rightDown = true);
+    window.addEventListener("mouseup", () => rightDown = false);
+
+    window.addEventListener("mousemove", (e) => {
+      if (!rightDown) return;
+      const screenW = window.innerWidth;
+      const newWidth = Math.max(280, Math.min(600, screenW - e.clientX));
+      viewer.style.width = newWidth + "px";
+      graph.style.width = "calc(100vw - " + newWidth + "px - " + sidebar.offsetWidth + "px)";
+      updateBranchIndexPosition();
+      updateMinimap();
+    });
+  }
+
+  function updateBranchIndexPosition() {
+    const branchIndex = document.getElementById('branchIndexContainer');
+    const rightViewer = document.getElementById('rightViewer');
+    const rightViewerRect = rightViewer.getBoundingClientRect();
+    branchIndex.style.right = (window.innerWidth - rightViewerRect.left + 15) + "px";
+  }
+
+  // TOOLTIP FUNCTIONS
+  function clearTooltipHideTimer() {
+    if (tooltipHideTimer) {
+      clearTimeout(tooltipHideTimer);
+      tooltipHideTimer = null;
+    }
+  }
+
+  function scheduleTooltipHide(ms = tooltipLingerMs) {
+    clearTooltipHideTimer();
+    tooltipHideTimer = setTimeout(() => {
+      tooltip.style.opacity = 0;
+      tooltip.style.pointerEvents = "none";
+    }, ms);
+  }
+
+  function showTooltip(event, d) {
+    if (!showTooltips) return;
+    clearTooltipHideTimer();
+
+    const text = d.data.text || "(empty)";
+    const role = d.data.role || "unknown";
+    const roleColor = role === "user" ? "#3B82F6" : role === "assistant" ? "#10A37F" : "#666";
+    const renderedContent = DOMPurify.sanitize(marked.parse(text));
+    
+    tooltipContent.innerHTML = `
+      <div style="color: ${roleColor}; font-weight: bold; margin-bottom: 5px;">${role.toUpperCase()}</div>
+      <div style="max-height: 250px; overflow: auto; font-size: 12px; line-height: 1.4;">
+        ${renderedContent}
+      </div>
+    `;
+
+    const tooltipWidth = 400;
+    const tooltipHeight = 400;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let left = event.pageX + 15;
+    let top = event.pageY + 15;
+    
+    if (left + tooltipWidth > viewportWidth) left = event.pageX - tooltipWidth - 15;
+    if (top + tooltipHeight > viewportHeight) top = event.pageY - tooltipHeight - 15;
+    
+    tooltip.style.left = left + "px";
+    tooltip.style.top = top + "px";
+    tooltip.style.pointerEvents = "auto";
+    tooltip.style.opacity = 1;
+  }
+
+  function hideTooltip() {
+    if (!showTooltips) return;
+    scheduleTooltipHide(tooltipLingerMs);
+  }
+
+  // FORMAT DETECTION AND CONVERSION
+  function detectFormat(json) {
+    // Check for Zhipu/GLM format first
+    if (json && typeof json === 'object' && json.chat && json.chat.history && json.chat.history.messages) {
+      return FORMATS.ZHIPU_GLM;
+    }
+
+    if (json && typeof json === 'object' && json.metadata && json.metadata.platform === "DeepSeek" && Array.isArray(json.messages)) {
+      // If messages have raw_html, it's the new conversation format
+      if (json.messages.length > 0 && json.messages[0].raw_html) {
+        return FORMATS.DEEPSEEK_CONVERSATION;
+      }
+      // Otherwise assume the older DeepSeek exporter format
+      return FORMATS.DEEPSEEK_EXPORTER;
+    }
+    
+    if (Array.isArray(json) && json.length > 0) {
+      const firstItem = json[0];
+      // Check for Zhipu/GLM in array
+      if (firstItem.chat && firstItem.chat.history && firstItem.chat.history.messages) {
+        return FORMATS.ZHIPU_GLM;
+      }
+      if (firstItem.metadata && firstItem.metadata.platform === "DeepSeek") {
+        return FORMATS.DEEPSEEK_EXPORTER;
+      }
+      if (firstItem.mapping && firstItem.mapping.root && firstItem.mapping.root.message === null) {
+        return FORMATS.DEEPSEEK_CHAT_EXPORT;
+      }
+      if (firstItem && firstItem.mapping) {
+        // Check if it's DeepSeek Chat Export format
+        const firstNode = firstItem.mapping[Object.keys(firstItem.mapping)[1]];
+        if (firstNode && firstNode.message && firstNode.message.fragments) {
+          return FORMATS.DEEPSEEK_CHAT_EXPORT;
+        }
+        return FORMATS.OPENAI_CONVERSATIONS_ARRAY;
+      }
+      if (firstItem && typeof firstItem === 'object' && (firstItem.contentChunks || firstItem.role)) {
+        if (json.length > 1 && json[1].role) {
+          return FORMATS.CLAUDE_ANTHROPIC;
+        }
+      }
+      if (firstItem.conversation && firstItem.responses) {
+        return FORMATS.XAI_GROK;
+      }
+      if (firstItem.chat_messages && firstItem.account) {
+        return FORMATS.MISTRAL_AI;
+      }
+    }
+    
+    if (json && typeof json === 'object' && json.mapping && typeof json.mapping === 'object') {
+      return FORMATS.OPENAI_MULTIVERSE;
+    }
+    
+    if (findConversationInJSON(json)) {
+      return FORMATS.OPENAI_MULTIVERSE;
+    }
+    
+    if (json && typeof json === 'object' && (json.contentChunks || json.role)) {
+      return FORMATS.CLAUDE_ANTHROPIC;
+    }
+    
+    if (json && typeof json === 'object' && json.conversation && json.responses) {
+      return FORMATS.XAI_GROK;
+    }
+    
+    if (json && typeof json === 'object' && json.chat_messages && json.account) {
+      return FORMATS.MISTRAL_AI;
+    }
+    
+    return FORMATS.UNKNOWN;
+  }
+
+  function formatToMultiverse(json, format) {
+    originalJSON = json;
+    
+    const isConversationArray = Array.isArray(json) && (
+      format === FORMATS.OPENAI_CONVERSATIONS_ARRAY ||
+      format === FORMATS.CLAUDE_ANTHROPIC ||
+      format === FORMATS.XAI_GROK ||
+      format === FORMATS.MISTRAL_AI ||
+      format === FORMATS.DEEPSEEK_CHAT_EXPORT ||
+      format === FORMATS.DEEPSEEK_EXPORTER ||
+      format === FORMATS.ZHIPU_GLM   // added GLM array handling
+    );
+    
+    if (isConversationArray) {
+      conversationsList = extractConversationsFromArray(json, format);
+      updateFormatBadge(format);
+      
+      if (conversationsList.length > 0) {
+        updateConversationsList();
+        const firstConv = sanitizeConversation(conversationsList[0].data);
+        convertedJSON = firstConv;
+        currentConversationIndex = 0;
+        return firstConv;
+      } else {
+        throw new Error(`No valid ${format.replace(/_/g, ' ')} conversations found`);
+      }
+    }
+    
+    switch(format) {
+      case FORMATS.CLAUDE_ANTHROPIC:
+        if (Array.isArray(json) && json.length > 0 && json[0].role) {
+          return convertClaudeToMultiverse(json);
+        }
+        return convertClaudeToMultiverse([json]);
+        
+      case FORMATS.XAI_GROK:
+        return convertGrokToMultiverse([json]);
+        
+      case FORMATS.MISTRAL_AI:
+        return convertMistralToMultiverse([json]);
+        
+      case FORMATS.DEEPSEEK_CHAT_EXPORT:
+        return convertDeepSeekChatExport([json]);
+        
+      case FORMATS.OPENAI_MULTIVERSE:
+        const found = findConversationInJSON(json);
+        if (!found) throw new Error("Could not find conversation in OpenAI format");
+        convertedJSON = sanitizeConversation(found);
+        return convertedJSON;
+        
+      case FORMATS.ZHIPU_GLM:
+        if (Array.isArray(json) && json.length > 0 && json[0].chat && json[0].chat.history) {
+          conversationsList = extractConversationsFromArray(json, format);
+          updateFormatBadge(format);
+          if (conversationsList.length > 0) {
+            updateConversationsList();
+            const firstConv = sanitizeConversation(conversationsList[0].data);
+            convertedJSON = firstConv;
+            currentConversationIndex = 0;
+            return firstConv;
+          }
+        }
+        return convertGLMToMultiverse(json);
+        
+      case FORMATS.DEEPSEEK_EXPORTER:
+        if (Array.isArray(json) && json.length > 0 && json[0].metadata && json[0].metadata.platform === "DeepSeek") {
+          conversationsList = extractConversationsFromArray(json, format);
+          updateFormatBadge(format);
+          if (conversationsList.length > 0) {
+            updateConversationsList();
+            const firstConv = sanitizeConversation(conversationsList[0].data);
+            convertedJSON = firstConv;
+            currentConversationIndex = 0;
+            return firstConv;
+          }
+        }
+        return convertDeepSeekToMultiverse(json);
+
+      case FORMATS.DEEPSEEK_CONVERSATION:
+        convertedJSON = convertDeepSeekConversationToMultiverse(json);
+        return convertedJSON;
+        
+      default:
+        throw new Error(`Unsupported format: ${format}`);
+    }
+  }
+
+  // EXTRACT TEXT FUNCTION
+  function extractText(msg) {
+    if (!msg) return "";
+    
+    if (msg._original_data) {
+      const data = msg._original_data;
+      
+      if (data._format === "claude") {
+        return extractTextFromClaude(data);
+      }
+      
+      if (data._format === "grok") {
+        return data.message || "";
+      }
+      
+      if (data._format === "mistral") {
+        if (data.content && Array.isArray(data.content)) {
+          return data.content
+            .filter(c => c.type === 'text' && c.text)
+            .map(c => c.text)
+            .join(' ');
+        }
+        return data.text || "";
+      }
+      
+      if (data._format === "deepseek") {
+        if (typeof data.content === "string") {
+          return data.content;
+        } else if (typeof data.content === "object") {
+          const parts = [];
+          if (data.content.search_hint) parts.push(`**${data.content.search_hint}**`);
+          if (data.content.thinking_chain) parts.push(`> ${data.content.thinking_chain}`);
+          if (data.content.final_answer) parts.push(data.content.final_answer);
+          return parts.join("\n\n");
+        }
+        return String(data.content || "");
+      }
+      
+      if (data._format === "deepseek_chat") {
+        if (data.fragments && Array.isArray(data.fragments)) {
+          return data.fragments
+            .filter(f => f.content)
+            .map(f => f.content)
+            .join('\n');
+        } else if (data.content && data.content.parts) {
+          return Array.isArray(data.content.parts) ? 
+                 data.content.parts.join("\n") : 
+                 String(data.content.parts || "");
+        }
+      }
+      
+      if (data._format === "glm") {
+        return data.content || "";
+      }
+    }
+    
+    if (msg.content && Array.isArray(msg.content.parts)) {
+      return msg.content.parts.join("\n");
+    }
+    
+    
+      if (msg && msg.metadata && msg.metadata.raw_html) {
+		const tempDiv = document.createElement('div');
+		tempDiv.innerHTML = msg.metadata.raw_html;
+		return tempDiv.textContent || tempDiv.innerText || "";
+	  }
+    
+    if (msg.content && msg.content.content_type && msg.content.content_type !== "text") {
+      return "[" + msg.content.content_type + "]";
+    }
+    if (typeof msg.content === 'string') {
+      return msg.content;
+    }
+    
+    if (msg._viewerText) return msg._viewerText;
+    
+    
+    return "";
+  }
+
+  // SIMPLIFIED MAIN FUNCTIONS (keeping essential functionality)
+  function loadJSON(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const rawJSON = JSON.parse(String(e.target.result || ""));
+        conversationsList = [];
+        currentConversationIndex = -1;
+        searchResultsAcrossAllConversations = [];
+        const processedJSON = autoConvertJSON(rawJSON);
+        lastLoadedJSON = processedJSON;
+        buildTree(processedJSON);
+      } catch (err) {
+        console.error(err);
+        const status = document.getElementById('conversionStatus');
+        status.innerHTML = "❌ Error: " + err.message;
+        status.style.color = "#f44336";
+        status.style.display = "block";
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function autoConvertJSON(json) {
+    const status = document.getElementById('conversionStatus');
+    try {
+      const format = detectFormat(json);
+      if (format === FORMATS.UNKNOWN) {
+        status.innerHTML = "❌ Unrecognized file format";
+        status.style.color = "#f44336";
+        updateFormatBadge(FORMATS.UNKNOWN);
+        throw new Error("Unrecognized file format");
+      }
+      updateFormatBadge(format);
+      status.innerHTML = `🔄 Converting ${format.replace(/_/g, ' ')}...`;
+      status.style.color = "#ff9800";
+      status.style.display = "block";
+      const converted = formatToMultiverse(json, format);
+      if (conversationsList.length > 1) {
+        status.innerHTML = `✅ Loaded ${conversationsList.length} conversations`;
+      } else {
+        status.innerHTML = "✅ File loaded successfully";
+      }
+      status.style.color = "#10a37f";
+      return converted;
+    } catch (err) {
+      status.innerHTML = "❌ Error: " + err.message;
+      status.style.color = "#f44336";
+      throw err;
+    }
+  }
+
+		  function updateFormatBadge(format) {
+		  const badge = document.getElementById('formatBadge');
+		  currentFormat = format;
+		  badge.classList.add('align-right');
+		  
+		  switch(format) {
+			case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
+			case FORMATS.OPENAI_MULTIVERSE:
+			  badge.textContent = format === FORMATS.OPENAI_CONVERSATIONS_ARRAY ? "OpenAI (Multiple)" : "OpenAI";
+			  badge.style.background = "linear-gradient(to right, #10a37f, #0e8e6c)";
+			  break;
+			case FORMATS.DEEPSEEK_EXPORTER:
+			case FORMATS.DEEPSEEK_CHAT_EXPORT:
+			case FORMATS.DEEPSEEK_CONVERSATION:      
+			  badge.textContent = format === FORMATS.DEEPSEEK_EXPORTER ? "DeepSeek" 
+								: format === FORMATS.DEEPSEEK_CHAT_EXPORT ? "DeepSeek Chat" 
+								: "DeepSeek";        
+			  badge.style.background = "linear-gradient(to right, #0ea5e9, #0d8fd8)";
+			  break;
+			case FORMATS.CLAUDE_ANTHROPIC:
+			  badge.textContent = "Claude";
+			  badge.style.background = "linear-gradient(to right, #d946ef, #c026d3)";
+			  break;
+			case FORMATS.XAI_GROK:
+			  badge.textContent = "Grok/xAI";
+			  badge.style.background = "linear-gradient(to right, #f97316, #ea580c)";
+			  break;
+			case FORMATS.MISTRAL_AI:
+			  badge.textContent = "Mistral AI";
+			  badge.style.background = "linear-gradient(to right, #8b5cf6, #7c3aed)";
+			  break;
+			case FORMATS.ZHIPU_GLM:
+			  badge.textContent = "GLM/Zhipu AI";
+			  badge.style.background = "linear-gradient(to right, #0099ff, #0066cc)";
+			  break;
+			default:
+			  badge.textContent = "Unknown Format";
+			  badge.style.background = "linear-gradient(to right, #f44336, #d32f2f)";
+		  }
+		  badge.style.color = "white";
+		  badge.style.display = "inline-block";
+		}
+		  
+  
+  
+  
+
+  // SIMPLIFIED TREE BUILDING AND RENDERING
+  function buildTree(json) {
+    const map = json.mapping;
+    const rootIds = Object.keys(map).filter(id => !map[id].parent || map[id].parent === null);
+    
+    if (!rootIds.length) {
+      if (map['root']) rootIds.push('root');
+      else if (Object.keys(map).length > 0) rootIds.push(Object.keys(map)[0]);
+    }
+    
+    if (!rootIds.length) return;
+
+    function convert(id, visited = new Set()) {
+      if (visited.has(id)) return null;
+      visited.add(id);
+      const node = map[id];
+      if (!node) return null;
+      
+      const convertedNode = {
+        id,
+        role: node.message?.author?.role || "unknown",
+        text: extractText(node.message),
+        rawMessage: node.message || null,
+        rawChunk: node || null,
+        children: []
+      };
+      
+      if (node.children) {
+        const children = Array.isArray(node.children) ? node.children : [node.children];
+        children.forEach(childId => {
+          if (childId && childId !== id) {
+            const child = convert(childId, visited);
+            if (child) convertedNode.children.push(child);
+          }
+        });
+      }
+      
+      return convertedNode;
+    }
+
+    let rootData = convert(rootIds[0]);
+
+    if (!rootData) {
+      const allNodesList = Object.values(map).filter(n => n.message);
+      rootData = {
+        id: "root",
+        role: "system",
+        text: "Conversation Root",
+        children: []
+      };
+      
+      let prevNode = rootData;
+      allNodesList.forEach((node, index) => {
+        const childNode = {
+          id: node.id || `node_${index}`,
+          role: node.message?.author?.role || "unknown",
+          text: extractText(node.message),
+          rawMessage: node.message,
+          rawChunk: node,
+          children: []
+        };
+        prevNode.children.push(childNode);
+        prevNode = childNode;
+      });
+    }
+
+    if (!showSystemNodes) {
+      rootData = collapseSystemNodesTree(rootData);
+    }
+
+    renderTree(rootData);
+  }
+
+  function renderTree(rootData) {
+    svg = d3.select("#graph");
+    svg.selectAll("*").remove();
+
+    zoom = d3.zoom()
+      .scaleExtent([0.001, 100])
+      .on("zoom", (e) => {
+        g.attr("transform", e.transform);
+        updateMinimap();
+      });
+
+    svg.call(zoom);
+
+    g = svg.append("g");
+
+    const layout = d3.tree().nodeSize([70, 200]);
+    rootHierarchy = d3.hierarchy(rootData);
+    layout(rootHierarchy);
+
+    allNodes = rootHierarchy.descendants();
+    allLinks = rootHierarchy.links();
+
+    originalPositions = new Map();
+    allNodes.forEach(n => {
+      originalPositions.set(n, { x: n.x, y: n.y });
+      n.data.originalX = n.x;
+      n.data.originalY = n.y;
+    });
+
+    drawLinks();
+    drawNodes();
+    fitView();
+    updateMinimap();
+    updateOtherNodesVisibility();
+  }
+
+  function drawLinks() {
+    g.selectAll(".link")
+      .data(allLinks)
+      .enter()
+      .append("path")
+      .attr("class", "link")
+      .attr("fill", "none")
+      .attr("stroke", currentTheme === 'light' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.6)")
+      .attr("stroke-width", 2)
+      .attr("d", d3.linkVertical().x(d => d.x).y(d => d.y));
+  }
+
+  function drawNodes() {
+    const nodes = g.selectAll(".node")
+      .data(allNodes)
+      .enter()
+      .append("g")
+      .attr("class", d => {
+        let className = "node";
+        if (isSystemData(d.data)) className += " system-node";
+        return className;
+      })
+      .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+      .style("z-index", 1);
+
+    nodes.append("circle")
+      .attr("class", "node-circle")
+      .attr("r", d => {
+        if (isSystemData(d.data)) return 10;
+        if (d.data.role === "user") return 22;
+        if (d.data.role === "assistant") return 20;
+        return 18;
+      })
+      .attr("fill", d => {
+        if (isSystemData(d.data)) return "none";
+        if (d.data.role === "user") return "url(#user-gradient)";
+        if (d.data.role === "assistant") return "url(#assistant-gradient)";
+        return "url(#other-gradient)";
+      })
+      .attr("stroke", d => {
+        if (isSystemData(d.data)) return "#666";
+        if (d.data.role === "user") return "#1e40af";
+        if (d.data.role === "assistant") return "#0c7a5c";
+        return "#6d28d9";
+      })
+      .attr("stroke-width", d => isSystemData(d.data) ? 2 : 3)
+      .style("z-index", 1)
+      .on("mouseenter", (e, d) => showTooltip(e, d))
+      .on("mouseleave", hideTooltip)
+      .on("mousedown", () => startDragHighlightFade())
+      .call(d3.drag().on("drag", (e, d) => dragBranch(e, d)).on("end", endDragHighlightFade))
+      .on("click", (e, d) => {
+		  e.stopPropagation();
+		  
+		  if (currentMode === 'branch') {
+			// If we're in branch mode, clicking a node should stay in branch mode
+			currentBranchNode = d;
+			activeNode = d;
+			centerOnNode(d);
+			
+			// Update highlights
+			clearHighlight();
+			const ancestors = d.ancestors();
+			const descendants = d.descendants();
+			
+			g.selectAll(".node").filter(nd => nd === d).style("z-index", 1000);
+			g.selectAll(".node")
+			  .classed("selected-node", nd => nd === d)
+			  .classed("ancestor-node", nd => ancestors.includes(nd) && nd !== d)
+			  .classed("descendant-node", nd => descendants.includes(nd) && nd !== d)
+			  .classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd) && nd !== d);
+			
+			// Refresh branch view
+			switchMode("branch", currentSubMode);
+		  } else {
+			// Normal behavior for node mode
+			centerOnNode(d);
+			handleNodeClick(d);
+			openViewerPanel(d);
+		  }
+		});
+
+    const defs = svg.append("defs");
+    
+    const userGradient = defs.append("linearGradient").attr("id", "user-gradient").attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "100%");
+    userGradient.append("stop").attr("offset", "0%").attr("stop-color", "#3B82F6");
+    userGradient.append("stop").attr("offset", "100%").attr("stop-color", "#1D4ED8");
+    
+    const assistantGradient = defs.append("linearGradient").attr("id", "assistant-gradient").attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "100%");
+    assistantGradient.append("stop").attr("offset", "0%").attr("stop-color", "#10B981");
+    assistantGradient.append("stop").attr("offset", "100%").attr("stop-color", "#0C7A5C");
+    
+    const otherGradient = defs.append("linearGradient").attr("id", "other-gradient").attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "100%");
+    otherGradient.append("stop").attr("offset", "0%").attr("stop-color", "#8B5CF6");
+    otherGradient.append("stop").attr("offset", "100%").attr("stop-color", "#6D28D9");
+
+    const textNodes = nodes.filter(d => !isSystemData(d.data) && d.data.text && String(d.data.text).trim() !== "");
+    
+    textNodes.append("text")
+      .attr("class", "node-text")
+      .attr("dy", "0.35em")
+      .style("font-size", "11px")
+      .style("cursor", "pointer")
+      .style("pointer-events", "all")
+      .text(d => {
+        const t = String(d.data.text).replace(/\n/g, " ");
+        return t.length > 30 ? t.slice(0, 30) + "..." : t;
+      })
+      .on("click", function(e, d) {
+        e.stopPropagation();
+        centerOnNode(d);
+        handleNodeClick(d);
+        openViewerPanel(d);
+      })
+      .on("mouseenter", function(e, d) {
+        showTooltip(e, d);
+      })
+      .on("mouseleave", hideTooltip);
+
+    calculateTextPositions();
+
+    nodes.append("text")
+      .attr("class", "match-check")
+      .attr("x", -30)
+      .attr("y", -30)
+      .style("display", "none")
+      .text("✓");
+  }
+
+  function calculateTextPositions() {
+    // Simplified text positioning
+    g.selectAll(".node-text").attr("x", 28).attr("y", 4).style("text-anchor", "start");
+  }
+
+  function dragBranch(event, d) {
+    isDragging = true;
+    const dx = event.dx;
+    const dy = event.dy;
+    d.x += dx;
+    d.y += dy;
+    d.data.x = d.x;
+    d.data.y = d.y;
+    
+    if (!event.sourceEvent.shiftKey) {
+      shiftDescendants(d, dx, dy);
+    }
+    
+    g.selectAll(".node").attr("transform", nd => `translate(${nd.x},${nd.y})`);
+    updateTextPositions();
+    updateMinimap();
+    
+    requestAnimationFrame(() => {
+      g.selectAll(".link").attr("d", d3.linkVertical().x(l => l.x).y(l => l.y));
+    });
+  }
+
+  function shiftDescendants(node, dx, dy) {
+    if (!node.children) return;
+    node.children.forEach(c => {
+      c.x += dx;
+      c.y += dy;
+      c.data.x = c.x;
+      c.data.y = c.y;
+      shiftDescendants(c, dx, dy);
+    });
+  }
+
+  function updateTextPositions() {
+    g.selectAll(".node-text").remove();
+    const textNodes = g.selectAll(".node").filter(d => !isSystemData(d.data) && d.data.text && String(d.data.text).trim() !== "");
+    
+    textNodes.append("text")
+      .attr("class", "node-text")
+      .attr("dy", "0.35em")
+      .style("font-size", "11px")
+      .style("cursor", "pointer")
+      .style("pointer-events", "all")
+      .text(d => {
+        const t = String(d.data.text).replace(/\n/g, " ");
+        return t.length > 30 ? t.slice(0, 30) + "..." : t;
+      })
+      .on("click", function(e, d) {
+        e.stopPropagation();
+        centerOnNode(d);
+        handleNodeClick(d);
+        openViewerPanel(d);
+      })
+      .on("mouseenter", function(e, d) {
+        showTooltip(e, d);
+      })
+      .on("mouseleave", hideTooltip);
+    
+    calculateTextPositions();
+  }
+
+  function handleNodeClick(d) {
+    if (isDragging) {
+      isDragging = false;
+      return;
+    }
+
+    activeNode = d;
+    clearHighlight();
+    clearSearchMatches();
+
+    const searchQuery = document.getElementById("searchBar").value.trim();
+    if (searchQuery) {
+      if (conversationsList.length > 0) {
+        const currentConv = conversationsList[currentConversationIndex];
+        if (currentConv && currentConv.searchMatches > 0) {
+          performSearchInCurrentConversation(searchQuery);
+        }
+      } else {
+        performSearchInCurrentConversation(searchQuery);
+      }
+    }
+
+    const ancestors = d.ancestors();
+    const descendants = d.descendants();
+
+    g.selectAll(".node").filter(nd => nd === d).style("z-index", 1000);
+    g.selectAll(".node")
+      .classed("selected-node", nd => nd === d)
+      .classed("ancestor-node", nd => ancestors.includes(nd) && nd !== d)
+      .classed("descendant-node", nd => descendants.includes(nd) && nd !== d)
+      .classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd) && nd !== d);
+
+    openViewerPanel(d);
+  }
+
+  function clearHighlight() {
+    g.selectAll(".node").style("z-index", 1);
+    g.selectAll(".node").classed("selected-node ancestor-node descendant-node dim-node", false);
+  }
+
+  function startDragHighlightFade() {
+    if (!highlightFadeApplied) {
+      g.classed("highlight-faded", true);
+      highlightFadeApplied = true;
+    }
+  }
+
+  function endDragHighlightFade() {
+    g.classed("highlight-faded", false);
+    highlightFadeApplied = false;
+  }
+
+  function centerOnNode(n) {
+    const t = d3.zoomIdentity
+      .translate(window.innerWidth / 2 - n.x, window.innerHeight / 4 - n.y)
+      .scale(1);
+    svg.transition().duration(350).call(zoom.transform, t);
+  }
+
+  function updateOtherNodesVisibility() {
+    if (!g) return;
+    g.selectAll(".node").each(function(d) {
+      const node = d3.select(this);
+      const data = d.data;
+      const isOtherNode = !isSystemData(data) && data.role !== "user" && data.role !== "assistant" && data.role !== "system";
+      if (isOtherNode) {
+        node.style("display", showOtherNodes ? null : "none");
+      }
+    });
+  }
+
+  function isSystemData(data) {
+    if (!data) return true;
+    const role = data.role || "unknown";
+    const t = String(data.text || "").trim();
+    if (role === "system" && t === "") return true;
+    if (t === "") return true;
+    if (t.toLowerCase().includes("model_editable_context")) return true;
+    if (/^\[[^\]]+\]$/.test(t)) return true;
+    return false;
+  }
+
+  function collapseSystemNodesTree(node) {
+    if (!node.children || node.children.length === 0) return node;
+    node.children = node.children
+      .map(child => collapseSystemNodesTree(child))
+      .flatMap(child => isSystemData(child) ? (child.children && child.children.length ? child.children : []) : [child]);
+    return node;
+  }
+
+  function findConversationInJSON(json) {
+    if (json && json.mapping) return json;
+    if (Array.isArray(json)) {
+      for (const entry of json) {
+        if (entry && typeof entry === "object" && entry.mapping) return entry;
+      }
+    }
+    if (json && typeof json === 'object') {
+      const possiblePaths = [json.conversation, json.data, json.chat, json.messages];
+      for (const path of possiblePaths) {
+        if (path && path.mapping) return path;
+        if (Array.isArray(path)) {
+          for (const item of path) {
+            if (item && item.mapping) return item;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function sanitizeConversation(convo) {
+    if (!convo || !convo.mapping) return convo;
+    const map = convo.mapping;
+    for (const id in map) {
+      const node = map[id];
+      const msg = node.message;
+      let text = "(empty)";
+      if (msg) {
+        if (msg.content && Array.isArray(msg.content.parts)) {
+          const parts = msg.content.parts.filter(p => p && String(p).trim() !== "");
+          text = parts.length ? parts.join("\n") : "(empty)";
+        } else if (msg.content && msg.content.content_type) {
+          text = "[" + msg.content.content_type + "]";
+        } else if (typeof msg.content === 'string') {
+          text = msg.content;
+        }
+      } else {
+        text = "(no message object)";
+      }
+      node._viewerText = text;
+    }
+    return convo;
+  }
+
+  // VIEWER PANEL FUNCTIONS
+  function openViewerPanel(n, overrideText) {
+    currentNodeData = n && n.data ? n.data : {};
+    currentBranchNode = n;
+    
+    let msg = "";
+    let originalData = null;
+    
+    if (overrideText !== undefined && overrideText !== null) {
+      msg = String(overrideText);
+    } else if (currentNodeData._original_data) {
+      originalData = currentNodeData._original_data;
+      
+      if (currentNodeData._format === "claude") {
+        msg = extractTextFromClaude(originalData);
+      } else if (currentNodeData._format === "grok") {
+        msg = originalData.message || "";
+      } else if (currentNodeData._format === "mistral") {
+        if (originalData.content && Array.isArray(originalData.content)) {
+          msg = originalData.content
+            .filter(c => c.type === 'text' && c.text)
+            .map(c => c.text)
+            .join(' ');
+        } else {
+          msg = originalData.text || "";
+        }
+      } else if (currentNodeData._format === "deepseek") {
+        if (typeof originalData.content === "string") {
+          msg = originalData.content;
+        } else if (typeof originalData.content === "object") {
+          const parts = [];
+          if (originalData.content.search_hint) parts.push(`**${originalData.content.search_hint}**`);
+          if (originalData.content.thinking_chain) parts.push(`### Thoughts\n\n> ${originalData.content.thinking_chain}`);
+          if (originalData.content.final_answer) parts.push(`### Answer\n\n${originalData.content.final_answer}`);
+          msg = parts.join("\n\n");
+        } else {
+          msg = String(originalData.content || "");
+        }
+      } else if (currentNodeData._format === "deepseek_chat") {
+        if (originalData.fragments && Array.isArray(originalData.fragments)) {
+          msg = originalData.fragments
+            .filter(f => f.content)
+            .map(f => f.content)
+            .join('\n');
+        } else {
+          msg = "";
+        }
+      } else if (currentNodeData._format === "glm") {
+        msg = originalData.content || "";
+      }
+    } else {
+      msg = extractText(currentNodeData.rawMessage);
+    }
+
+    const rawMsgObj = currentNodeData.rawMessage || {};
+    const rawChunkObj = currentNodeData.rawChunk || {};
+    const originalDataObj = currentNodeData._original_data || {};
+
+    const allOriginalData = {
+      id: currentNodeData.id,
+      role: currentNodeData.role,
+      format: currentNodeData._format || "openai",
+      rawMessage: rawMsgObj,
+      rawChunk: rawChunkObj,
+      originalData: originalDataObj,
+      timestamp: rawMsgObj.create_time ? new Date(rawMsgObj.create_time * 1000).toISOString() : null,
+      metadata: rawMsgObj.metadata || {},
+      ...(currentNodeData._format === "claude" ? { claudeData: originalDataObj } : {}),
+      ...(currentNodeData._format === "grok" ? { grokData: originalDataObj } : {}),
+      ...(currentNodeData._format === "mistral" ? { mistralData: originalDataObj } : {}),
+      ...(currentNodeData._format === "deepseek" ? { deepseekData: originalDataObj } : {}),
+      ...(currentNodeData._format === "glm" ? { glmData: originalDataObj } : {})
+    };
+
+    window.currentNodeMsg = msg;
+    window.currentNodeRawText = JSON.stringify(allOriginalData, null, 2);
+    window.currentNodeOriginalJson = allOriginalData;
+
+    switchMode("node", "rendered");
+    document.getElementById("copyBtn").style.display = "inline-block";
+    document.getElementById("exportBtn").style.display = "inline-block";
+    document.getElementById("popoutBtn").style.display = "inline-block";
+    document.getElementById("pdfBtn").style.display = "inline-block";
+  }
+
+  function switchMode(mode, subMode = null) {
+    currentMode = mode;
+    if (subMode) currentSubMode = subMode;
+
+    const content = document.getElementById("viewerContent");
+    
+    document.querySelectorAll(".viewerTab").forEach(tab => {
+      tab.classList.toggle("active", tab.dataset.mode === mode);
+    });
+    
+    document.querySelectorAll(".viewerSubTab").forEach(tab => {
+      tab.classList.toggle("active", tab.dataset.submode === currentSubMode);
+    });
+
+    document.querySelectorAll(".viewerTab").forEach(tab => {
+      tab.onclick = () => switchMode(tab.dataset.mode);
+    });
+    
+    document.querySelectorAll(".viewerSubTab").forEach(tab => {
+      tab.onclick = () => switchMode(currentMode, tab.dataset.submode);
+    });
+
+    const branchIndexContainer = document.getElementById('branchIndexContainer');
+    if (mode === 'branch' && currentBranchNode) {
+      branchIndexContainer.style.display = 'block';
+      if (branchIndexContainer.classList.contains('collapsed')) {
+        branchIndexContainer.classList.remove('collapsed');
+        document.getElementById('branchIndexToggle').textContent = '✕';
+        document.getElementById('branchIndexSearch').style.display = 'block';
+      }
+    } else {
+      branchIndexContainer.style.display = 'none';
+    }
+
+    let displayContent = "";
+    
+    if (mode === "node") {
+      switch(currentSubMode) {
+        case "markdown":
+          displayContent = window.currentNodeMsg || "";
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+        case "rendered":
+          const html = DOMPurify.sanitize(marked.parse(window.currentNodeMsg || ""));
+          displayContent = addCopyButtonsToCodeBlocks(html);
+          currentRenderedContent = displayContent;
+          
+          if (showMetadata) {
+            const role = currentNodeData.role || "unknown";
+            const roleClass = role === "user" ? "user" : 
+                             role === "assistant" ? "assistant" : 
+                             role === "system" ? "system" : "other";
+            const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+            
+            let timestamp = "";
+            if (currentNodeData.rawMessage && currentNodeData.rawMessage.create_time) {
+              const date = new Date(currentNodeData.rawMessage.create_time * 1000);
+              timestamp = date.toLocaleString();
+            }
+            
+            const nodeInfo = `
+              <div class="selected-node-info">
+                <span class="node-type ${roleClass}">${roleDisplay}</span>
+                ${currentNodeData.id ? `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 5px;">ID: ${currentNodeData.id}</div>` : ''}
+                ${timestamp ? `<div class="timestamp">${timestamp}</div>` : ''}
+              </div>
+            `;
+            
+            content.innerHTML = nodeInfo + displayContent;
+          } else {
+            content.innerHTML = displayContent;
+          }
+          break;
+        case "html":
+          const html2 = DOMPurify.sanitize(marked.parse(window.currentNodeMsg || ""));
+          displayContent = html2;
+          currentRenderedContent = html2;
+          content.innerText = html2;
+          break;
+        case "original":
+          displayContent = JSON.stringify(window.currentNodeOriginalJson || {}, null, 2);
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+      }
+    } else if (mode === "branch") {
+      if (!currentBranchNode) {
+        content.innerHTML = "<div style='color: var(--text-secondary); text-align: center; padding: 40px; font-style: italic;'>Select a node first to view branch conversation.</div>";
+        return;
+      }
+      
+      switch(currentSubMode) {
+        case "markdown":
+          // Get filtered ancestors based on settings
+          const allAncestors = currentBranchNode.ancestors();
+          const filteredAncestors = filterNodesBySettings(allAncestors);
+          const reversedAncestors = filteredAncestors.slice().reverse();
+          let markdownContent = "";
+          reversedAncestors.forEach((n, index) => {
+            const data = n.data;
+            const msg = extractText(data.rawMessage);
+            if (!msg || msg.trim() === "") return;
+            const role = data.role || "unknown";
+            const roleIcon = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : '⚙️';
+            if (showMetadata) {
+              markdownContent += `## ${index + 1}. ${roleIcon} ${role} ${data.id || ''}\n\n`;
+              if (data.rawMessage && data.rawMessage.create_time) {
+                const date = new Date(data.rawMessage.create_time * 1000);
+                markdownContent += `*Date: ${date.toLocaleString()}*\n\n`;
+              }
+            }
+            markdownContent += `${msg}\n\n`;
+            if (showMetadata) markdownContent += `---\n\n`;
+          });
+          displayContent = markdownContent;
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+        case "rendered":
+          const branchHtml = getBranchConversation(currentBranchNode);
+          displayContent = branchHtml;
+          currentRenderedContent = branchHtml;
+          content.innerHTML = branchHtml;
+          break;
+        case "html":
+          const branchHtml2 = getBranchConversation(currentBranchNode);
+          displayContent = branchHtml2;
+          currentRenderedContent = branchHtml2;
+          content.innerText = branchHtml2;
+          break;
+        case "original":
+          const allAncestors2 = currentBranchNode.ancestors();
+          const filteredAncestors2 = filterNodesBySettings(allAncestors2);
+          const reversedAncestors2 = filteredAncestors2.slice().reverse();
+          const branchData = [];
+          reversedAncestors2.forEach(n => {
+            branchData.push({
+              id: n.data.id,
+              role: n.data.role,
+              text: extractText(n.data.rawMessage),
+              rawData: n.data.rawMessage || n.data._original_data,
+              format: n.data._format
+            });
+          });
+          displayContent = JSON.stringify(branchData, null, 2);
+          currentRenderedContent = displayContent;
+          content.innerText = displayContent;
+          break;
+      }
+    }
+  }
+
+  function getBranchConversation(node) {
+    if (!node) return "";
+    
+    // Filter ancestors based on settings
+    const allAncestors = node.ancestors();
+    const filteredAncestors = filterNodesBySettings(allAncestors);
+    const reversedAncestors = filteredAncestors.slice().reverse();
+    
+    let html = `<div class="branch-conversation" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto;">`;
+    
+    reversedAncestors.forEach((n, index) => {
+      const data = n.data;
+      const msg = extractText(data.rawMessage);
+      if (!msg || msg.trim() === "") return;
+      
+      const role = data.role || "unknown";
+      const isUser = role === "user";
+      const isAssistant = role === "assistant";
+      const isSystem = role === "system";
+      const isOther = !isUser && !isAssistant && !isSystem;
+      const isCurrent = n === node;
+      
+      let timestamp = "";
+      if (data.rawMessage && data.rawMessage.create_time) {
+        const date = new Date(data.rawMessage.create_time * 1000);
+        timestamp = date.toLocaleString();
+      }
+      
+      const messageId = `branch-msg-${index}`;
+      let messageClass = "";
+      if (isUser) messageClass = "user-message";
+      else if (isAssistant) messageClass = "assistant-message";
+      else if (isSystem) messageClass = "system-message";
+      else if (isOther) messageClass = "other-message";
+      else messageClass = "";
+      
+      let messageHeader = '';
+      let messageFooter = '';
+      
+      if (showMetadata) {
+        let roleDisplay = '';
+        let roleColor = '';
+        if (isUser) {
+          roleDisplay = '👤 User';
+          roleColor = '#1976d2';
+        } else if (isAssistant) {
+          roleDisplay = '🤖 Assistant';
+          roleColor = '#388e3c';
+        } else if (isSystem) {
+          roleDisplay = '⚙️ System';
+          roleColor = '#666';
+        } else {
+          roleDisplay = '❓ Other';
+          roleColor = '#8B5CF6';
+        }
+        
+        messageHeader = `
+          <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="message-author" style="font-weight: 600; color: ${roleColor};">
+              ${roleDisplay}
+            </div>
+            ${timestamp ? `<div class="message-time" style="font-size: 0.8em; color: var(--text-secondary); background: var(--card-bg); padding: 3px 8px; border-radius: 4px;">${timestamp}</div>` : ''}
+          </div>
+        `;
+        
+        if (isCurrent) {
+          messageFooter = `
+            <div style="margin-top: 12px; padding: 8px 12px; background: linear-gradient(to right, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05)); border-left: 4px solid #ff9800; font-size: 0.9em; border-radius: 4px;">
+              <strong>↳ Current Node</strong> (selected)
+            </div>
+          `;
+        }
+      }
+      
+      html += `
+        <div id="${messageId}" class="message ${messageClass}" 
+             style="margin: 20px 0; padding: 18px; border-radius: 12px; 
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.08); position: relative;">
+          ${showMetadata ? '<button class="message-copy-btn" data-message-id="${messageId}">Copy</button>' : ''}
+          ${messageHeader}
+          <div class="message-content" style="line-height: 1.6; color: var(--text-primary);">
+            ${addCopyButtonsToCodeBlocks(DOMPurify.sanitize(marked.parse(msg)))}
+          </div>
+          ${messageFooter}
+        </div>
+      `;
+    });
+    
+    if (showMetadata) {
+      const totalAncestors = node.ancestors();
+      const displayedMessages = filteredAncestors.length;
+      const filteredOut = totalAncestors.length - displayedMessages;
+      const userMessages = totalAncestors.filter(n => n.data.role === 'user').length;
+      const assistantMessages = totalAncestors.filter(n => n.data.role === 'assistant').length;
+      const systemMessages = totalAncestors.filter(n => n.data.role === 'system').length;
+      const otherMessages = totalAncestors.filter(n => {
+        const data = n.data;
+        return !isSystemData(data) && data.role !== "user" && data.role !== "assistant" && data.role !== "system";
+      }).length;
+      
+      let filterMessage = '';
+      if (filteredOut > 0) {
+        let filterDetails = [];
+        if (!showSystemNodes) filterDetails.push('system nodes');
+        if (!showOtherNodes) filterDetails.push('other nodes');
+        filterMessage = ` (${filteredOut} ${filterDetails.join(' and ')} hidden by settings)`;
+      }
+      
+      html += `
+        <div class="conversation-summary" style="margin-top: 30px; padding: 20px; background: var(--card-bg); border-radius: 12px; font-size: 0.9em; border: 1px solid var(--border-color);">
+          <strong style="color: var(--text-primary); display: block; margin-bottom: 10px;">Conversation Summary:</strong>
+          <ul style="margin: 10px 0; padding-left: 20px; color: var(--text-secondary);">
+            <li>Total messages in branch: <strong>${totalAncestors.length}</strong></li>
+            <li>Currently displayed: <strong>${displayedMessages}</strong>${filterMessage}</li>
+            <li>User messages: <strong style="color: #1976d2;">${userMessages}</strong></li>
+            <li>Assistant messages: <strong style="color: #388e3c;">${assistantMessages}</strong></li>
+            <li>System messages: <strong style="color: #666;">${systemMessages}</strong></li>
+            <li>Other messages: <strong style="color: #8B5CF6;">${otherMessages}</strong></li>
+          </ul>
+        </div>
+      `;
+    }
+    
+    html += `</div>`;
+    
+    updateBranchIndex(filteredAncestors, node);
+    
+    setTimeout(() => {
+      document.querySelectorAll('.message-copy-btn').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+          e.stopPropagation();
+          const messageId = this.getAttribute('data-message-id');
+          const messageElement = document.getElementById(messageId);
+          const contentElement = messageElement.querySelector('.message-content');
+          const tempDiv = contentElement.cloneNode(true);
+          const copyButtons = tempDiv.querySelectorAll('.code-copy-btn, .message-copy-btn');
+          copyButtons.forEach(btn => btn.remove());
+          const text = tempDiv.textContent || tempDiv.innerText || '';
+          
+          try {
+            await navigator.clipboard.writeText(text);
+            this.textContent = 'Copied!';
+            this.classList.add('copied');
+            setTimeout(() => {
+              this.textContent = 'Copy';
+              this.classList.remove('copied');
+            }, 2000);
+          } catch (err) {
+            console.error('Failed to copy message:', err);
+            this.textContent = 'Failed';
+            setTimeout(() => this.textContent = 'Copy', 2000);
+          }
+        });
+      });
+    }, 100);
+    
+    return html;
+  }
+
+  function addCopyButtonsToCodeBlocks(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const preElements = tempDiv.querySelectorAll('pre');
+    
+    preElements.forEach(pre => {
+      const codeElement = pre.querySelector('code');
+      if (codeElement) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        const copyButton = document.createElement('button');
+        copyButton.className = 'code-copy-btn';
+        copyButton.textContent = 'Copy';
+        
+        copyButton.onclick = async function(e) {
+          e.stopPropagation();
+          const codeText = codeElement.textContent;
+          try {
+            await navigator.clipboard.writeText(codeText);
+            copyButton.textContent = 'Copied!';
+            copyButton.classList.add('copied');
+            setTimeout(() => {
+              copyButton.textContent = 'Copy';
+              copyButton.classList.remove('copied');
+            }, 2000);
+          } catch (err) {
+            console.error('Failed to copy code:', err);
+            copyButton.textContent = 'Failed';
+            setTimeout(() => copyButton.textContent = 'Copy', 2000);
+          }
+        };
+        
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+        wrapper.appendChild(copyButton);
+      }
+    });
+    
+    return tempDiv.innerHTML;
+  }
+
+  // ACTION BUTTON FUNCTIONS
+  async function copyContent() {
+    try {
+      await navigator.clipboard.writeText(currentRenderedContent);
+      const btn = document.getElementById("copyBtn");
+      btn.innerText = "Copied!";
+      setTimeout(() => btn.innerText = "Copy", 1200);
+    } catch {
+      alert("Copy failed");
+    }
+  }
+
+  function exportContent() {
+    let filename = "";
+    let content = "";
+    let type = "";
+
+    if (currentMode === "node") {
+      if (currentSubMode === "markdown") {
+        filename = "node_message.md";
+        content = currentRenderedContent;
+        type = "text/markdown";
+      } else if (currentSubMode === "rendered") {
+        filename = "node_message.html";
+        content = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<title>Node Message Export</title>\n<style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f8f9fa; } .message { margin: 20px 0; padding: 15px; border-radius: 10px; } .user-message { background: #e3f2fd; border-left: 4px solid #1976d2; } .assistant-message { background: #f1f8e9; border-left: 4px solid #388e3c; } pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; }</style></head>\n<body>\n${currentRenderedContent}\n</body>\n</html>`;
+        type = "text/html";
+      } else if (currentSubMode === "html") {
+        filename = "node_message.html";
+        content = currentRenderedContent;
+        type = "text/html";
+      } else if (currentSubMode === "original") {
+        filename = "node_original.json";
+        content = currentRenderedContent;
+        type = "application/json";
+      }
+    } else if (currentMode === "branch") {
+      if (currentSubMode === "markdown") {
+        filename = "branch_conversation.md";
+        content = currentRenderedContent;
+        type = "text/markdown";
+      } else if (currentSubMode === "rendered") {
+        filename = "branch_conversation.html";
+        content = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<title>Branch Conversation Export</title>\n<style>body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #f8f9fa; } .message { margin: 20px 0; padding: 15px; border-radius: 10px; } .user-message { background: #e3f2fd; border-left: 4px solid #1976d2; } .assistant-message { background: #f1f8e9; border-left: 4px solid #388e3c; } pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; }</style></head>\n<body>\n${currentRenderedContent}\n</body>\n</html>`;
+        type = "text/html";
+      } else if (currentSubMode === "html") {
+        filename = "branch_conversation.html";
+        content = currentRenderedContent;
+        type = "text/html";
+      } else if (currentSubMode === "original") {
+        filename = "branch_original.json";
+        content = currentRenderedContent;
+        type = "application/json";
+      }
+    }
+
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportToPDF() {
+    try {
+      const content = document.getElementById("viewerContent");
+      const buttons = document.getElementById("pdfBtn");
+      buttons.innerText = "Generating PDF...";
+      
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff"
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 190;
+      const pageHeight = 280;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10;
+      
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      let filename = "";
+      if (currentMode === "node") {
+        filename = `node_${currentNodeData.id || "message"}_${currentSubMode}.pdf`;
+      } else {
+        filename = `branch_${currentBranchNode?.data?.id || "conversation"}_${currentSubMode}.pdf`;
+      }
+      
+      pdf.save(filename);
+      buttons.innerText = "PDF";
+      
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert("Failed to generate PDF. Please try again.");
+      document.getElementById("pdfBtn").innerText = "PDF";
+    }
+  }
+
+  function popoutContent() {
+    const popup = window.open("", "_blank", "width=900,height=1000");
+    if (!popup) return;
+
+    let bodyContent = "";
+    let title = "";
+
+    if (currentMode === "node") {
+      title = "Node Message";
+      if (currentSubMode === "rendered" || currentSubMode === "branch") {
+        bodyContent = currentRenderedContent;
+      } else {
+        bodyContent = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">' + escapeHtml(currentRenderedContent) + "</pre>";
+      }
+    } else {
+      title = "Branch Conversation";
+      if (currentSubMode === "rendered") {
+        bodyContent = currentRenderedContent;
+      } else {
+        bodyContent = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">' + escapeHtml(currentRenderedContent) + "</pre>";
+      }
+    }
+
+    popup.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${title} - Pop-Out</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+  .message { margin: 20px 0; padding: 15px; border-radius: 10px; position: relative; }
+  .user-message { background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)); border-left: 4px solid #1976d2; }
+  .assistant-message { background: linear-gradient(to right, rgba(16, 163, 127, 0.1), rgba(16, 163, 127, 0.05)); border-left: 4px solid #388e3c; }
+  pre { background: linear-gradient(to right, #2c3e50, #34495e); color: #ecf0f1; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  .code-copy-btn, .message-copy-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #2c3e50; cursor: pointer; font-weight: 600; }
+  .code-copy-btn:hover, .message-copy-btn:hover { background: rgba(76, 175, 80, 0.9); color: white; }
+  .code-block-wrapper { position: relative; }
+  .message-copy-btn { opacity: 0; transition: opacity 0.3s ease; }
+  .message:hover .message-copy-btn { opacity: 1; }
+</style>
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`);
+
+    popup.document.close();
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // RESET LAYOUT
+  function resetLayout() {
+  const originalPositionsMap = new Map();
+  allNodes.forEach(n => {
+    originalPositionsMap.set(n, { x: n.data.originalX, y: n.data.originalY });
+  });
+
+  const duration = 750;
+  const startTime = Date.now();
+  
+  function animateReset() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    
+    allNodes.forEach(n => {
+      const targetPos = originalPositionsMap.get(n);
+      if (targetPos) {
+        const startX = n.x;
+        const startY = n.y;
+        n.x = startX + (targetPos.x - startX) * easeProgress;
+        n.y = startY + (targetPos.y - startY) * easeProgress;
+        n.data.x = n.x;
+        n.data.y = n.y;
+      }
+    });
+
+    updatePositions();
+    updateTextPositions();
+    
+    if (progress < 1) {
+      requestAnimationFrame(animateReset);
+    } else {
+      allNodes.forEach(n => {
+        const targetPos = originalPositionsMap.get(n);
+        if (targetPos) {
+          n.x = targetPos.x;
+          n.y = targetPos.y;
+          n.data.x = n.x;
+          n.data.y = n.y;
+        }
+      });
+      updatePositions();
+      updateTextPositions();
+      updateMinimap();
+      clearHighlight();
+      clearSearchMatches();
+      
+      // RESET VIEW TO CENTER
+      fitView(); // Call this immediately
+    }
+  }
+  
+  requestAnimationFrame(animateReset);
+}
+
+  function updatePositions() {
+    g.selectAll(".node").attr("transform", d => "translate(" + d.x + "," + d.y + ")");
+    g.selectAll(".link").attr("d", d3.linkVertical().x(d => d.x).y(d => d.y));
+  }
+
+  function fitView() {
+    if (!g || !g.node()) return;
+    const bounds = g.node().getBBox();
+    const svgEl = document.getElementById("graph");
+    const targetTransform = d3.zoomIdentity
+      .translate(svgEl.clientWidth / 2 - (bounds.x + bounds.width / 2), 80)
+      .scale(0.85);
+    svg.transition().duration(750).ease(d3.easeCubicOut).call(zoom.transform, targetTransform);
+  }
+
+  // MINIMAP
+  function updateMinimap() {
+    const canvas = document.getElementById("minimap");
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, canvas.clientWidth);
+    const h = Math.max(1, canvas.clientHeight);
+
+    if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+    }
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    if (!g || !g.node()) return;
+    const bounds = g.node().getBBox();
+    if (!bounds.width || !bounds.height) return;
+    const scale = Math.min(w / bounds.width, h / bounds.height);
+
+    ctx.fillStyle = currentTheme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.1)';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = currentTheme === 'light' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    
+    allLinks.forEach(link => {
+      const sourceX = (link.source.x - bounds.x) * scale;
+      const sourceY = (link.source.y - bounds.y) * scale;
+      const targetX = (link.target.x - bounds.x) * scale;
+      const targetY = (link.target.y - bounds.y) * scale;
+      ctx.beginPath();
+      ctx.moveTo(sourceX, sourceY);
+      ctx.lineTo(targetX, targetY);
+      ctx.stroke();
+    });
+
+    allNodes.forEach(n => {
+      const x = (n.x - bounds.x) * scale;
+      const y = (n.y - bounds.y) * scale;
+      const radius = 3;
+
+      if (isSystemData(n.data)) {
+        ctx.fillStyle = currentTheme === 'light' ? 'rgba(102, 102, 102, 0.5)' : 'rgba(102, 102, 102, 0.7)';
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (n.data.role === "user") {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#3B82F6');
+        gradient.addColorStop(1, '#1D4ED8');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (n.data.role === "assistant") {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#10B981');
+        gradient.addColorStop(1, '#0C7A5C');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gradient.addColorStop(0, '#8B5CF6');
+        gradient.addColorStop(1, '#6D28D9');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+
+    const transform = d3.zoomTransform(svg.node());
+    const viewportX = (-transform.x / transform.k - bounds.x) * scale;
+    const viewportY = (-transform.y / transform.k - bounds.y) * scale;
+    const viewportWidth = (w / transform.k) * scale;
+    const viewportHeight = (h / transform.k) * scale;
+    
+    ctx.strokeStyle = 'rgba(255, 193, 7, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(viewportX, viewportY, viewportWidth, viewportHeight);
+    ctx.setLineDash([]);
+  }
+
+  // BRANCH INDEX FUNCTIONS
+  function updateBranchIndex(ancestors, currentNode) {
+    updateBranchIndexWithFilter(ancestors, currentNode, '');
+  }
+
+  function updateBranchIndexWithFilter(ancestors, currentNode, filter) {
+    const branchIndex = document.getElementById('branchIndex');
+    branchIndex.innerHTML = '';
+    
+    let displayedCount = 0;
+    let filteredByTextCount = 0;
+    ancestors.forEach((n, index) => {
+      const data = n.data;
+      const msg = extractText(data.rawMessage);
+      if (!msg || msg.trim() === "") return;
+      
+      const role = data.role || "unknown";
+      const isCurrent = n === currentNode;
+      
+      // Apply text filter if provided
+      if (filter && !msg.toLowerCase().includes(filter.toLowerCase()) && !role.toLowerCase().includes(filter.toLowerCase())) {
+        filteredByTextCount++;
+        return;
+      }
+      
+      displayedCount++;
+      const roleIcon = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : '⚙️';
+      
+      const div = document.createElement('div');
+      div.className = 'branch-index-item' + (isCurrent ? ' current' : '');
+      div.innerHTML = `
+        <div style="font-weight: ${isCurrent ? 'bold' : '600'}; font-size: 12px; margin-bottom: 4px;">
+          ${index + 1}. ${roleIcon} ${role.charAt(0).toUpperCase() + role.slice(1)}
+        </div>
+        <div style="font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${msg.substring(0, 50)}${msg.length > 50 ? '...' : ''}
+        </div>
+      `;
+      
+      div.onclick = () => {
+        if (currentMode !== 'branch') {
+          switchMode('branch', 'rendered');
+          setTimeout(() => jumpToBranchMessage(n, index), 50);
+        } else {
+          jumpToBranchMessage(n, index);
+        }
+      };
+      
+      branchIndex.appendChild(div);
+    });
+    
+    if (filter || displayedCount !== ancestors.length) {
+      const countDiv = document.createElement('div');
+      countDiv.style.padding = '8px';
+      countDiv.style.fontSize = '11px';
+      countDiv.style.color = 'var(--text-secondary)';
+      countDiv.style.textAlign = 'center';
+      countDiv.style.borderTop = '1px solid var(--border-color)';
+      
+      let message = `Showing ${displayedCount} of ${ancestors.length} messages`;
+      if (filteredByTextCount > 0) {
+        message += ` (${filteredByTextCount} filtered by text)`;
+      }
+      if (displayedCount < ancestors.length && filteredByTextCount === 0) {
+        const hiddenBySettings = ancestors.length - displayedCount;
+        message += ` (${hiddenBySettings} hidden by settings)`;
+      }
+      
+      countDiv.innerHTML = message;
+      branchIndex.appendChild(countDiv);
+    }
+  }
+
+  function jumpToBranchMessage(n, index) {
+  const messageId = `branch-msg-${index}`;
+  const messageElement = document.getElementById(messageId);
+  
+  if (messageElement) {
+    if (currentMode !== 'branch') {
+      // If not in branch mode, switch to it
+      switchMode('branch', 'rendered');
+      setTimeout(() => jumpToMessageElement(messageElement, n), 100);
+    } else {
+      // Already in branch mode, just jump to the message
+      jumpToMessageElement(messageElement, n);
+      
+      // IMPORTANT: Update the active node but don't trigger full node selection
+      activeNode = n;
+      currentBranchNode = n;
+      
+      // Update highlights in the graph
+      clearHighlight();
+      const ancestors = n.ancestors();
+      const descendants = n.descendants();
+      
+      g.selectAll(".node").filter(nd => nd === n).style("z-index", 1000);
+      g.selectAll(".node")
+        .classed("selected-node", nd => nd === n)
+        .classed("ancestor-node", nd => ancestors.includes(nd) && nd !== n)
+        .classed("descendant-node", nd => descendants.includes(nd) && nd !== n)
+        .classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd) && nd !== n);
+      
+      centerOnNode(n);
+    }
+  } else {
+    // If element not found, open viewer in branch mode
+    currentBranchNode = n;
+    activeNode = n;
+    switchMode('branch', 'rendered');
+    
+    // Center on node
+    centerOnNode(n);
+    
+    // Update highlights
+    clearHighlight();
+    const ancestors = n.ancestors();
+    const descendants = n.descendants();
+    
+    g.selectAll(".node").filter(nd => nd === n).style("z-index", 1000);
+    g.selectAll(".node")
+      .classed("selected-node", nd => nd === n)
+      .classed("ancestor-node", nd => ancestors.includes(nd) && nd !== n)
+      .classed("descendant-node", nd => descendants.includes(nd) && nd !== n)
+      .classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd) && nd !== n);
+    
+    setTimeout(() => {
+      const retryElement = document.getElementById(messageId);
+      if (retryElement) jumpToMessageElement(retryElement, n);
+    }, 200);
+  }
+}
+
+  function jumpToMessageElement(messageElement, n) {
+		  // Stay in branch mode, don't call handleNodeClick() or openViewerPanel()
+		  
+		  // Just center on the node
+		  centerOnNode(n);
+		  
+		  // Update active node reference
+		  activeNode = n;
+		  currentBranchNode = n;
+		  
+		  // Update highlights
+		  clearHighlight();
+		  const ancestors = n.ancestors();
+		  const descendants = n.descendants();
+		  
+		  g.selectAll(".node").filter(nd => nd === n).style("z-index", 1000);
+		  g.selectAll(".node")
+			.classed("selected-node", nd => nd === n)
+			.classed("ancestor-node", nd => ancestors.includes(nd) && nd !== n)
+			.classed("descendant-node", nd => descendants.includes(nd) && nd !== n)
+			.classed("dim-node", nd => !ancestors.includes(nd) && !descendants.includes(nd) && nd !== n);
+		  
+		  // Scroll to the message in the branch view
+		  messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		  messageElement.classList.add('highlighted');
+		  setTimeout(() => messageElement.classList.remove('highlighted'), 2000);
+		  
+		  // Update branch index highlighting
+		  document.querySelectorAll('.branch-index-item').forEach(item => item.classList.remove('current'));
+		  const indexItems = document.querySelectorAll('.branch-index-item');
+		  const reversedAncestors = n.ancestors().slice().reverse();
+		  const itemIndex = reversedAncestors.findIndex(node => node === n);
+		  if (itemIndex >= 0 && indexItems[itemIndex]) {
+			indexItems[itemIndex].classList.add('current');
+		  }
+		}
+
+  // SEARCH FUNCTIONS
+  function performCrossConversationSearch(query) {
+    searchResultsAcrossAllConversations = [];
+    if (!query) {
+      conversationsList.forEach(conv => conv.searchMatches = 0);
+      updateConversationsList();
+      clearSearchMatches();
+      document.getElementById('leftSearchResults').innerHTML = '';
+      return;
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    let totalMatches = 0;
+    
+    conversationsList.forEach((conv, convIndex) => {
+      const mapping = conv.data.mapping;
+      let conversationMatches = 0;
+      
+      Object.keys(mapping).forEach(nodeId => {
+        const node = mapping[nodeId];
+        const msg = node.message;
+        const text = extractText(msg);
+        
+        if (text && text.toLowerCase().includes(lowerQuery)) {
+          conversationMatches++;
+          totalMatches++;
+          
+          searchResultsAcrossAllConversations.push({
+            conversationIndex: convIndex,
+            conversationTitle: conv.title,
+            conversationDate: conv.formattedDate,
+            nodeId: nodeId,
+            nodeRole: msg?.author?.role || 'unknown',
+            nodeText: text.substring(0, 200) + (text.length > 200 ? '...' : ''),
+            fullText: text
+          });
+        }
+      });
+      
+      conv.searchMatches = conversationMatches;
+    });
+    
+    updateConversationsList(query);
+    updateSearchResultsPanel();
+    
+    if (currentConversationIndex >= 0 && conversationsList[currentConversationIndex]?.searchMatches > 0) {
+      performSearchInCurrentConversation(query);
+    }
+  }
+
+  function performSearchInCurrentConversation(query) {
+    if (!query || !allNodes || allNodes.length === 0) {
+      clearSearchMatches();
+      document.getElementById('leftSearchResults').innerHTML = '';
+      return;
+    }
+    
+    const lowerQuery = query.toLowerCase();
+    const leftResults = document.getElementById('leftSearchResults');
+    leftResults.innerHTML = '';
+    
+    clearSearchMatches();
+    
+    allNodes.forEach(n => {
+      const text = String(n.data.text || "").toLowerCase();
+      const match = text.includes(lowerQuery);
+      
+      if (match) {
+        g.selectAll(".node")
+          .filter(d => d === n)
+          .select(".match-check")
+          .style("display", "block");
+        
+        g.selectAll(".node")
+          .filter(d => d === n)
+          .classed("search-match", true);
+        
+        addSearchResultItem(n);
+      }
+    });
+  }
+
+  function clearSearchMatches() {
+    g.selectAll(".match-check").style("display", "none");
+    g.selectAll(".node").classed("search-match", false);
+  }
+
+  function addSearchResultItem(n) {
+    const div = document.createElement("div");
+    div.className = "search-result-item";
+    const preview = String(n.data.text || "");
+    const role = n.data.role || "unknown";
+    const roleIcon = role === "user" ? "👤" : role === "assistant" ? "🤖" : "❓";
+    div.innerHTML = `<b>${roleIcon} Node ${String(n.data.id || "")}</b><br>${preview.slice(0, 80)}${preview.length > 80 ? "..." : ""}`;
+    div.onclick = () => {
+      centerOnNode(n);
+      handleNodeClick(n);
+      openViewerPanel(n);
+    };
+    document.getElementById('leftSearchResults').appendChild(div);
+  }
+
+  function updateSearchResultsPanel() {
+    const leftResults = document.getElementById('leftSearchResults');
+    
+    if (searchResultsAcrossAllConversations.length === 0) {
+      leftResults.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-secondary); font-size: 12px;">No matches found</div>';
+      return;
+    }
+    
+    let html = `<div style="padding: 10px; margin-bottom: 10px; background: var(--card-bg); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
+      Found ${searchResultsAcrossAllConversations.length} match${searchResultsAcrossAllConversations.length !== 1 ? 'es' : ''} across ${conversationsList.filter(c => c.searchMatches > 0).length} conversation${conversationsList.filter(c => c.searchMatches > 0).length !== 1 ? 's' : ''}
+    </div>`;
+    
+    const resultsByConversation = {};
+    searchResultsAcrossAllConversations.forEach(result => {
+      if (!resultsByConversation[result.conversationIndex]) {
+        resultsByConversation[result.conversationIndex] = {
+          conversation: conversationsList[result.conversationIndex],
+          results: []
+        };
+      }
+      resultsByConversation[result.conversationIndex].results.push(result);
+    });
+    
+    Object.keys(resultsByConversation).forEach(convIndex => {
+      const group = resultsByConversation[convIndex];
+      const isCurrentConversation = parseInt(convIndex) === currentConversationIndex;
+      
+      html += `<div style="margin-bottom: 15px; background: var(--card-bg); border-radius: 8px; overflow: hidden;">
+        <div style="padding: 10px; background: var(--hover-bg); font-weight: 600; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span>${group.conversation.title}</span>
+          <span style="font-size: 11px; color: var(--text-secondary);">${group.results.length} match${group.results.length !== 1 ? 'es' : ''}</span>
+        </div>
+        <div style="padding: 5px;">`;
+      
+      group.results.forEach(result => {
+        const roleIcon = result.nodeRole === 'user' ? '👤' : result.nodeRole === 'assistant' ? '🤖' : '❓';
+        html += `
+          <div class="search-result-item" data-conversation-index="${convIndex}" data-node-id="${result.nodeId}">
+            <b>${roleIcon} ${result.nodeRole.toUpperCase()}</b>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">
+              ${result.nodeText}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div></div>`;
+    });
+    
+    leftResults.innerHTML = html;
+    
+    document.querySelectorAll('.search-result-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const convIndex = parseInt(this.dataset.conversationIndex);
+        const nodeId = this.dataset.nodeId;
+        
+        if (convIndex !== currentConversationIndex) {
+          loadConversation(convIndex);
+          setTimeout(() => findAndHighlightNode(nodeId, convIndex), 300);
+        } else {
+          findAndHighlightNode(nodeId, convIndex);
+        }
+      });
+    });
+  }
+
+  function findAndHighlightNode(nodeId, convIndex) {
+    const node = allNodes.find(n => n.data.id === nodeId);
+    if (node) {
+      centerOnNode(node);
+      handleNodeClick(node);
+      openViewerPanel(node);
+      g.selectAll(".node")
+        .filter(d => d === node)
+        .select(".match-check")
+        .style("display", "block");
+      g.selectAll(".node")
+        .filter(d => d === node)
+        .classed("search-match", true);
+    }
+  }
+
+  // CONVERSATIONS LIST FUNCTIONS
+  function extractConversationsFromArray(jsonArray, format = FORMATS.OPENAI_CONVERSATIONS_ARRAY) {
+    const conversations = [];
+    
+    if (!Array.isArray(jsonArray)) return conversations;
+    
+    jsonArray.forEach((conv, index) => {
+      let conversationData = null;
+      let title = "";
+      let createTime = Date.now() / 1000;
+      let messageCount = 0;
+      let conversationId = "";
+      let formattedDate = "";
+      
+      switch(format) {
+        case FORMATS.OPENAI_CONVERSATIONS_ARRAY:
+          if (!conv || !conv.mapping) return;
+          conversationData = conv;
+          title = conv.title || `Untitled Conversation ${index + 1}`;
+          createTime = conv.create_time || Date.now() / 1000;
+          messageCount = Object.keys(conv.mapping).length;
+          conversationId = conv.conversation_id || `conv_${index}`;
+          break;
+          
+        case FORMATS.CLAUDE_ANTHROPIC:
+          conversationData = convertClaudeToMultiverse(conv);
+          title = extractTextFromClaude(conv[0]) || `Claude Conversation ${index + 1}`;
+          title = title.length > 50 ? title.substring(0, 50) + "..." : title;
+          createTime = conv[0]?.createdAt ? new Date(conv[0].createdAt).getTime() / 1000 : Date.now() / 1000;
+          messageCount = conv.length;
+          conversationId = `claude_${index}_${Date.now()}`;
+          break;
+          
+        case FORMATS.XAI_GROK:
+          if (!conv || !conv.conversation) return;
+          conversationData = convertGrokToMultiverse([conv]);
+          title = conv.conversation.title || `Grok Conversation ${index + 1}`;
+          createTime = conv.conversation.create_time ? new Date(conv.conversation.create_time).getTime() / 1000 : Date.now() / 1000;
+          messageCount = conv.responses?.length || 0;
+          conversationId = conv.conversation.id || `grok_${index}`;
+          break;
+          
+        case FORMATS.MISTRAL_AI:
+          if (!conv || !conv.chat_messages) return;
+          conversationData = convertMistralToMultiverse([conv]);
+          title = conv.name || conv.title || `Mistral Conversation ${index + 1}`;
+          createTime = conv.created_at ? new Date(conv.created_at).getTime() / 1000 : Date.now() / 1000;
+          messageCount = conv.chat_messages?.length || 0;
+          conversationId = conv.uuid || `mistral_${index}`;
+          break;
+          
+        case FORMATS.DEEPSEEK_CHAT_EXPORT:
+          if (!conv || !conv.mapping) return;
+          conversationData = convertDeepSeekChatExport([conv]);
+          title = conv.title || `DeepSeek Chat ${index + 1}`;
+          createTime = conv.inserted_at ? new Date(conv.inserted_at).getTime() / 1000 : Date.now() / 1000;
+          messageCount = Object.keys(conv.mapping).length;
+          conversationId = conv.id || `deepseek_${index}`;
+          break;
+          
+        case FORMATS.DEEPSEEK_EXPORTER:
+          if (!conv || !conv.messages) return;
+          conversationData = convertDeepSeekToMultiverse(conv);
+          title = conv.metadata?.title || `DeepSeek Conversation ${index + 1}`;
+          createTime = conv.metadata?.extracted_at ? new Date(conv.metadata.extracted_at).getTime() / 1000 : Date.now() / 1000;
+          messageCount = conv.messages.length;
+          conversationId = conv.metadata?.url?.split('/').pop() || `deepseek_exporter_${index}`;
+          break;
+          
+		case FORMATS.ZHIPU_GLM:
+		  if (!conv || !conv.chat || !conv.chat.history) return;
+		  conversationData = convertGLMToMultiverse([conv]);
+		  title = conv.title || conv.chat?.title || `GLM Conversation ${index + 1}`;
+		  createTime = conv.created_at || conv.timestamp || Date.now() / 1000;
+		  messageCount = conv.chat.history.messages ? Object.keys(conv.chat.history.messages).length : 0;
+		  conversationId = conv.id || `glm_${index}`;
+		  break;
+          
+        default:
+          return;
+      }
+      
+      if (!conversationData) return;
+      
+      const date = new Date(createTime * 1000);
+      formattedDate = date.toISOString().split('T')[0];
+      
+      conversations.push({
+        index: index,
+        id: conversationId,
+        title: title,
+        createTime: createTime,
+        formattedDate: formattedDate,
+        messageCount: messageCount,
+        data: conversationData,
+        raw: conv,
+        searchMatches: 0,
+        format: format
+      });
+    });
+    
+    conversations.sort((a, b) => b.createTime - a.createTime);
+    return conversations;
+  }
+
+  function updateConversationsList(searchQuery = '') {
+    const listContainer = document.getElementById('conversationsList');
+    
+    if (conversationsList.length === 0) {
+      listContainer.innerHTML = '<div class="conversations-empty">Load a conversations.json file to see conversations</div>';
+      return;
+    }
+    
+    let html = '';
+    const conversationsWithMatches = [];
+    const conversationsWithoutMatches = [];
+    
+    conversationsList.forEach((conv, index) => {
+      const isActive = index === currentConversationIndex;
+      const hasMatches = conv.searchMatches > 0;
+      
+      if (hasMatches) {
+        conversationsWithMatches.push({conv, index, isActive});
+      } else {
+        conversationsWithoutMatches.push({conv, index, isActive});
+      }
+    });
+    
+    conversationsWithMatches.sort((a, b) => b.conv.searchMatches - a.conv.searchMatches);
+    conversationsWithMatches.forEach(({conv, index, isActive}) => {
+      const activeClass = isActive ? 'active' : '';
+      const hasMatches = conv.searchMatches > 0;
+      const matchesClass = hasMatches ? 'has-search-matches' : '';
+      const date = conv.formattedDate;
+      const title = conv.title.length > 50 ? conv.title.substring(0, 50) + '...' : conv.title;
+      const messageCount = conv.messageCount;
+      
+      html += `
+        <div class="conversation-item ${activeClass} ${matchesClass}" data-index="${index}">
+          <span class="date">${date}</span>
+          <span class="title">${title}</span>
+          <span class="meta">
+            ${messageCount} message${messageCount !== 1 ? 's' : ''}
+            ${hasMatches ? `<span class="search-match-count">${conv.searchMatches}</span>` : ''}
+          </span>
+        </div>
+      `;
+    });
+    
+    conversationsWithoutMatches.sort((a, b) => b.conv.createTime - a.conv.createTime);
+    conversationsWithoutMatches.forEach(({conv, index, isActive}) => {
+      const activeClass = isActive ? 'active' : '';
+      const date = conv.formattedDate;
+      const title = conv.title.length > 50 ? conv.title.substring(0, 50) + '...' : conv.title;
+      const messageCount = conv.messageCount;
+      
+      html += `
+        <div class="conversation-item ${activeClass}" data-index="${index}">
+          <span class="date">${date}</span>
+          <span class="title">${title}</span>
+          <span class="meta">
+            ${messageCount} message${messageCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      `;
+    });
+    
+    listContainer.innerHTML = html;
+    
+    document.querySelectorAll('.conversation-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const index = parseInt(this.dataset.index);
+        loadConversation(index);
+      });
+    });
+  }
+
+  function loadConversation(index) {
+    if (index < 0 || index >= conversationsList.length) return;
+    
+    currentConversationIndex = index;
+    clearSearchMatches();
+    document.getElementById('viewerContent').innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 40px; font-style: italic;">Select a node to view its content.</div>';
+    
+    const conv = conversationsList[index];
+    convertedJSON = sanitizeConversation(conv.data);
+    lastLoadedJSON = convertedJSON;
+    
+    updateConversationsList();
+    buildTree(convertedJSON);
+    
+    const fileName = document.getElementById('fileLabel').innerText;
+    if (conversationsList.length > 1) {
+      document.getElementById('fileLabel').innerText = `${fileName} (${index + 1}/${conversationsList.length})`;
+    }
+    
+    document.getElementById('branchIndex').innerHTML = '';
+    document.getElementById('closeConversationBtn').style.display = 'inline-block';
+    
+    const searchQuery = document.getElementById('searchBar').value.trim();
+    if (searchQuery) {
+      performSearchInCurrentConversation(searchQuery);
+    }
+  }
+
+  function closeConversation() {
+    currentConversationIndex = -1;
+    lastLoadedJSON = null;
+    convertedJSON = null;
+    
+    document.getElementById('viewerContent').innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 40px; font-style: italic;">Select a node to view its content.</div>';
+    document.getElementById('fileLabel').innerText = '(no file loaded)';
+    document.getElementById('closeConversationBtn').style.display = 'none';
+    document.getElementById('formatBadge').style.display = 'none';
+    
+    const svg = d3.select("#graph");
+    svg.selectAll("*").remove();
+    
+    document.getElementById('searchBar').value = '';
+    document.getElementById('leftSearchResults').innerHTML = '';
+    clearSearchMatches();
+    
+    document.getElementById('branchIndexContainer').style.display = 'none';
+    updateConversationsList();
+  }
+
+  // FORMAT CONVERSION FUNCTIONS (simplified versions)
+  function convertClaudeToMultiverse(claudeJson) {
+    const messages = Array.isArray(claudeJson) ? claudeJson : [claudeJson];
+    const mapping = {};
+    
+    messages.forEach((msg, index) => {
+      const nodeId = `msg_${index}`;
+      const prevNodeId = index > 0 ? `msg_${index - 1}` : null;
+      const nextNodeId = index < messages.length - 1 ? `msg_${index + 1}` : null;
+      
+      let text = "";
+      if (msg.contentChunks) {
+        msg.contentChunks.forEach(chunk => {
+          if (chunk.type === 'text' && chunk.text) text += chunk.text + " ";
+        });
+      } else {
+        text = msg.content || "";
+      }
+      
+      text = text.trim() || "(empty message)";
+      
+      mapping[nodeId] = {
+        id: nodeId,
+        parent: prevNodeId,
+        children: nextNodeId ? [nextNodeId] : [],
+        message: {
+          id: nodeId,
+          author: { role: msg.role || "unknown", name: null, metadata: {} },
+          create_time: msg.createdAt ? new Date(msg.createdAt).getTime() / 1000 : Date.now() / 1000,
+          content: { content_type: "text", parts: [text] },
+          status: "finished_successfully",
+          metadata: { ...msg, _format: "claude" },
+          weight: 1,
+          end_turn: true
+        },
+        _original_data: msg,
+        _format: "claude"
+      };
+    });
+    
+    const titleText = extractTextFromClaude(messages[0]) || "";
+    const title = titleText.length > 50 ? titleText.substring(0, 50) + "..." : titleText;
+    
+    convertedJSON = {
+      title: title || "Claude Conversation",
+      create_time: messages[0]?.createdAt ? new Date(messages[0].createdAt).getTime() / 1000 : Date.now() / 1000,
+      update_time: messages[messages.length - 1]?.createdAt ? new Date(messages[messages.length - 1].createdAt).getTime() / 1000 : Date.now() / 1000,
+      mapping: mapping,
+      conversation_id: messages[0]?.chatId || `claude_${Date.now()}`,
+      _original_format: "claude",
+      _converted_at: new Date().toISOString()
+    };
+    
+    return convertedJSON;
+  }
+
+  function extractTextFromClaude(msg) {
+    if (!msg) return "";
+    if (msg.content) return msg.content;
+    if (msg.contentChunks) {
+      return msg.contentChunks
+        .filter(chunk => chunk.type === 'text' && chunk.text)
+        .map(chunk => chunk.text)
+        .join(' ');
+    }
+    return "";
+  }
+
+	
+
+
+  // Other format conversion functions would go here...
+  // For brevity, I'm including simplified versions
+
+	function convertDeepSeekConversationToMultiverse(deepseekJson) {
+	  const metadata = deepseekJson.metadata || {};
+	  const messages = deepseekJson.messages || [];
+
+	  const mapping = {};
+	  let prevId = null;
+
+	  messages.forEach((msg, index) => {
+		const nodeId = msg.id || `deepseek_msg_${index}`;
+		const role = msg.role || "unknown";
+		const timestamp = msg.timestamp ? new Date(msg.timestamp).getTime() / 1000 : Date.now() / 1000;
+
+		// Extract text from raw_html or content
+		let text = "";
+		if (msg.content && typeof msg.content === 'string') {
+		  text = msg.content;
+		} else if (msg.raw_html) {
+		  // Simple HTML‑to‑text using a temporary DOM element (safe in browser)
+		  const tempDiv = document.createElement('div');
+		  tempDiv.innerHTML = msg.raw_html;
+		  text = tempDiv.textContent || tempDiv.innerText || "";
+		}
+
+		mapping[nodeId] = {
+		  id: nodeId,
+		  parent: prevId,
+		  children: [],  // will be filled when we see the next message
+		  message: {
+			id: nodeId,
+			author: { role: role, name: null, metadata: {} },
+			create_time: timestamp,
+			content: { content_type: "text", parts: [text || "(empty)"] },
+			status: "finished_successfully",
+			metadata: {
+			  _format: "deepseek_conversation",
+			  raw_html: msg.raw_html,
+			  original_content: msg.content,
+			  timestamp: msg.timestamp
+			},
+			weight: 1,
+			end_turn: true
+		  },
+		  _original_data: msg,
+		  _format: "deepseek_conversation"
+		};
+
+		if (prevId) {
+		  mapping[prevId].children.push(nodeId);
+		}
+		prevId = nodeId;
+	  });
+
+	  return {
+		title: metadata.title || "DeepSeek Conversation",
+		create_time: metadata.extracted_at ? new Date(metadata.extracted_at).getTime() / 1000 : Date.now() / 1000,
+		update_time: Date.now() / 1000,
+		mapping: mapping,
+		conversation_id: metadata.url?.split('/').pop() || `deepseek_${Date.now()}`,
+		_original_format: "deepseek_conversation",
+		_converted_at: new Date().toISOString()
+	  };
+	}
+
+  // Other format conversion functions would go here...
+  // For brevity, I'm including simplified versions
+
+	function convertDeepSeekChatExport(deepseekArray) {
+		  const conversations = Array.isArray(deepseekArray) ? deepseekArray : [deepseekArray];
+		  const firstConv = conversations[0];
+		  
+		  if (!firstConv || !firstConv.mapping) {
+			throw new Error("Invalid DeepSeek Chat Export format");
+		  }
+		  
+		  const mapping = {};
+		  Object.keys(firstConv.mapping).forEach(key => {
+			const node = firstConv.mapping[key];
+			const msg = node.message;
+			
+			let text = "";
+			if (msg && msg.fragments && Array.isArray(msg.fragments)) {
+			  msg.fragments.forEach(frag => {
+				if (frag.content) text += frag.content + "\n";
+			  });
+			  text = text.trim();
+			}
+			
+			mapping[key] = {
+			  id: node.id,
+			  parent: node.parent,
+			  children: node.children || [],
+			  message: {
+				id: node.id,
+				author: { 
+				  role: msg?.fragments?.[0]?.type === "REQUEST" ? "user" : 
+						msg?.fragments?.[0]?.type === "RESPONSE" ? "assistant" : "unknown",
+				  name: null,
+				  metadata: {}
+				},
+				create_time: msg?.inserted_at ? new Date(msg.inserted_at).getTime() / 1000 : Date.now() / 1000,
+				content: { content_type: "text", parts: [text || "(empty)"] },
+				status: "finished_successfully",
+				metadata: { 
+				  _format: "deepseek_chat",
+				  model: msg?.model,
+				  files: msg?.files
+				},
+				weight: 1,
+				end_turn: true
+			  },
+			  _original_data: msg,
+			  _format: "deepseek_chat"
+			};
+		  });
+		  
+		  const convertedJSON = {
+			title: firstConv.title || "DeepSeek Chat",
+			create_time: firstConv.inserted_at ? new Date(firstConv.inserted_at).getTime() / 1000 : Date.now() / 1000,
+			update_time: firstConv.updated_at ? new Date(firstConv.updated_at).getTime() / 1000 : Date.now() / 1000,
+			mapping: mapping,
+			conversation_id: firstConv.id || `deepseek_chat_${Date.now()}`,
+			_original_format: "deepseek_chat",
+			_converted_at: new Date().toISOString()
+		  };
+		  
+		  return convertedJSON;
+		}
+
+
+
+  function convertGrokToMultiverse(grokJson) {
+    const conversations = Array.isArray(grokJson) ? grokJson : [grokJson];
+    const firstConv = conversations[0];
+    
+    if (!firstConv || !firstConv.conversation || !firstConv.responses) {
+      throw new Error("Invalid Grok/xAI format");
+    }
+    
+    const mapping = {};
+    const allMessages = [];
+    
+    firstConv.responses.forEach((respObj, index) => {
+      const resp = respObj.response;
+      if (!resp) return;
+      
+      if (resp.sender === 'human') {
+        const nodeId = `human_${index}`;
+        const prevNodeId = allMessages.length > 0 ? allMessages[allMessages.length - 1].id : null;
+        
+        mapping[nodeId] = {
+          id: nodeId,
+          parent: prevNodeId,
+          children: [`assistant_${index}`],
+          message: {
+            id: nodeId,
+            author: { role: "user", name: null, metadata: {} },
+            create_time: resp.create_time?.$date?.$numberLong ? parseInt(resp.create_time.$date.$numberLong) / 1000 : Date.now() / 1000,
+            content: { content_type: "text", parts: [resp.message || ""] },
+            status: "finished_successfully",
+            metadata: { ...resp.metadata, _format: "grok", _model: resp.model },
+            weight: 1,
+            end_turn: true
+          },
+          _original_data: resp,
+          _format: "grok"
+        };
+        
+        allMessages.push({ id: nodeId, type: 'human' });
+      }
+      
+      if (resp.sender === 'ASSISTANT') {
+        const nodeId = `assistant_${index}`;
+        const prevNodeId = `human_${index}`;
+        
+        mapping[nodeId] = {
+          id: nodeId,
+          parent: prevNodeId,
+          children: index < firstConv.responses.length - 1 ? [`human_${index + 1}`] : [],
+          message: {
+            id: nodeId,
+            author: { role: "assistant", name: null, metadata: {} },
+            create_time: resp.create_time?.$date?.$numberLong ? parseInt(resp.create_time.$date.$numberLong) / 1000 : Date.now() / 1000,
+            content: { content_type: "text", parts: [resp.message || ""] },
+            status: "finished_successfully",
+            metadata: { ...resp.metadata, _format: "grok", _model: resp.model, _parent_response_id: resp.parent_response_id },
+            weight: 1,
+            end_turn: true
+          },
+          _original_data: resp,
+          _format: "grok"
+        };
+        
+        allMessages.push({ id: nodeId, type: 'assistant' });
+      }
+    });
+    
+    if (!mapping['human_0'] && mapping['assistant_0']) {
+      mapping['assistant_0'].parent = 'root';
+    }
+    
+    convertedJSON = {
+      title: firstConv.conversation.title || "Grok Conversation",
+      create_time: firstConv.conversation.create_time ? new Date(firstConv.conversation.create_time).getTime() / 1000 : Date.now() / 1000,
+      update_time: firstConv.conversation.modify_time ? new Date(firstConv.conversation.modify_time).getTime() / 1000 : Date.now() / 1000,
+      mapping: mapping,
+      conversation_id: firstConv.conversation.id || `grok_${Date.now()}`,
+      _original_format: "grok",
+      _converted_at: new Date().toISOString()
+    };
+    
+    return convertedJSON;
+  }
+
+	function convertGLMToMultiverse(glmArray) {
+	  const conversations = Array.isArray(glmArray) ? glmArray : [glmArray];
+	  const firstConv = conversations[0];
+	  
+	  if (!firstConv || !firstConv.chat || !firstConv.chat.history || !firstConv.chat.history.messages) {
+		throw new Error("Invalid GLM/Zhipu AI format");
+	  }
+	  
+	  const messages = firstConv.chat.history.messages;
+	  const mapping = {};
+	  
+	  // First, create all nodes
+	  Object.keys(messages).forEach(messageId => {
+		const msg = messages[messageId];
+		
+		mapping[messageId] = {
+		  id: messageId,
+		  parent: msg.parentId,
+		  children: msg.childrenIds || [],
+		  message: {
+			id: messageId,
+			author: {
+			  role: msg.role || "unknown",
+			  name: null,
+			  metadata: {}
+			},
+			create_time: msg.timestamp || Date.now() / 1000,
+			content: {
+			  content_type: "text",
+			  parts: [msg.content || ""]
+			},
+			status: msg.done ? "finished_successfully" : "in_progress",
+			metadata: {
+			  _format: "glm",
+			  model: msg.model || msg.models?.[0],
+			  modelName: msg.modelName,
+			  usage: msg.usage,
+			  timestamp: msg.timestamp
+			},
+			weight: 1,
+			end_turn: true
+		  },
+		  _original_data: msg,
+		  _format: "glm"
+		};
+	  });
+	  
+	  // Find root node (has parentId === null)
+	  const rootIds = Object.keys(mapping).filter(id => mapping[id].parent === null);
+	  
+	  const convertedJSON = {
+		title: firstConv.title || firstConv.chat?.title || "GLM Conversation",
+		create_time: firstConv.created_at || firstConv.timestamp || Date.now() / 1000,
+		update_time: firstConv.updated_at || firstConv.timestamp || Date.now() / 1000,
+		mapping: mapping,
+		conversation_id: firstConv.id || `glm_${Date.now()}`,
+		_original_format: "glm",
+		_converted_at: new Date().toISOString()
+	  };
+	  
+	  return convertedJSON;
+	}
+
+  // Initialize the application
+  window.addEventListener('load', initialize);
+  </script>
+</body>
+	</html>
