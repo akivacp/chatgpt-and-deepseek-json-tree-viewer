@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -192,6 +193,15 @@ body {
   border-radius: 99px; color: #fff; display: none;
   white-space: nowrap; flex-shrink: 0;
 }
+#topbar-conv-title {
+  font-size: 12px; color: var(--text-secondary);
+  padding: 3px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 280px; flex-shrink: 1;
+  user-select: text; cursor: text; display: none;
+}
 .topbar-btn {
   display: flex; align-items: center; gap: 5px;
   padding: 5px 10px; border-radius: var(--radius-sm);
@@ -238,7 +248,7 @@ body {
   position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
   color: var(--text-muted); pointer-events: none;
 }
-.search-opts { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+.search-opts { display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
 .search-scope-btn {
   font-size: 11px; padding: 2px 7px; border-radius: 99px;
   border: 1px solid var(--border-color); background: transparent;
@@ -246,6 +256,22 @@ body {
   transition: all var(--transition);
 }
 .search-scope-btn.active { background: var(--accent-teal); color: #000; border-color: var(--accent-teal); }
+.sort-row { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+.sort-label { font-size: 11px; color: var(--text-muted); min-width: 44px; }
+.sort-select {
+  min-width: 0; flex: 1; padding: 3px 6px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); color: var(--text-secondary);
+  font-family: var(--font-ui); font-size: 11px;
+}
+.sort-select:focus { outline: none; border-color: var(--accent-teal); color: var(--text-primary); }
+.sort-dir-btn {
+  width: 34px; padding: 3px 0; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color); background: transparent;
+  color: var(--text-muted); cursor: pointer; font-family: var(--font-mono); font-size: 11px;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.sort-dir-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-light); }
 
 .conversations-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -923,6 +949,7 @@ body {
     </button>
     <input type="file" id="file-input" accept=".json" multiple>
     <span id="format-badge"></span>
+    <span id="topbar-conv-title" title="Conversation title — click to select and copy"></span>
     <button class="topbar-btn" id="btn-close-conv" title="Close current conversation" style="display:none;color:var(--accent-red);border-color:rgba(239,68,68,0.4);">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       Close
@@ -974,6 +1001,26 @@ body {
           <span style="font-size:11px;color:var(--text-muted)">Scope:</span>
           <button class="search-scope-btn active" data-scope="current">Current</button>
           <button class="search-scope-btn" data-scope="all">All</button>
+        </div>
+        <div class="sort-row" title="Sort the main conversations list">
+          <span class="sort-label">Chats:</span>
+          <select class="sort-select" id="conv-sort-field">
+            <option value="name">Name</option>
+            <option value="nodes">Number of nodes</option>
+            <option value="created">Date created</option>
+            <option value="latest" selected>Latest node date</option>
+          </select>
+          <button class="sort-dir-btn" id="conv-sort-dir" data-dir="desc" title="Descending">↓</button>
+        </div>
+        <div class="sort-row" title="Sort the message search results">
+          <span class="sort-label">Results:</span>
+          <select class="sort-select" id="result-sort-field">
+            <option value="name">Name</option>
+            <option value="nodes">Number of nodes</option>
+            <option value="created">Date created</option>
+            <option value="latest" selected>Latest node date</option>
+          </select>
+          <button class="sort-dir-btn" id="result-sort-dir" data-dir="desc" title="Descending">↓</button>
         </div>
       </div>
       <div class="conversations-header">
@@ -1300,6 +1347,10 @@ const state = {
   selectedNodeId: null,
   searchQuery: '',
   searchScope: 'current',  // 'current' | 'all'
+  convSortField: 'latest',  // name|nodes|created|latest
+  convSortDir: 'desc',      // asc|desc
+  resultSortField: 'latest',// name|nodes|created|latest
+  resultSortDir: 'desc',    // asc|desc
   searchMatches: new Map(), // convId -> Set of nodeIds
   viewMode: 'rendered',    // rendered|markdown|html|json
   showMeta: false,
@@ -1359,7 +1410,7 @@ function detectFormat(data) {
 function convertToUnified(raw) {
   const fmt = detectFormat(raw);
   switch(fmt) {
-    case 'openai': return convertOpenAI(raw);
+    case 'openai': return [convertOpenAI(raw)];
     case 'openai-array': return raw.map(convertOpenAI);
     case 'deepseek-exporter': return [convertDeepSeekExporter(raw)];
     case 'deepseek-chat': return [convertDeepSeekChat(raw)];
@@ -2729,6 +2780,13 @@ function runSearch(query) {
   document.getElementById('search-results-label').textContent = `${totalMatches} message${totalMatches !== 1 ? 's' : ''} found`;
   resultsList.innerHTML = '';
 
+  allMatchMsgs.sort((a, b) => {
+    const byConv = compareConversations(a.conv, b.conv, state.resultSortField, state.resultSortDir);
+    if (byConv !== 0) return byConv;
+    // Keep multiple hits within the same conversation in natural thread/date order.
+    return toMillis(a.node.message?.create_time) - toMillis(b.node.message?.create_time);
+  });
+
   allMatchMsgs.forEach(({ conv, nodeId, node }) => {
     const role = getNodeRole(node);
     const text = getNodeText(node);
@@ -2771,7 +2829,8 @@ function loadFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const raw = JSON.parse(e.target.result);
+      const text = e.target.result.replace(/^\uFEFF/, ''); // strip UTF-8 BOM if present
+      const raw = JSON.parse(text);
       const converted = convertToUnified(raw);
       converted.forEach(data => {
         const id = data.conversation_id || genId();
@@ -2812,6 +2871,7 @@ function loadConversation(convId, preserveSearch = false) {
   }
 
   const conv = state.conversations.find(c => c.id === convId);
+  updateTopbarTitle(conv?.title || conv?.data?.title || null);
   renderConvList();
   renderGraph(conv);
   tagLinks();
@@ -2823,21 +2883,64 @@ function loadConversation(convId, preserveSearch = false) {
   document.getElementById('branch-view').style.display = 'none';
 }
 
+function toMillis(t) {
+  if (!t) return 0;
+  const ms = typeof t === 'number' ? (t > 1e10 ? t : t * 1000) : new Date(t).getTime();
+  return ms && !isNaN(ms) ? ms : 0;
+}
+
+function getConvNodeCount(conv) {
+  return Object.values(conv.data.mapping || {}).filter(n => n.message).length;
+}
+
+function getConvCreatedTime(conv) {
+  const own = toMillis(conv.data.create_time || conv.data.created_at || conv.data.inserted_at);
+  if (own) return own;
+
+  let earliest = 0;
+  Object.values(conv.data.mapping || {}).forEach(node => {
+    if (!node.message) return;
+    const ms = toMillis(node.message.create_time);
+    if (ms && (!earliest || ms < earliest)) earliest = ms;
+  });
+  return earliest;
+}
+
 function getConvLatestTime(conv) {
   let latest = 0;
-  Object.values(conv.data.mapping).forEach(node => {
+  Object.values(conv.data.mapping || {}).forEach(node => {
     if (!node.message) return;
-    const t = node.message.create_time;
-    if (!t) return;
-    const ms = typeof t === 'number' ? (t > 1e10 ? t : t * 1000) : new Date(t).getTime();
+    const ms = toMillis(node.message.create_time);
     if (ms > latest) latest = ms;
   });
   // Fall back to conversation-level update/create time
-  if (!latest) {
-    const ct = conv.data.update_time || conv.data.create_time;
-    if (ct) latest = typeof ct === 'number' ? (ct > 1e10 ? ct : ct * 1000) : new Date(ct).getTime();
-  }
+  if (!latest) latest = toMillis(conv.data.update_time || conv.data.create_time);
   return latest;
+}
+
+function getConvSortValue(conv, field) {
+  switch (field) {
+    case 'name': return (conv.title || conv.data?.title || 'Untitled').toLowerCase();
+    case 'nodes': return getConvNodeCount(conv);
+    case 'created': return getConvCreatedTime(conv);
+    case 'latest':
+    default: return getConvLatestTime(conv);
+  }
+}
+
+function compareSortValues(a, b, dir) {
+  let cmp = 0;
+  if (typeof a === 'string' || typeof b === 'string') cmp = String(a || '').localeCompare(String(b || ''), undefined, { sensitivity: 'base', numeric: true });
+  else cmp = (a || 0) - (b || 0);
+  return dir === 'asc' ? cmp : -cmp;
+}
+
+function compareConversations(a, b, field = state.convSortField, dir = state.convSortDir) {
+  const primary = compareSortValues(getConvSortValue(a, field), getConvSortValue(b, field), dir);
+  if (primary !== 0) return primary;
+  const titleTie = String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base', numeric: true });
+  if (titleTie !== 0) return titleTie;
+  return String(a.id || '').localeCompare(String(b.id || ''));
 }
 
 function formatConvDate(ms) {
@@ -2854,16 +2957,15 @@ function renderConvList() {
   list.innerHTML = '';
   document.getElementById('conv-count').textContent = state.conversations.length;
 
-  let sorted = [...state.conversations].sort((a, b) => getConvLatestTime(b) - getConvLatestTime(a));
+  let sorted = [...state.conversations].sort((a, b) => compareConversations(a, b));
 
-  // During search: conversations with matches float to the top
+  // During search: conversations with matches float to the top, then obey the selected chat sort.
   if (state.searchQuery.trim()) {
     sorted.sort((a, b) => {
       const aHas = state.searchMatches.has(a.id) ? 1 : 0;
       const bHas = state.searchMatches.has(b.id) ? 1 : 0;
       if (bHas !== aHas) return bHas - aHas;
-      // Within same group, keep latest-first order
-      return getConvLatestTime(b) - getConvLatestTime(a);
+      return compareConversations(a, b);
     });
   }
 
@@ -2872,10 +2974,10 @@ function renderConvList() {
     item.className = `conv-item${conv.id === state.activeConvId ? ' active' : ''}`;
     item.dataset.convId = conv.id;
     const matchCount = state.searchMatches.get(conv.id)?.size || 0;
-    const nodeCount = Object.values(conv.data.mapping).filter(n => n.message).length;
+    const nodeCount = getConvNodeCount(conv);
     const dateStr = formatConvDate(getConvLatestTime(conv));
     item.innerHTML = `
-      <div class="conv-item-title">${conv.title}</div>
+      <div class="conv-item-title">${escapeHtml(conv.title || 'Untitled')}</div>
       ${dateStr ? `<div class="conv-item-date">${dateStr}</div>` : ''}
       <div class="conv-item-meta">
         <span>${conv.format || 'unknown'}</span>
@@ -3148,6 +3250,20 @@ document.addEventListener('click', hideContextMenu);
 // EXPORT FUNCTIONS
 // ============================================================
 
+function updateTopbarTitle(title) {
+  const el = document.getElementById('topbar-conv-title');
+  if (!el) return;
+  if (title) {
+    el.textContent = title;
+    el.style.display = '';
+    document.title = title + ' — ChatGPT JSON Tree Viewer';
+  } else {
+    el.textContent = '';
+    el.style.display = 'none';
+    document.title = 'ChatGPT JSON Tree Viewer v7.0.1';
+  }
+}
+
 function setFormatBadge(fmt) {
   const badge = document.getElementById('format-badge');
   if (!fmt || fmt === 'unknown') { badge.style.display = 'none'; return; }
@@ -3200,6 +3316,7 @@ function closeConversation() {
   } else {
     document.getElementById('format-badge').style.display = 'none';
     document.getElementById('btn-close-conv').style.display = 'none';
+    updateTopbarTitle(null);
   }
   showNotif('Conversation closed');
 }
@@ -3383,7 +3500,7 @@ const helpTopics = [
   { id: 'sidebar', label: '🗃 Sidebar & Conversations', content: `
     <h2>Left Sidebar</h2>
     <h3>Conversations List</h3>
-    <p>All loaded conversations are listed here, sorted by the timestamp of their <strong>most recent message</strong> (newest first). Each entry shows:</p>
+    <p>All loaded conversations are listed here. Use the <strong>Chats</strong> sort controls above the list to sort by name, message count, created date, or latest node date in either direction. Each entry shows:</p>
     <ul>
       <li><strong>Title</strong> — from the conversation's own title field</li>
       <li><strong>Date</strong> — last message date in <code>YYYY-MM-DD</code> format</li>
@@ -3393,7 +3510,7 @@ const helpTopics = [
     </ul>
     <p>Click any conversation to load it into the graph. The active conversation is highlighted with a teal border.</p>
     <h3>Sorting During Search</h3>
-    <p>When a search query is active, conversations containing matches float to the top of the list. Within each group (matched / unmatched), conversations remain sorted by date.</p>
+    <p>When a search query is active, conversations containing matches float to the top of the conversation list. Within each group, the selected <strong>Chats</strong> sort still applies. The <strong>Results</strong> sort controls independently sort the message search results by the same fields.</p>
     <h3>Right-Click Context Menu</h3>
     <ul>
       <li><strong>Show Only</strong> — hides all other conversations, keeping only this one visible. The hidden conversations are <em>stashed</em>, not deleted — they can be restored</li>
@@ -3579,7 +3696,7 @@ const helpTopics = [
     <h3>Graph Highlights</h3>
     <p>All matching nodes in the current conversation's graph receive a yellow glow. This overrides the dimming effect from node selection, so matches stay visible even when a node is selected.</p>
     <h3>Conversation Sorting</h3>
-    <p>During active search, conversations with matches rise to the top of the sidebar list. A yellow badge shows the hit count per conversation.</p>
+    <p>During active search, conversations with matches rise to the top of the sidebar list. A yellow badge shows the hit count per conversation, and both the chat list and message results can be sorted by name, node count, created date, or latest node date.</p>
     <h3>Search Highlighting in Panels</h3>
     <p>When you click a result and view the node content, the search term is highlighted in yellow in the Selected Node and Branch panels (if the <strong>H</strong> button is on). Turn H off to view the content without highlights.</p>
     <h3>Clearing Search</h3>
@@ -4069,6 +4186,31 @@ document.querySelectorAll('.search-scope-btn').forEach(btn => {
   });
 });
 
+function updateSortDirButton(btn, dir) {
+  btn.dataset.dir = dir;
+  btn.textContent = dir === 'asc' ? '↑' : '↓';
+  btn.title = dir === 'asc' ? 'Ascending' : 'Descending';
+}
+
+document.getElementById('conv-sort-field').addEventListener('change', e => {
+  state.convSortField = e.target.value;
+  renderConvList();
+});
+document.getElementById('conv-sort-dir').addEventListener('click', e => {
+  state.convSortDir = state.convSortDir === 'asc' ? 'desc' : 'asc';
+  updateSortDirButton(e.currentTarget, state.convSortDir);
+  renderConvList();
+});
+document.getElementById('result-sort-field').addEventListener('change', e => {
+  state.resultSortField = e.target.value;
+  if (state.searchQuery.trim()) runSearch(state.searchQuery);
+});
+document.getElementById('result-sort-dir').addEventListener('click', e => {
+  state.resultSortDir = state.resultSortDir === 'asc' ? 'desc' : 'asc';
+  updateSortDirButton(e.currentTarget, state.resultSortDir);
+  if (state.searchQuery.trim()) runSearch(state.searchQuery);
+});
+
 // Panel tabs
 document.querySelectorAll('.panel-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -4294,6 +4436,7 @@ document.getElementById('btn-unload-all').addEventListener('click', () => {
   document.getElementById('node-location-bar').style.display = 'none';
   renderConvList();
   renderGraph(null);
+  updateTopbarTitle(null);
   showNotif('All conversations unloaded', 'success');
 });
 
