@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5936,7 +5937,7 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.2.1', date: '2025-05-05', latest: true,
+    version: 'v7.2.1', date: '2026-05-05', latest: true,
     items: [
       { type: 'change', text: '<strong>PDF export rewritten</strong> — no longer a blurry screenshot. Opens a clean print-ready window with proper typography (Georgia serif, 11pt), correct 8.5×11 letter margins, paginated text, and formatted code blocks. Browser print dialog opens automatically — choose "Save as PDF".' },
       { type: 'new', text: '<strong>PDF respects current view mode and filters</strong> — exports exactly what you see: Rendered, Markdown, HTML, or JSON; active role filters and search filters are applied.' },
@@ -5949,7 +5950,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.2.0', date: '2025-05-05', latest: false,
+    version: 'v7.2.0', date: '2026-05-05', latest: false,
     items: [
       { type: 'new', text: '<strong>Custom theme color picker</strong> — a rainbow ✦ dot after the theme presets opens a live-editing panel. Customize background, secondary background, panel background, primary and secondary text, accent color, border color, and all four node colors individually.' },
       { type: 'new', text: '<strong>Quick presets inside the custom panel</strong> — apply any of the 5 named themes as a starting point, then adjust from there.' },
@@ -5958,7 +5959,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.1.0', date: '2025-05-05', latest: false,
+    version: 'v7.1.0', date: '2026-05-05', latest: false,
     items: [
       { type: 'new', text: '<strong>Claude new export format</strong> — detects and correctly converts Claude.ai\'s current export format (<code>chat_messages[]</code> with <code>sender</code> + <code>parent_message_uuid</code>). Branching is preserved using the parent UUID so regenerated responses appear as real branches in the graph.' },
       { type: 'fix', text: '<strong>Claude new format was misdetected as Mistral</strong> — both use <code>chat_messages[]</code>; now distinguished by presence of <code>sender</code> field (Claude) vs <code>role</code> field (Mistral).' },
@@ -5967,7 +5968,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.8', date: '2025-05-04', latest: false,
+    version: 'v7.0.8', date: '2026-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>Chunk export re-import showed "unknown format / 0 messages"</strong> — <code>convToOpenAIFormat</code> was reading <code>content.text</code> directly, missing text from non-OpenAI formats (Claude, DeepSeek, Grok, GLM). Now uses <code>getNodeText()</code> which handles all formats, with fallbacks.' },
       { type: 'fix', text: '<strong>Corrupt or missing mapping crashed entire chunk export</strong> — conversations with malformed <code>data.mapping</code> are now skipped with a console warning rather than aborting the whole export' },
@@ -5975,7 +5976,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.7', date: '2025-05-04', latest: false,
+    version: 'v7.0.7', date: '2026-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>File splitter failed on non-array JSON</strong> — worker now handles wrapped objects (<code>{"conversations":[...]}</code>), single conversation objects, and BOM-prefixed files before splitting' },
       { type: 'change', text: '<strong>Large file warning threshold raised to 300 MB</strong> — was 50 MB, which was too aggressive for normal use' },
@@ -5984,14 +5985,14 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.6', date: '2025-05-04', latest: false,
+    version: 'v7.0.6', date: '2026-05-04', latest: false,
     items: [
       { type: 'change', text: '<strong>Split & Import is now fully automatic</strong> — the primary action splits the file in a background Web Worker and imports all chunks sequentially without any manual steps. Progress is shown per chunk.' },
       { type: 'new', text: '<strong>Download Chunks option retained</strong> — a secondary button lets you download the chunk files instead, for portability or re-import on another machine.' },
     ]
   },
   {
-    version: 'v7.0.5', date: '2025-05-04', latest: false,
+    version: 'v7.0.5', date: '2026-05-04', latest: false,
     items: [
       { type: 'new', text: '<strong>Large file warning</strong> — files over 50 MB trigger a warning before import with two choices: Try Import Anyway or Split into Chunks First' },
       { type: 'new', text: '<strong>Smart error recovery</strong> — if a large file fails to parse, the error dialog reappears with the Split option rather than just showing a raw error message' },
@@ -5999,7 +6000,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.4', date: '2025-05-04', latest: false,
+    version: 'v7.0.4', date: '2026-05-04', latest: false,
     items: [
       { type: 'new', text: '<strong>Reset dropdown</strong> — the Reset button now has a <strong>▾</strong> arrow that expands three options: <em>Reset All</em> (nodes + view together), <em>Reset Nodes</em> (restore positions only), and <em>Reset View</em> (refit viewport only)' },
       { type: 'change', text: '<strong>Reset All is the new default</strong> — clicking the main Reset button now resets node positions <em>and</em> refits the viewport, so the graph is always fully visible after a reset' },
@@ -6007,7 +6008,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.3', date: '2025-05-04', latest: false,
+    version: 'v7.0.3', date: '2026-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>Export All failed silently on large projects</strong> — <code>JSON.stringify</code> on 1000+ conversations caused memory exhaustion; export now streams each conversation individually into a <code>Blob</code> array, eliminating the memory spike' },
       { type: 'fix', text: '<strong>Export All now includes hidden conversations</strong> — conversations stashed via Show Only were previously excluded from the export; they are now included alongside visible ones' },
@@ -6015,7 +6016,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.2', date: '2025-05-04', latest: false,
+    version: 'v7.0.2', date: '2026-05-04', latest: false,
     items: [
       { type: 'new', text: '<strong>Smart duplicate handling on import</strong> — when adding files to an existing project, each conversation is matched by <code>conversation_id</code>. Same ID with more nodes → updated in place; same or fewer nodes → skipped. Works across visible, hidden, and deleted pools.' },
       { type: 'new', text: '<strong>Import summary notification</strong> — shows a breakdown after every load: <em>3 new, 2 updated, 1 skipped — from file.json</em>.' },
@@ -6023,7 +6024,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0.1', date: '2025-05-04', latest: false,
+    version: 'v7.0.1', date: '2026-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>Metadata level chain showed "undefined" on OpenAI files</strong> — BFS depth calculation was hardcoded to start at <code>root</code>; OpenAI files use a UUID as their root node, causing all levels to show as undefined' },
       { type: 'fix', text: '<strong>Branch Index depth badges also affected</strong> — same hardcoded root fix applied to the Branch Index depth/position-at-level badges' },
@@ -6031,7 +6032,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v7.0', date: '2025-05-04', latest: false,
+    version: 'v7.0', date: '2026-05-04', latest: false,
     items: [
       { type: 'new', text: '<strong>System theme detection</strong> — automatically defaults to Light or Dark based on your OS preference; manual selection still overrides and saves as before' },
       { type: 'new', text: '<strong>GLM / Zhipu AI format support</strong> — auto-detects and converts <code>chat.history.messages</code> structure from Zhipu GLM models' },
@@ -6077,7 +6078,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v6.2', date: '2025-05-03', latest: false,
+    version: 'v6.2', date: '2026-05-03', latest: false,
     items: [
       { type: 'new', text: '<strong>Changelog modal</strong> — "What\'s New" button in topbar showing full version history' },
       { type: 'new', text: '<strong>Branch Index levels</strong> — each entry now shows depth and position-at-level (e.g. <code>5,12/13</code>)' },
@@ -6094,7 +6095,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v6.0', date: '2025-05-01',
+    version: 'v6.0', date: '2026-05-01',
     items: [
       { type: 'new', text: '<strong>Branch view filters</strong> — search bar, Show/Hide role pills, Search-in scope pills' },
       { type: 'new', text: '<strong>Branch view modes</strong> — Rendered / Markdown / HTML / JSON with per-mode export' },
