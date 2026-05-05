@@ -832,16 +832,17 @@ body {
 .cl-version { padding: 20px 24px 0; }
 .cl-version:last-child { padding-bottom: 24px; }
 .cl-version + .cl-version { border-top: 1px solid var(--border-color); margin-top: 4px; }
-.cl-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.cl-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
 .cl-tag { font-size: 13px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-teal); background: rgba(0,212,170,0.1); padding: 2px 8px; border-radius: 4px; }
 .cl-tag.latest { background: var(--accent-teal); color: #000; }
 .cl-date { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
-.cl-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
-.cl-item { display: flex; gap: 8px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-.cl-item::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--border-light); margin-top: 8px; flex-shrink: 0; }
-.cl-item.new::before { background: var(--accent-green); }
-.cl-item.fix::before { background: var(--accent-yellow); }
-.cl-item.change::before { background: var(--accent-blue); }
+.cl-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.cl-item { display: flex; gap: 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; align-items: flex-start; }
+.cl-item::before { display: none; }
+.cl-item .cl-badge { font-size: 9px; font-weight: 700; letter-spacing: .05em; padding: 2px 5px; border-radius: 3px; flex-shrink: 0; margin-top: 3px; text-transform: uppercase; }
+.cl-item.new .cl-badge { background: rgba(74,222,128,0.15); color: var(--accent-green); }
+.cl-item.fix .cl-badge { background: rgba(251,191,36,0.15); color: var(--accent-yellow); }
+.cl-item.change .cl-badge { background: rgba(96,165,250,0.15); color: var(--accent-blue); }
 
 /* Settings modal */
 .settings-body { padding: 20px; overflow-y: auto; }
@@ -4451,7 +4452,7 @@ function buildHelp() {
         <span class="cl-date">${v.date}</span>
         ${v.latest ? '<span style="font-size:10px;color:var(--accent-teal);font-weight:600">LATEST</span>' : ''}
       </div>
-      <ul class="cl-items">${v.items.map(i => `<li class="cl-item ${i.type}">${i.text}</li>`).join('')}</ul>
+      <ul class="cl-items">${v.items.map(i => `<li class="cl-item ${i.type}"><span class="cl-badge">${i.type}</span><span>${i.text}</span></li>`).join('')}</ul>
     </div>
   `).join('');
 
