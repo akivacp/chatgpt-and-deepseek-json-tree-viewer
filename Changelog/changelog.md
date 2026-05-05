@@ -2,7 +2,24 @@
 
 ---
 
-## v7.2.0 — 2025-05-05 *(Current)*
+## v7.2.1 — 2025-05-05 *(Current)*
+
+### 🔄 Changed
+- **PDF export rewritten** — no longer a blurry screenshot. Opens a clean print-ready window with proper typography (Georgia serif, 11pt), correct 8.5×11 letter margins, paginated real text, and formatted code blocks. Browser print dialog opens automatically — choose "Save as PDF". Respects active view mode and filters.
+
+### 🆕 New
+- **Popout respects view mode and filters** — both Selected Node and Branch popouts now open in the active view mode (Rendered/Markdown/HTML/JSON) and only include currently visible filtered messages
+- **Model shown in branch message cards** — each card in Branch view shows the model name (gpt-4o, claude-3, etc.) as a teal pill next to the timestamp
+
+### 🐛 Bug Fixes
+- **Print (Ctrl+P) now renders correctly** — fixed print CSS so the right panel unfolds at full content height, all UI chrome hidden, proper page breaks applied
+- **`model_editable_context` nodes correctly classified** — assistant-labeled nodes containing system context are now reclassified as system
+- **Topbar title fills available space** — conversation title expands to fill the wide gap between buttons and theme picker
+- **Large graphs no longer zoom to invisible dots** — minimum scale of 0.15 enforced on fitGraph
+
+---
+
+## v7.2.0 — 2025-05-05
 
 ### 🆕 New
 - **Custom theme color picker** — a rainbow ✦ dot after the preset theme dots opens a live color editing panel. Customize backgrounds, text, accent color, borders, and all four node colors individually. Changes apply instantly across the entire UI.
