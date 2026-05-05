@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.2.0</title>
+<title>ChatGPT JSON Tree Viewer v7.2.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -216,13 +216,16 @@ body {
   white-space: nowrap; flex-shrink: 0;
 }
 #topbar-conv-title {
-  font-size: 12px; color: var(--text-secondary);
-  padding: 3px 8px; border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--text-primary);
+  padding: 3px 10px; border-radius: var(--radius-sm);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+  user-select: text; cursor: default;
+}
+#topbar-conv-title:not(:empty) {
   border: 1px solid var(--border-color);
   background: var(--bg-tertiary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 280px; flex-shrink: 1;
-  user-select: text; cursor: text; display: none;
+  cursor: text;
 }
 .topbar-btn {
   display: flex; align-items: center; gap: 5px;
@@ -967,12 +970,22 @@ body {
 
 /* ===== PRINT ===== */
 @media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   #topbar, #sidebar-left, .resize-handle, #graph-area, #panel-tabs,
-  .content-toolbar, #panel-right .panel-tab-content:not(.active) { display: none !important; }
-  #app { display: block; }
-  #main { display: block; }
-  #panel-right { width: 100%; max-width: 100%; border: none; }
-  .content-scroll { overflow: visible; height: auto; }
+  .content-toolbar, #panel-right .panel-tab-content:not(.active),
+  .action-btn, .meta-bar, #node-header-bar .node-id-display,
+  #node-location-bar { display: none !important; }
+  html, body { height: auto !important; overflow: visible !important; }
+  #app { display: block !important; height: auto !important; }
+  #main { display: block !important; height: auto !important; overflow: visible !important; }
+  #panel-right {
+    position: static !important; width: 100% !important; max-width: 100% !important;
+    height: auto !important; border: none !important; overflow: visible !important;
+    box-shadow: none !important;
+  }
+  .panel-tab-content.active { display: block !important; height: auto !important; overflow: visible !important; }
+  .content-scroll { overflow: visible !important; height: auto !important; max-height: none !important; }
+  #branch-content, #content-rendered { overflow: visible !important; height: auto !important; }
 }
 
 /* ===== DROP OVERLAY ===== */
@@ -1028,7 +1041,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.2.0</span>
+      <span class="logo-version">v7.2.1</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1036,7 +1049,6 @@ body {
     </button>
     <input type="file" id="file-input" accept=".json" multiple>
     <span id="format-badge"></span>
-    <span id="topbar-conv-title" title="Conversation title — click to select and copy"></span>
     <button class="topbar-btn" id="btn-close-conv" title="Close current conversation" style="display:none;color:var(--accent-red);border-color:rgba(239,68,68,0.4);">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       Close
@@ -1080,7 +1092,7 @@ body {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Help
     </button>
-    <div class="topbar-sep"></div>
+    <span id="topbar-conv-title" title="Conversation title — click to select and copy"></span>
     <a href="https://github.com/akivacp/chatgpt-json-tree-viewer" target="_blank" rel="noopener" style="font-size:11px;color:var(--text-muted);text-decoration:none;display:flex;align-items:center;gap:5px;opacity:0.6;transition:opacity 0.2s;white-space:nowrap;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
       chatgpt-json-tree-viewer
@@ -1573,7 +1585,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.2.0 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.2.1 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -2064,12 +2076,16 @@ function getNodeRole(node) {
   const text = (node?.message?.content?.text || '').trim();
   // Explicit system role always wins
   if (role === 'system') return 'system';
-  // Only apply heuristics to unknown/tool roles — never reclassify user or assistant
+  // Catch known system patterns regardless of stated role
+  // (OpenAI sometimes labels these as 'assistant')
+  if (text.toLowerCase().includes('model_editable_context')) return 'system';
+  if (text.toLowerCase().includes('model_set_context')) return 'system';
+  if (/^\{"content_type"\s*:\s*"model_/.test(text)) return 'system';
+  // Only apply empty/bracket heuristics to unknown/tool roles — not user or assistant
+  // (empty assistant nodes are real OpenAI placeholders, not system nodes)
   if (role === 'user' || role === 'assistant') return role;
-  // For other/unknown roles: empty text, bracket-only content, or known system patterns
   if (!text) return 'system';
   if (/^\[[^\]]+\]$/.test(text)) return 'system';
-  if (text.toLowerCase().includes('model_editable_context')) return 'system';
   return role;
 }
 
@@ -2375,7 +2391,8 @@ function fitGraph() {
   const minX = Math.min(...xs), maxX = Math.max(...xs);
   const minY = Math.min(...ys), maxY = Math.max(...ys);
   const gW = maxX - minX + 80, gH = maxY - minY + 80;
-  const scale = Math.min(W / gW, H / gH, 1.5) * 0.85;
+  // Clamp scale: never smaller than 0.15 so nodes stay visible on large graphs
+  const scale = Math.max(0.15, Math.min(W / gW, H / gH, 1.5) * 0.85);
   const tx = W / 2 - scale * (minX + maxX) / 2;
   const ty = H / 2 - scale * (minY + maxY) / 2;
   const t = d3.zoomIdentity.translate(tx, ty).scale(scale);
@@ -2521,8 +2538,13 @@ function showNodeContent(nodeId) {
   badge.textContent = role.charAt(0).toUpperCase() + role.slice(1);
   badge.className = `node-role-badge role-${role === 'assistant' ? 'assistant' : role === 'user' ? 'user' : role === 'system' ? 'system' : 'other'}`;
   document.getElementById('node-id-display').textContent = nodeId.slice(0, 16) + (nodeId.length > 16 ? '…' : '');
-  const model = node.message?.metadata?.model || '';
-  document.getElementById('node-model-info').textContent = model;
+  const model = node.message?.metadata?.model
+    || node.message?.metadata?.model_slug
+    || node.message?.metadata?.default_model_slug
+    || node.message?.metadata?.modelName
+    || '';
+  document.getElementById('node-model-info').textContent = '';
+  document.getElementById('node-model-info').style.display = 'none';
 
   // Location bar: breadcrumb + timestamp + depth
   const locBar = document.getElementById('node-location-bar');
@@ -2531,6 +2553,7 @@ function showNodeContent(nodeId) {
   const locParts = [];
   locParts.push(`<span style="color:var(--accent-teal);font-family:var(--font-mono)">↳${depth}</span>`);
   if (ts) locParts.push(`<span style="font-family:var(--font-mono)">${ts}</span>`);
+  if (model) locParts.push(`<span style="color:var(--accent-teal);font-size:10px;font-weight:600;background:rgba(0,212,170,0.1);padding:1px 5px;border-radius:3px;">${escapeHtml(model)}</span>`);
   if (breadcrumb) locParts.push(`<span style="color:var(--text-muted)">${escapeHtml(conv.title)} › ${escapeHtml(breadcrumb)}</span>`);
   else locParts.push(`<span style="color:var(--text-muted)">${escapeHtml(conv.title)}</span>`);
   locBar.innerHTML = locParts.join('<span style="margin:0 5px;opacity:0.4">·</span>');
@@ -2804,6 +2827,18 @@ function renderBranchContent() {
       tsSpan.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:var(--font-mono);';
       tsSpan.textContent = msgTs;
       topRow.appendChild(tsSpan);
+    }
+
+    // Model badge
+    const msgModel = node.message?.metadata?.model
+      || node.message?.metadata?.model_slug
+      || node.message?.metadata?.default_model_slug
+      || node.message?.metadata?.modelName || '';
+    if (msgModel) {
+      const modelBadge = document.createElement('span');
+      modelBadge.style.cssText = 'font-size:9px;color:var(--accent-teal);font-family:var(--font-mono);background:rgba(0,212,170,0.1);padding:1px 5px;border-radius:3px;white-space:nowrap;';
+      modelBadge.textContent = msgModel;
+      topRow.appendChild(modelBadge);
     }
 
     const spacer = document.createElement('div');
@@ -3670,14 +3705,11 @@ document.addEventListener('click', hideContextMenu);
 function updateTopbarTitle(title) {
   const el = document.getElementById('topbar-conv-title');
   if (!el) return;
+  el.textContent = title || '';
   if (title) {
-    el.textContent = title;
-    el.style.display = '';
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    el.textContent = '';
-    el.style.display = 'none';
-    document.title = 'ChatGPT JSON Tree Viewer v7.2.0';
+    document.title = 'ChatGPT JSON Tree Viewer v7.2.1';
   }
 }
 
@@ -4060,7 +4092,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.2.0</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.2.1</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4231,7 +4263,7 @@ const helpTopics = [
       <li><strong>Copy (clipboard icon)</strong> — copies content in the current view mode to clipboard. Flashes green on success</li>
       <li><strong>Export (download icon)</strong> — downloads a file in the format matching the active view mode</li>
       <li><strong>Pop-out (external link icon)</strong> — opens the rendered HTML content in a new browser tab with clean styling</li>
-      <li><strong>PDF (document icon)</strong> — generates a PDF screenshot of the rendered content using html2canvas + jsPDF</li>
+      <li><strong>PDF</strong> — opens a clean print-ready window with proper typography and 8.5×11 letter page layout. Respects the active view mode (Rendered/Markdown/HTML/JSON) and any active filters. The browser print dialog opens automatically — choose <em>Save as PDF</em> to save the file.</li>
       <li><strong>M</strong> — toggles the metadata bar below the content (shows timestamp, model, parent node ID, child count)</li>
       <li><strong>H</strong> — toggles search term highlighting. When on (teal), every occurrence of the active search query is highlighted in yellow within the content. Synced with the Branch panel's H button</li>
     </ul>
@@ -4332,7 +4364,7 @@ const helpTopics = [
       <li><strong>Copy</strong> — copies content to clipboard in the active view mode</li>
       <li><strong>Export</strong> — saves as <code>.md</code> (Rendered or Markdown mode), <code>.html</code> (HTML mode), or <code>.json</code> (JSON mode)</li>
       <li><strong>Pop-out</strong> — opens rendered content in a new tab with clean typography</li>
-      <li><strong>PDF</strong> — captures the rendered HTML as a PDF via html2canvas + jsPDF. The output is a pixel-accurate screenshot of the panel</li>
+      <li><strong>PDF</strong> — same as above. Exports only the currently visible (filtered) messages in the active view mode. Code blocks, tables, and headings are properly formatted.</li>
     </ul>
     <h3>Branch Panel</h3>
     <ul>
@@ -5034,28 +5066,135 @@ document.getElementById('btn-export').addEventListener('click', () => {
 });
 
 document.getElementById('btn-popout').addEventListener('click', () => {
-  const content = document.getElementById('content-rendered').innerHTML;
+  const mode = state.viewMode;
+  const nodeId = state.selectedNodeId;
+  const conv = getActiveConv();
+  const node = conv?.data?.mapping?.[nodeId];
+  const text = node ? getNodeText(node) : '';
   const w = window.open('', '_blank', 'width=800,height=600');
-  w.document.write(`<!DOCTYPE html><html><head><title>Message</title><style>
+  let body = '';
+  let title = node ? (getNodeRole(node) + ' message') : 'Message';
+
+  if (mode === 'rendered') {
+    body = DOMPurify.sanitize(marked.parse(text || ''));
+  } else if (mode === 'markdown') {
+    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(text || '')}</pre>`;
+  } else if (mode === 'html') {
+    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(DOMPurify.sanitize(marked.parse(text || '')))}</pre>`;
+  } else if (mode === 'json') {
+    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:12px;color:#1a1d2e">${escapeHtml(JSON.stringify(node, null, 2))}</pre>`;
+  }
+
+  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
+    *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,sans-serif;padding:24px;max-width:800px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f5f6fc}
     pre{background:#f0f2f8;padding:12px;border-radius:6px;overflow-x:auto}
     code{font-family:monospace;font-size:13px}
-  </style></head><body>${content}</body></html>`);
+    h1,h2,h3{font-weight:600;margin:14px 0 6px}
+    ul,ol{margin:6px 0 6px 18px} li{margin-bottom:3px}
+    table{border-collapse:collapse;width:100%;margin:8px 0}
+    td,th{padding:6px 10px;border:1px solid #c8cce0} th{background:#dde0ee}
+    blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}
+    .mode-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;background:#e0e3f0;color:#4a5080;padding:2px 7px;border-radius:4px;margin-bottom:14px}
+  </style></head><body>
+    <div class="mode-badge">${mode}</div>
+    ${body}
+  </body></html>`);
   w.document.close();
 });
 
-document.getElementById('btn-pdf').addEventListener('click', async () => {
-  const el = document.getElementById('content-rendered');
-  showNotif('Generating PDF...');
-  try {
-    const canvas = await html2canvas(el, { backgroundColor: '#f5f6fc', scale: 2 });
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const imgW = 595, imgH = canvas.height * imgW / canvas.width;
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, imgH);
-    pdf.save('message.pdf');
-    showNotif('PDF saved!', 'success');
-  } catch(e) { showNotif('PDF error: ' + e.message, 'error'); }
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  const conv = getActiveConv();
+  const isNode = document.getElementById('ptab-node').classList.contains('active');
+  const mode = isNode ? state.viewMode : (state.branchViewMode || 'rendered');
+
+  // Build content
+  let title = conv?.title || 'Export';
+  let htmlContent = '';
+
+  if (isNode) {
+    const nodeId = state.selectedNodeId;
+    const node = conv?.data?.mapping?.[nodeId];
+    const text = node ? getNodeText(node) : '';
+    const role = node ? getNodeRole(node) : '';
+    if (mode === 'rendered') {
+      htmlContent = `<div class="role-label ${role}">${role}</div>` + DOMPurify.sanitize(marked.parse(text || ''));
+    } else {
+      htmlContent = `<div class="role-label ${role}">${role}</div><pre>${escapeHtml(mode === 'json' ? JSON.stringify(node, null, 2) : (mode === 'html' ? DOMPurify.sanitize(marked.parse(text || '')) : (text || '')))}</pre>`;
+    }
+  } else {
+    const path = state._branchPath;
+    if (!path) { showNotif('No branch selected', 'error'); return; }
+    const visibleRoles = state.branchVisibleRoles;
+    const q = state.branchSearchQuery?.trim().toLowerCase() || '';
+    const searchScopes = state.branchSearchScopes;
+    const visibleNodes = path.filter(n => {
+      const role = getNodeRole(n);
+      if (!visibleRoles.has(role)) return false;
+      if (q && (!searchScopes.has(role) || !getNodeText(n).toLowerCase().includes(q))) return false;
+      return true;
+    });
+    const roleColors = { user: '#2563eb', assistant: '#16a34a', system: '#6b7280', other: '#9333ea' };
+    const roleLabels = { user: 'User', assistant: 'Assistant', system: 'System', other: 'Other' };
+    htmlContent = visibleNodes.map(n => {
+      const role = getNodeRole(n);
+      const text = getNodeText(n);
+      const color = roleColors[role] || '#6b7280';
+      let body = '';
+      if (mode === 'rendered') body = DOMPurify.sanitize(marked.parse(text || ''));
+      else if (mode === 'json') body = `<pre>${escapeHtml(JSON.stringify(n, null, 2))}</pre>`;
+      else body = `<pre>${escapeHtml(text || '')}</pre>`;
+      return `<div class="msg">
+        <div class="msg-role" style="color:${color};border-left-color:${color}">${roleLabels[role] || role}</div>
+        <div class="msg-body">${body}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<style>
+  @page { size: letter portrait; margin: 0.75in 0.75in 0.75in 0.75in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; line-height: 1.6; color: #111; background: #fff; }
+  h1 { font-size: 14pt; font-weight: bold; margin-bottom: 4pt; color: #111; padding-bottom: 6pt; border-bottom: 1pt solid #ccc; }
+  .subtitle { font-size: 9pt; color: #666; margin-bottom: 18pt; font-family: Arial, sans-serif; }
+  .msg { margin-bottom: 14pt; page-break-inside: avoid; }
+  .msg-role { font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; font-family: Arial, sans-serif; margin-bottom: 4pt; padding-left: 8pt; border-left: 2pt solid #aaa; }
+  .msg-body p { margin-bottom: 6pt; }
+  .msg-body p:last-child { margin-bottom: 0; }
+  .msg-body h1,.msg-body h2,.msg-body h3 { font-size: 12pt; font-weight: bold; margin: 10pt 0 4pt; }
+  .msg-body ul,.msg-body ol { margin: 4pt 0 4pt 18pt; }
+  .msg-body li { margin-bottom: 2pt; }
+  .msg-body pre { font-family: 'Courier New', monospace; font-size: 9pt; background: #f5f5f5; border: 1pt solid #ddd; padding: 8pt; border-radius: 3pt; overflow-wrap: break-word; white-space: pre-wrap; margin: 6pt 0; page-break-inside: avoid; }
+  .msg-body code { font-family: 'Courier New', monospace; font-size: 9pt; background: #f5f5f5; padding: 1pt 3pt; }
+  .msg-body pre code { background: none; padding: 0; }
+  .msg-body blockquote { border-left: 3pt solid #ccc; margin-left: 0; padding-left: 10pt; color: #555; font-style: italic; }
+  .msg-body table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 10pt; }
+  .msg-body td, .msg-body th { border: 1pt solid #ccc; padding: 4pt 8pt; }
+  .msg-body th { background: #f0f0f0; font-weight: bold; }
+  .role-label { font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; font-family: Arial, sans-serif; margin-bottom: 8pt; }
+  .role-label.user { color: #2563eb; }
+  .role-label.assistant { color: #16a34a; }
+  .role-label.system { color: #6b7280; }
+  .role-label.other { color: #9333ea; }
+  pre { font-family: 'Courier New', monospace; font-size: 9pt; background: #f5f5f5; border: 1pt solid #ddd; padding: 8pt; white-space: pre-wrap; overflow-wrap: break-word; margin: 6pt 0; }
+</style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="subtitle">View: ${mode} · ${new Date().toLocaleDateString()}</div>
+  ${htmlContent}
+  <script>
+    window.onload = () => { window.print(); };
+  <\/script>
+</body>
+</html>`);
+  printWindow.document.close();
 });
 
 document.getElementById('btn-toggle-meta').addEventListener('click', () => {
@@ -5121,52 +5260,78 @@ document.getElementById('btn-popout-branch').addEventListener('click', () => {
   const path = state._branchPath;
   if (!path) return;
   const conv = getActiveConv();
-  const htmlParts = path.map(n => {
+  const mode = state.branchViewMode || 'rendered';
+  const visibleRoles = state.branchVisibleRoles;
+  const q = state.branchSearchQuery?.trim().toLowerCase() || '';
+  const searchScopes = state.branchSearchScopes;
+
+  // Filter path the same way renderBranchContent does
+  const visibleNodes = path.filter(n => {
+    const role = getNodeRole(n);
+    if (!visibleRoles.has(role)) return false;
+    if (q) {
+      if (!searchScopes.has(role)) return false;
+      if (!getNodeText(n).toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const styles = {
+    user:      { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(96,165,250,0.6)',  label: '#3b82f6' },
+    assistant: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(74,222,128,0.6)',  label: '#22c55e' },
+    system:    { bg: 'rgba(107,114,128,0.08)', border: 'rgba(156,163,175,0.5)', label: '#9ca3af' },
+    other:     { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(192,132,252,0.6)', label: '#a855f7' },
+  };
+
+  const htmlParts = visibleNodes.map(n => {
     const role = getNodeRole(n);
     const text = getNodeText(n);
-    const styles = {
-      user:      { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(96,165,250,0.6)',  label: '#3b82f6' },
-      assistant: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(74,222,128,0.6)',  label: '#22c55e' },
-      system:    { bg: 'rgba(107,114,128,0.08)', border: 'rgba(156,163,175,0.5)', label: '#9ca3af' },
-      other:     { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(192,132,252,0.6)', label: '#a855f7' },
-    };
     const s = styles[role] || styles.other;
+    let msgBody = '';
+    if (mode === 'rendered') {
+      msgBody = `<div class="msg-body">${DOMPurify.sanitize(marked.parse(text || ''))}</div>`;
+    } else if (mode === 'markdown') {
+      msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:13px;font-family:monospace">${escapeHtml(text || '')}</pre>`;
+    } else if (mode === 'html') {
+      msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:13px;font-family:monospace">${escapeHtml(DOMPurify.sanitize(marked.parse(text || '')))}</pre>`;
+    } else if (mode === 'json') {
+      msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:12px;font-family:monospace">${escapeHtml(JSON.stringify(n, null, 2))}</pre>`;
+    }
     return `<div style="margin-bottom:8px;padding:14px 16px;border-radius:8px;background:${s.bg};border-left:3px solid ${s.border};">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${s.label};margin-bottom:8px;letter-spacing:.07em">${role}</div>
-      <div class="msg-body">${DOMPurify.sanitize(marked.parse(text || ''))}</div>
+      ${msgBody}
     </div>`;
   }).join('');
+
   const w = window.open('', '_blank', 'width=860,height=700');
   w.document.write(`<!DOCTYPE html><html><head><title>${conv?.title || 'Branch'}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,sans-serif;padding:32px;max-width:820px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f0f2f8}
-    h1{font-size:17px;font-weight:600;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #d0d4e8;color:#111}
-    .msg-body p{margin-bottom:10px;color:#2a2d3e}
-    .msg-body p:last-child{margin-bottom:0}
+    h1{font-size:17px;font-weight:600;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid #d0d4e8;color:#111}
+    .meta{font-size:11px;color:#9096b0;margin-bottom:20px}
+    .msg-body p{margin-bottom:10px;color:#2a2d3e} .msg-body p:last-child{margin-bottom:0}
     .msg-body h1,.msg-body h2,.msg-body h3{font-weight:600;margin:14px 0 6px;color:#111}
-    .msg-body ul,.msg-body ol{margin:6px 0 6px 18px;color:#2a2d3e}
-    .msg-body li{margin-bottom:3px}
-    .msg-body pre{background:#dde0ee;padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0;position:relative}
-    .msg-body code{font-family:'Cascadia Code','Fira Code',monospace;font-size:12.5px}
+    .msg-body ul,.msg-body ol{margin:6px 0 6px 18px;color:#2a2d3e} .msg-body li{margin-bottom:3px}
+    .msg-body pre{background:#dde0ee;padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0}
+    .msg-body code{font-family:monospace;font-size:12.5px}
     .msg-body pre code{background:none;padding:0}
-    .msg-body :not(pre) > code{background:#dde0ee;padding:2px 5px;border-radius:3px;font-size:12px}
+    .msg-body :not(pre)>code{background:#dde0ee;padding:2px 5px;border-radius:3px;font-size:12px}
     .msg-body blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}
     .msg-body table{border-collapse:collapse;width:100%;margin:8px 0}
     .msg-body td,.msg-body th{padding:6px 10px;border:1px solid #c8cce0;font-size:13px}
     .msg-body th{background:#dde0ee;font-weight:600}
-    .msg-body a{color:#0077cc}
     .copy-btn{float:right;margin-top:-2px;padding:2px 8px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:inherit;color:#4a5080}
     .copy-btn:hover{background:#d0d4e8}
   </style></head>
   <body>
     <h1>${conv?.title || 'Branch Conversation'}</h1>
+    <div class="meta">${visibleNodes.length} message${visibleNodes.length !== 1 ? 's' : ''} · view: ${mode}${q ? ` · filtered: "${escapeHtml(q)}"` : ''}</div>
     ${htmlParts}
     <script>
-      document.querySelectorAll('.msg-body').forEach((body, i) => {
+      document.querySelectorAll('.msg-body').forEach((body) => {
         const btn = document.createElement('button');
-        btn.className = 'copy-btn';
-        btn.textContent = 'Copy';
+        btn.className = 'copy-btn'; btn.textContent = 'Copy';
         btn.onclick = () => {
           navigator.clipboard.writeText(body.innerText).then(() => {
             btn.textContent = 'Copied!';
@@ -5771,7 +5936,20 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.2.0', date: '2025-05-05', latest: true,
+    version: 'v7.2.1', date: '2025-05-05', latest: true,
+    items: [
+      { type: 'change', text: '<strong>PDF export rewritten</strong> — no longer a blurry screenshot. Opens a clean print-ready window with proper typography (Georgia serif, 11pt), correct 8.5×11 letter margins, paginated text, and formatted code blocks. Browser print dialog opens automatically — choose "Save as PDF".' },
+      { type: 'new', text: '<strong>PDF respects current view mode and filters</strong> — exports exactly what you see: Rendered, Markdown, HTML, or JSON; active role filters and search filters are applied.' },
+      { type: 'fix', text: '<strong>Print (Ctrl+P) now renders correctly</strong> — fixed print CSS so the right panel unfolds from top to bottom at full content height, all panels and toolbars hidden, proper page breaks.' },
+      { type: 'new', text: '<strong>Popout respects view mode and filters</strong> — both Selected Node and Branch popouts now open in the active view mode (Rendered/Markdown/HTML/JSON) and only include currently visible (filtered) messages.' },
+      { type: 'fix', text: '<strong>model_editable_context nodes correctly classified</strong> — nodes labeled as assistant but containing system context content are now reclassified as system regardless of their stated role.' },
+      { type: 'fix', text: '<strong>Topbar title fills available space</strong> — conversation title now expands to fill the wide gap between buttons and theme picker.' },
+      { type: 'fix', text: '<strong>Large graphs no longer zoom to invisible dots</strong> — fitGraph now enforces a minimum scale of 0.15 so nodes stay readable on conversations with 500+ messages.' },
+      { type: 'new', text: '<strong>Model shown in branch cards</strong> — each message card in Branch view now shows the model (gpt-4o, claude-3, etc.) as a teal pill next to the timestamp.' },
+    ]
+  },
+  {
+    version: 'v7.2.0', date: '2025-05-05', latest: false,
     items: [
       { type: 'new', text: '<strong>Custom theme color picker</strong> — a rainbow ✦ dot after the theme presets opens a live-editing panel. Customize background, secondary background, panel background, primary and secondary text, accent color, border color, and all four node colors individually.' },
       { type: 'new', text: '<strong>Quick presets inside the custom panel</strong> — apply any of the 5 named themes as a starting point, then adjust from there.' },
@@ -5943,7 +6121,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.2.0 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.2.1 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
