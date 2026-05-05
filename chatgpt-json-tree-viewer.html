@@ -1532,7 +1532,12 @@ function detectFormat(data) {
       return 'openai-array';
     }
     if (data.length && (data[0]?.role || data[0]?.contentChunks)) return 'claude-array';
-    if (data.length && data[0]?.chat_messages) return 'mistral-array';
+    if (data.length && data[0]?.chat_messages) {
+      // Distinguish Claude new format (sender: human/assistant) from Mistral (role: user/assistant)
+      const firstMsg = data[0].chat_messages[0];
+      if (firstMsg?.sender !== undefined) return 'claude-new-array';
+      return 'mistral-array';
+    }
   }
   if (data.mapping && typeof data.mapping === 'object') {
     const firstVal = Object.values(data.mapping).find(v => v.message) || Object.values(data.mapping)[0];
@@ -1541,7 +1546,11 @@ function detectFormat(data) {
   }
   if (data.metadata?.platform === 'DeepSeek' && data.messages) return 'deepseek-exporter';
   if (data.messages && data.messages[0]?.raw_html !== undefined) return 'deepseek-conv';
-  if (data.chat_messages && (data.account || data.uuid)) return 'mistral';
+  if (data.chat_messages && (data.account || data.uuid)) {
+    const firstMsg = data.chat_messages[0];
+    if (firstMsg?.sender !== undefined) return 'claude-new';
+    return 'mistral';
+  }
   if (data.conversation && data.responses) return 'grok';
   if (data.messages && (data.messages[0]?.role || data.messages[0]?.contentChunks)) return 'claude';
   // GLM/Zhipu AI: single object or array
@@ -1562,7 +1571,8 @@ function convertToUnified(raw) {
     case 'claude': return [convertClaude(raw)];
     case 'claude-array': return raw.map(convertClaude);
     case 'grok': return [convertGrok(raw)];
-    case 'mistral': return [convertMistral(raw)];
+    case 'claude-new': return [convertClaudeNew(raw)];
+    case 'claude-new-array': return raw.map(convertClaudeNew);
     case 'mistral-array': return raw.map(convertMistral);
     case 'glm': return [convertGLM(raw)];
     case 'glm-array': return raw.map(convertGLM);
@@ -1768,6 +1778,63 @@ function convertGrok(data) {
     conversation_id: data.conversation?.id || genId(),
     title: data.conversation?.title || 'Grok Chat',
     mapping, _format: 'grok',
+  };
+}
+
+function convertClaudeNew(data) {
+  // Claude.ai new export format: chat_messages[] with sender + parent_message_uuid
+  const messages = data.chat_messages || [];
+  const mapping = {};
+  const NULL_UUID = '00000000-0000-4000-8000-000000000000';
+
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+
+  // First pass: create all nodes
+  messages.forEach(msg => {
+    const id = msg.uuid;
+    // Extract text from content array
+    let text = msg.text || '';
+    if (!text && Array.isArray(msg.content)) {
+      text = msg.content.filter(c => c.type === 'text').map(c => c.text || '').join('\n');
+    }
+    const role = msg.sender === 'human' ? 'user' : msg.sender === 'assistant' ? 'assistant' : msg.sender || 'unknown';
+    mapping[id] = {
+      id,
+      parent: msg.parent_message_uuid || 'root',
+      children: [],
+      message: {
+        id,
+        author: { role },
+        content: { text },
+        create_time: msg.created_at ? new Date(msg.created_at).getTime() / 1000 : null,
+        metadata: {},
+      }
+    };
+  });
+
+  // Second pass: wire children using parent_message_uuid
+  messages.forEach(msg => {
+    const id = msg.uuid;
+    const parentId = msg.parent_message_uuid;
+    // Map null UUID to root
+    const resolvedParent = (!parentId || parentId === NULL_UUID) ? 'root' : parentId;
+    mapping[id].parent = resolvedParent;
+    if (mapping[resolvedParent]) {
+      mapping[resolvedParent].children.push(id);
+    } else {
+      // Parent not in this conversation — attach to root
+      mapping[id].parent = 'root';
+      mapping['root'].children.push(id);
+    }
+  });
+
+  return {
+    conversation_id: data.uuid || genId(),
+    title: data.name || data.title || 'Claude Chat',
+    create_time: data.created_at ? new Date(data.created_at).getTime() / 1000 : null,
+    update_time: data.updated_at ? new Date(data.updated_at).getTime() / 1000 : null,
+    mapping,
+    _format: 'claude-new',
   };
 }
 
@@ -3502,6 +3569,8 @@ function setFormatBadge(fmt) {
     'deepseek-conv':      ['DeepSeek',         '#0ea5e9'],
     'claude':             ['Claude',           '#d946ef'],
     'claude-array':       ['Claude',           '#d946ef'],
+    'claude-new':         ['Claude',           '#d946ef'],
+    'claude-new-array':   ['Claude',           '#d946ef'],
     'grok':               ['Grok/xAI',         '#f97316'],
     'mistral':            ['Mistral AI',       '#8b5cf6'],
     'mistral-array':      ['Mistral AI',       '#8b5cf6'],
