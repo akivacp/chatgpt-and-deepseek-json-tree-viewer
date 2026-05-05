@@ -1140,7 +1140,7 @@ body {
           <div class="ctp-row"><label>Other node</label><input type="color" data-var="--custom-node-other-border"></div>
         </div>
         <div class="ctp-divider"></div>
-        <button class="ctp-reset" id="ctp-reset-btn">? Reset to current theme defaults</button>
+        <button class="ctp-reset" id="ctp-reset-btn">↺ Reset to current theme defaults</button>
       </div>
     </div>
   </div>
@@ -1167,7 +1167,7 @@ body {
             <option value="created">Date created</option>
             <option value="latest" selected>Latest node date</option>
           </select>
-          <button class="sort-dir-btn" id="conv-sort-dir" data-dir="desc" title="Descending">?</button>
+          <button class="sort-dir-btn" id="conv-sort-dir" data-dir="desc" title="Descending">↓</button>
         </div>
         <div class="sort-row" title="Sort the message search results">
           <span class="sort-label">Results:</span>
@@ -1177,7 +1177,7 @@ body {
             <option value="created">Date created</option>
             <option value="latest" selected>Latest node date</option>
           </select>
-          <button class="sort-dir-btn" id="result-sort-dir" data-dir="desc" title="Descending">?</button>
+          <button class="sort-dir-btn" id="result-sort-dir" data-dir="desc" title="Descending">↓</button>
         </div>
       </div>
       <div class="conversations-header">
@@ -1344,7 +1344,7 @@ body {
               <button class="action-btn" id="btn-popout-branch" title="Pop out branch">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
               </button>
-              <button class="action-btn" id="btn-export-chatgpt" title="Download as ChatGPT JSON" style="font-size:9px;font-family:var(--font-mono);width:auto;padding:0 6px;">GPT?</button>
+              <button class="action-btn" id="btn-export-chatgpt" title="Download as ChatGPT JSON" style="font-size:9px;font-family:var(--font-mono);width:auto;padding:0 6px;">GPT↓</button>
               <button class="action-btn active" id="btn-toggle-highlight-branch" title="Toggle search highlight" style="font-size:10px;font-family:var(--font-mono)">H</button>
             </div>
             <!-- Branch search + filter bar -->
@@ -1439,7 +1439,7 @@ body {
   <div class="modal-box" style="max-width:400px;">
     <div class="modal-header">
       <h2>Load File</h2>
-      <button class="modal-close" onclick="closeModal('modal-load-mode')">?</button>
+      <button class="modal-close" onclick="closeModal('modal-load-mode')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
       <p id="load-mode-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:4px;"></p>
@@ -1460,8 +1460,8 @@ body {
 <div class="modal-backdrop" id="modal-large-file">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-header">
-      <h2>?? Large File Detected</h2>
-      <button class="modal-close" onclick="closeModal('modal-large-file')">?</button>
+      <h2>⚠️ Large File Detected</h2>
+      <button class="modal-close" onclick="closeModal('modal-large-file')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
       <p id="large-file-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:4px;"></p>
@@ -1485,8 +1485,8 @@ body {
 <div class="modal-backdrop" id="modal-graph-export">
   <div class="modal-box" style="max-width:380px;">
     <div class="modal-header">
-      <h2>?? Export Graph</h2>
-      <button class="modal-close" onclick="closeModal('modal-graph-export')">?</button>
+      <h2>🖼 Export Graph</h2>
+      <button class="modal-close" onclick="closeModal('modal-graph-export')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;padding:20px;gap:10px;">
       <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0 0 4px;">Export the current graph view as an image file.</p>
@@ -1512,8 +1512,8 @@ body {
 <div class="modal-backdrop" id="modal-export-warn">
   <div class="modal-box" style="max-width:440px;">
     <div class="modal-header">
-      <h2>?? Large Export</h2>
-      <button class="modal-close" onclick="closeModal('modal-export-warn')">?</button>
+      <h2>⚠️ Large Export</h2>
+      <button class="modal-close" onclick="closeModal('modal-export-warn')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
       <p id="export-warn-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;"></p>
@@ -1523,7 +1523,7 @@ body {
           style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-primary);font-size:13px;font-family:var(--font-ui);">
       </div>
       <div id="export-chunk-warn" style="display:none;font-size:12px;color:#f87171;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);padding:8px 12px;line-height:1.5;">
-        ?? That's a large chunk size — the tab may run out of memory and crash. <strong>Any unsaved work will be lost.</strong> Consider a lower number.
+        ⚠️ That's a large chunk size — the tab may run out of memory and crash. <strong>Any unsaved work will be lost.</strong> Consider a lower number.
       </div>
       <button class="topbar-btn primary" id="export-warn-chunked" style="width:100%;justify-content:center;padding:10px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1542,8 +1542,8 @@ body {
 <div class="modal-backdrop" id="modal-split-file">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-header">
-      <h2>?? Split &amp; Import</h2>
-      <button class="modal-close" onclick="closeModal('modal-split-file')">?</button>
+      <h2>✂️ Split &amp; Import</h2>
+      <button class="modal-close" onclick="closeModal('modal-split-file')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
       <p id="split-file-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;"></p>
@@ -1573,7 +1573,7 @@ body {
   <div class="modal-box" style="max-width:480px">
     <div class="modal-header">
       <h2>Settings</h2>
-      <button class="modal-close" onclick="closeModal('modal-settings')">?</button>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
     </div>
     <div class="modal-body" style="overflow-y:auto">
       <div class="settings-body" id="settings-body"></div>
@@ -1586,7 +1586,7 @@ body {
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
       <h2>ChatGPT JSON Tree Viewer v7.2.1 — Help</h2>
-      <button class="modal-close" onclick="closeModal('modal-help')">?</button>
+      <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
       <div id="help-search-bar" style="padding:8px 12px;border-bottom:1px solid var(--border-color);flex-shrink:0;display:flex;align-items:center;gap:8px;">
@@ -1595,7 +1595,7 @@ body {
           <input id="help-search-input" type="text" placeholder="Search help topics and content…" style="width:100%;padding:6px 10px 6px 28px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-ui);font-size:13px;">
         </div>
         <span id="help-search-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap;min-width:60px;text-align:right;"></span>
-        <button id="help-search-clear" style="display:none;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;">?</button>
+        <button id="help-search-clear" style="display:none;background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;">✕</button>
       </div>
       <div style="display:flex;flex:1;overflow:hidden;">
         <div class="help-sidebar" id="help-nav"></div>
@@ -2174,7 +2174,7 @@ function renderGraph(conv) {
 
   treeLayout(hierarchy);
 
-  // Rotate 90deg: x?y, y?x (top-down)
+  // Rotate 90deg: x→y, y→x (top-down)
   const nodes = hierarchy.descendants();
   const links = hierarchy.links();
 
@@ -2551,7 +2551,7 @@ function showNodeContent(nodeId) {
   const { depth, breadcrumb } = getNodeLocation(conv, nodeId);
   const ts = formatNodeDate(node.message?.create_time);
   const locParts = [];
-  locParts.push(`<span style="color:var(--accent-teal);font-family:var(--font-mono)">?${depth}</span>`);
+  locParts.push(`<span style="color:var(--accent-teal);font-family:var(--font-mono)">↳${depth}</span>`);
   if (ts) locParts.push(`<span style="font-family:var(--font-mono)">${ts}</span>`);
   if (model) locParts.push(`<span style="color:var(--accent-teal);font-size:10px;font-weight:600;background:rgba(0,212,170,0.1);padding:1px 5px;border-radius:3px;">${escapeHtml(model)}</span>`);
   if (breadcrumb) locParts.push(`<span style="color:var(--text-muted)">${escapeHtml(conv.title)} › ${escapeHtml(breadcrumb)}</span>`);
@@ -2819,7 +2819,7 @@ function renderBranchContent() {
 
     const depthBadge = document.createElement('span');
     depthBadge.style.cssText = 'font-size:10px;color:var(--accent-teal);font-family:var(--font-mono);background:rgba(0,212,170,0.1);padding:1px 4px;border-radius:3px;';
-    depthBadge.textContent = '?' + msgDepth;
+    depthBadge.textContent = '↳' + msgDepth;
     topRow.appendChild(depthBadge);
 
     if (msgTs) {
@@ -3169,7 +3169,7 @@ function runSearch(query) {
     item.innerHTML = `
       <div class="search-msg-item-header">
         <span class="search-msg-role" style="color:${roleColor}">${role}</span>
-        <span class="search-msg-depth" title="Depth in thread">?${depth}</span>
+        <span class="search-msg-depth" title="Depth in thread">↳${depth}</span>
         ${dateStr ? `<span class="search-msg-date">${dateStr}</span>` : ''}
       </div>
       <div class="search-msg-breadcrumb">${escapeHtml(conv.title)}${breadcrumb ? ` <span class="search-crumb-sep">›</span> ${escapeHtml(breadcrumb)}` : ''}</div>
@@ -3240,7 +3240,7 @@ function _doLoadFile(file) {
         } else { throw parseErr; }
       }
       const converted = convertToUnified(raw);
-      // Build a map of all known IDs ? existing conv across all pools
+      // Build a map of all known IDs → existing conv across all pools
       const existingMap = new Map([
         ...state.conversations.map(c => [c.id, { pool: 'conversations', conv: c }]),
         ...state.hiddenConversations.map(c => [c.id, { pool: 'hidden', conv: c }]),
@@ -3915,7 +3915,7 @@ function _doExportChunked(all, chunkSize) {
 
   function exportChunk(idx) {
     if (idx >= numChunks) {
-      prog.textContent = `? Done — ${numChunks} file${numChunks !== 1 ? 's' : ''} downloaded.`;
+      prog.textContent = `✓ Done — ${numChunks} file${numChunks !== 1 ? 's' : ''} downloaded.`;
       document.getElementById('export-warn-chunked').disabled = false;
       document.getElementById('export-warn-single').disabled = false;
       showNotif(`Exported ${total} conversations in ${numChunks} chunks`, 'success');
@@ -4091,7 +4091,7 @@ function buildSettings() {
 
 // Help content
 const helpTopics = [
-  { id: 'overview', label: '?? Overview', content: `
+  { id: 'overview', label: '🗂 Overview', content: `
     <h2>ChatGPT JSON Tree Viewer v7.2.1</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
@@ -4109,7 +4109,7 @@ const helpTopics = [
     <p>All formats are automatically converted to a unified internal structure before rendering. The original data is preserved in <code>_original_data</code> for debugging.</p>
     <div class="tip"><strong>Tip:</strong> You can load multiple files at once — each becomes a separate conversation entry in the sidebar.</div>
   `},
-  { id: 'loading', label: '?? Loading & Unloading', content: `
+  { id: 'loading', label: '📂 Loading & Unloading', content: `
     <h2>Loading & Unloading Conversations</h2>
     <h3>Loading Files</h3>
     <ul>
@@ -4138,7 +4138,7 @@ const helpTopics = [
     <p>Click <strong>Unload All</strong> in the top bar to clear every loaded conversation and return to a blank slate. A confirmation dialog appears first. This action cannot be undone — export anything important before unloading.</p>
     <div class="tip"><strong>Tip:</strong> To remove a single conversation, right-click it in the sidebar and choose <strong>Delete Conv</strong>.</div>
   `},
-  { id: 'sidebar', label: '?? Sidebar & Conversations', content: `
+  { id: 'sidebar', label: '🗃 Sidebar & Conversations', content: `
     <h2>Left Sidebar</h2>
     <h3>Conversations List</h3>
     <p>All loaded conversations are listed here. Use the <strong>Chats</strong> sort controls above the list to sort by name, message count, created date, or latest node date in either direction. Each entry shows:</p>
@@ -4163,7 +4163,7 @@ const helpTopics = [
     <div class="tip"><strong>Tip:</strong> Use <strong>Show Only</strong> to focus on one conversation, then <strong>Restore All</strong> to bring back the others — no data is lost. Use <strong>Start Over</strong> only if you want to reset modifications.</div>
     <div class="tip"><strong>Warning:</strong> <strong>Start Over</strong> is irreversible. It resets deleted nodes, modified mappings, and any structural edits back to the original JSON as it was when first loaded.</div>
   `},
-  { id: 'graph', label: '?? Graph & Navigation', content: `
+  { id: 'graph', label: '🔵 Graph & Navigation', content: `
     <h2>Graph Area</h2>
     <h3>Layout</h3>
     <p>Conversations are rendered as top-down tree diagrams using D3.js. Each node represents one message. Edges connect parent to child messages. Branch points (nodes with multiple children) show a <strong style="color:#fbbf24">yellow count badge</strong>.</p>
@@ -4171,9 +4171,9 @@ const helpTopics = [
     <ul>
       <li><strong>Scroll wheel</strong> — zoom in/out centred on the cursor</li>
       <li><strong>Click + drag</strong> on the background — pan the view</li>
-      <li><strong>+ / - buttons</strong> (bottom-left) — zoom in/out by a fixed step</li>
+      <li><strong>+ / − buttons</strong> (bottom-left) — zoom in/out by a fixed step</li>
       <li><strong>Fit button</strong> (bottom-left) — zoom and pan to fit all nodes in view</li>
-      <li><strong>Reset button</strong> (top bar) — click to run <em>Reset All</em> (nodes + view). A confirmation dialog appears before moving any nodes. Click the <strong>?</strong> arrow for three options:
+      <li><strong>Reset button</strong> (top bar) — click to run <em>Reset All</em> (nodes + view). A confirmation dialog appears before moving any nodes. Click the <strong>▾</strong> arrow for three options:
         <ul>
           <li><strong>Reset All</strong> — animates all nodes back to their original calculated positions, then fits the viewport. Requires confirmation.</li>
           <li><strong>Reset Nodes</strong> — restores node positions only; leaves your current zoom/pan in place. Requires confirmation.</li>
@@ -4210,18 +4210,18 @@ const helpTopics = [
     <p>A small canvas overview appears in the bottom-right corner showing the full graph with a teal rectangle indicating the current viewport.</p>
     <ul>
       <li><strong>Click</strong> the minimap to jump the viewport to that position</li>
-      <li><strong>Ctrl + drag</strong> (or ? + drag on Mac) to reposition the minimap anywhere in the graph area</li>
+      <li><strong>Ctrl + drag</strong> (or ⌘ + drag on Mac) to reposition the minimap anywhere in the graph area</li>
       <li>The <strong>map icon button</strong> in the bottom-left controls hides/shows the minimap with a fade animation</li>
     </ul>
     <h3>Graph Controls (Bottom-Left)</h3>
     <ul>
       <li><strong>+</strong> — zoom in</li>
-      <li><strong>-</strong> — zoom out</li>
+      <li><strong>−</strong> — zoom out</li>
       <li><strong>Fit icon</strong> — fit all nodes in view</li>
       <li><strong>Map icon</strong> — toggle minimap visibility</li>
     </ul>
   `},
-  { id: 'nodes-interaction', label: '? Node Interaction', content: `
+  { id: 'nodes-interaction', label: '✥ Node Interaction', content: `
     <h2>Interacting with Nodes</h2>
     <h3>Selecting a Node</h3>
     <p>Click any node to select it. The right panel updates immediately with the node's content. The graph highlights the selected node's ancestors (blue) and descendants (green) while dimming everything else.</p>
@@ -4240,7 +4240,7 @@ const helpTopics = [
     </ul>
     <div class="tip"><strong>Tip:</strong> After deleting nodes, use <strong>Export All</strong> to save the modified conversation tree.</div>
   `},
-  { id: 'selected-node', label: '?? Selected Node Panel', content: `
+  { id: 'selected-node', label: '📄 Selected Node Panel', content: `
     <h2>Selected Node Panel</h2>
     <p>Click any node in the graph to populate this panel. It shows the full content of that single message.</p>
     <h3>Header Bar</h3>
@@ -4248,7 +4248,7 @@ const helpTopics = [
       <li><strong>Role badge</strong> — color-coded: blue (User), green (Assistant), gray (System), purple (Other)</li>
       <li><strong>Model name</strong> — if available in the message metadata (e.g. <em>deepseek-chat</em>)</li>
       <li><strong>Node ID</strong> — truncated internal identifier (full ID shown in JSON view)</li>
-      <li><strong>Location bar</strong> — shows <code>?N</code> depth, <code>YYYY-MM-DD HH:MM</code> timestamp, conversation title, and a breadcrumb of ancestor role snippets (e.g. <em>user: first 24 chars… › assistant: …</em>)</li>
+      <li><strong>Location bar</strong> — shows <code>↳N</code> depth, <code>YYYY-MM-DD HH:MM</code> timestamp, conversation title, and a breadcrumb of ancestor role snippets (e.g. <em>user: first 24 chars… › assistant: …</em>)</li>
     </ul>
     <h3>View Modes</h3>
     <table>
@@ -4270,7 +4270,7 @@ const helpTopics = [
     <h3>Search Highlighting</h3>
     <p>When a global search is active and H is enabled, matched text is highlighted in yellow in the Rendered and Markdown views. The highlight updates instantly as you change the search query.</p>
   `},
-  { id: 'branch', label: '?? Branch View Panel', content: `
+  { id: 'branch', label: '🌿 Branch View Panel', content: `
     <h2>Branch View Panel</h2>
     <p>The Branch tab shows the <strong>complete conversation path</strong> from the root down to the selected node — every message in that thread, in chronological order, as a scrollable list.</p>
     <h3>Message Cards</h3>
@@ -4281,7 +4281,7 @@ const helpTopics = [
       <li><strong style="color:#9ca3af">Gray tint + left border</strong> — System message</li>
       <li><strong style="color:#c084fc">Purple tint + left border</strong> — Other/unknown role</li>
     </ul>
-    <p>Each card header shows: role badge, <code>?N</code> depth indicator, <code>YYYY-MM-DD HH:MM</code> timestamp, a breadcrumb of the 1–2 preceding messages, and a <strong>Copy</strong> button that appears on hover.</p>
+    <p>Each card header shows: role badge, <code>↳N</code> depth indicator, <code>YYYY-MM-DD HH:MM</code> timestamp, a breadcrumb of the 1–2 preceding messages, and a <strong>Copy</strong> button that appears on hover.</p>
     <h3>View Modes</h3>
     <p>The same four modes as the Selected Node panel: Rendered / Markdown / HTML / JSON — applied to all messages in the branch simultaneously.</p>
     <h3>Filter Bar (top to bottom)</h3>
@@ -4312,16 +4312,16 @@ const helpTopics = [
     <ul>
       <li><strong>Copy</strong> — copies all visible branch messages as plain text with role headers</li>
       <li><strong>Export</strong> — downloads in the format matching the active view mode:<br>
-        Rendered ? styled <code>.html</code> with role-colored blocks<br>
-        Markdown ? <code>.md</code> with <code>---</code> separators<br>
-        HTML ? raw rendered HTML per message<br>
-        JSON ? structured <code>.json</code> array</li>
+        Rendered → styled <code>.html</code> with role-colored blocks<br>
+        Markdown → <code>.md</code> with <code>---</code> separators<br>
+        HTML → raw rendered HTML per message<br>
+        JSON → structured <code>.json</code> array</li>
       <li><strong>Pop-out</strong> — opens the full thread in a new browser tab with role-colored shading, timestamps, and per-message Copy buttons</li>
-      <li><strong>GPT?</strong> — downloads the current conversation as an OpenAI-compatible <code>conversations.json</code> file (single conversation)</li>
+      <li><strong>GPT↓</strong> — downloads the current conversation as an OpenAI-compatible <code>conversations.json</code> file (single conversation)</li>
       <li><strong>H</strong> — toggles search highlighting (synced with the Selected Node panel)</li>
     </ul>
   `},
-  { id: 'search', label: '?? Search', content: `
+  { id: 'search', label: '🔍 Search', content: `
     <h2>Global Search</h2>
     <h3>Using the Search Box</h3>
     <p>Type in the search field at the top of the left sidebar to search message content in real time.</p>
@@ -4334,7 +4334,7 @@ const helpTopics = [
     <p>A results panel appears above the conversation list showing every matching message. Each result card contains:</p>
     <ul>
       <li><strong>Role label</strong> — color-coded (blue/green/gray/purple)</li>
-      <li><strong>?N depth</strong> — how deep in the tree the node sits (teal badge)</li>
+      <li><strong>↳N depth</strong> — how deep in the tree the node sits (teal badge)</li>
       <li><strong>Timestamp</strong> — <code>YYYY-MM-DD HH:MM</code> of that specific message</li>
       <li><strong>Breadcrumb</strong> — conversation title and last 1–2 ancestor message snippets</li>
       <li><strong>Preview snippet</strong> — surrounding context with the match highlighted in yellow</li>
@@ -4357,7 +4357,7 @@ const helpTopics = [
     <h3>Clearing Search</h3>
     <p>Delete the search text to clear results and restore normal sort order. Results also clear when you manually click a conversation in the sidebar.</p>
   `},
-  { id: 'export', label: '?? Exporting', content: `
+  { id: 'export', label: '💾 Exporting', content: `
     <h2>Export Options</h2>
     <h3>Selected Node Panel</h3>
     <ul>
@@ -4371,14 +4371,14 @@ const helpTopics = [
       <li><strong>Copy</strong> — copies all branch messages as plain text with <code>[ROLE]</code> headers and <code>---</code> separators</li>
       <li><strong>Export</strong> — format depends on active view mode:
         <ul>
-          <li><strong>Rendered</strong> ? <code>.html</code> with full CSS styling, role-colored message blocks (matching the pop-out appearance)</li>
-          <li><strong>Markdown</strong> ? <code>.md</code> with <code>**[ROLE]**</code> headers</li>
-          <li><strong>HTML</strong> ? <code>.html</code> with raw rendered HTML, no extra CSS</li>
-          <li><strong>JSON</strong> ? <code>.json</code> array of <code>{id, role, content, create_time, model}</code> objects</li>
+          <li><strong>Rendered</strong> → <code>.html</code> with full CSS styling, role-colored message blocks (matching the pop-out appearance)</li>
+          <li><strong>Markdown</strong> → <code>.md</code> with <code>**[ROLE]**</code> headers</li>
+          <li><strong>HTML</strong> → <code>.html</code> with raw rendered HTML, no extra CSS</li>
+          <li><strong>JSON</strong> → <code>.json</code> array of <code>{id, role, content, create_time, model}</code> objects</li>
         </ul>
       </li>
       <li><strong>Pop-out</strong> — opens in a new tab with role-colored shading, depth/timestamp headers, and per-message Copy buttons</li>
-      <li><strong>GPT?</strong> — downloads the current conversation as a single-item OpenAI <code>conversations.json</code> array</li>
+      <li><strong>GPT↓</strong> — downloads the current conversation as a single-item OpenAI <code>conversations.json</code> array</li>
     </ul>
     <h3>Project Export (Top Bar)</h3>
     <ul>
@@ -4387,7 +4387,7 @@ const helpTopics = [
           <li>If you have more than 1,000 conversations, a dialog appears asking how many per chunk. Enter a number and click <strong>Export as Chunks</strong> — multiple numbered files are downloaded (<code>part1of5_1000convs</code>, etc.).</li>
           <li>If you type a large chunk size, a warning appears that the tab may crash and unsaved work will be lost.</li>
           <li>Chunk files can be re-imported one by one — the duplicate-handling logic merges everything correctly, and all formats (OpenAI, Claude, DeepSeek, Grok, GLM) are fully preserved through the export/import round-trip.</li>
-          <li>The default chunk size can be set in <strong>Settings ? Export</strong> so you don't have to re-enter it each time.</li>
+          <li>The default chunk size can be set in <strong>Settings → Export</strong> so you don't have to re-enter it each time.</li>
         </ul>
       </li>
     </ul>
@@ -4400,7 +4400,7 @@ const helpTopics = [
       <li><code>create_time</code>, <code>update_time</code>, <code>conversation_id</code>, <code>title</code></li>
     </ul>
   `},
-  { id: 'settings', label: '? Settings', content: `
+  { id: 'settings', label: '⚙ Settings', content: `
     <h2>Settings</h2>
     <p>Click <strong>Settings</strong> in the top bar to open the settings panel.</p>
     <h3>Node Visibility</h3>
@@ -4415,7 +4415,7 @@ const helpTopics = [
     </ul>
     <p>All settings are saved to <code>localStorage</code> and persist across page reloads.</p>
   `},
-  { id: 'themes', label: '?? Themes', content: `
+  { id: 'themes', label: '🎨 Themes', content: `
     <h2>Themes</h2>
     <p>Click any of the colored dots in the top-right corner of the toolbar to switch themes instantly. The preference is saved to <code>localStorage</code> automatically.</p>
     <h3>Built-in Themes</h3>
@@ -4428,7 +4428,7 @@ const helpTopics = [
       <tr><td>Dark purple</td><td><strong>Purple</strong></td><td>Deep purple with lavender accents</td></tr>
     </table>
     <h3>Custom Theme</h3>
-    <p>The <strong>rainbow ? dot</strong> at the end of the row opens the custom theme panel, where you can set every color individually with a color picker:</p>
+    <p>The <strong>rainbow ✦ dot</strong> at the end of the row opens the custom theme panel, where you can set every color individually with a color picker:</p>
     <ul>
       <li><strong>Backgrounds</strong> — primary, secondary, and panel background colors</li>
       <li><strong>Text</strong> — primary and secondary text colors</li>
@@ -4439,10 +4439,10 @@ const helpTopics = [
     <h3>Quick Presets</h3>
     <p>Inside the custom panel, the five preset buttons (Dark, Light, Blue, Green, Purple) apply that theme's colors as a starting point. Adjust from there to create your own look.</p>
     <h3>Reset</h3>
-    <p>The <strong>? Reset to current theme defaults</strong> button at the bottom of the panel restores all custom colors to the Dark theme defaults.</p>
+    <p>The <strong>↺ Reset to current theme defaults</strong> button at the bottom of the panel restores all custom colors to the Dark theme defaults.</p>
     <div class="tip"><strong>Tip:</strong> Custom colors are saved automatically and restored on every visit — even across sessions.</div>
   `},
-  { id: 'panels', label: '?? Panel Layout', content: `
+  { id: 'panels', label: '🖥 Panel Layout', content: `
     <h2>Panel Layout</h2>
     <h3>Three-Panel Layout</h3>
     <ul>
@@ -4460,15 +4460,15 @@ const helpTopics = [
     <h3>Branch Index (Bottom of Right Panel)</h3>
     <p>A collapsible panel at the bottom of the right panel listing all messages in the current branch. Click the <strong>Branch Index</strong> header to expand/collapse it. Use the filter input to search within the index. Clicking any entry selects that node and scrolls the graph to it.</p>
     <h3>Print Mode</h3>
-    <p>When printing (<kbd>Ctrl+P</kbd> / <kbd>?P</kbd>), the layout switches to show only the right panel content, hiding the graph, sidebar, and toolbars.</p>
+    <p>When printing (<kbd>Ctrl+P</kbd> / <kbd>⌘P</kbd>), the layout switches to show only the right panel content, hiding the graph, sidebar, and toolbars.</p>
   `},
-  { id: 'keyboard', label: '? Keyboard & Mouse', content: `
+  { id: 'keyboard', label: '⌨ Keyboard & Mouse', content: `
     <h2>Keyboard & Mouse Reference</h2>
     <h3>Keyboard</h3>
     <table>
       <tr><th>Key</th><th>Action</th></tr>
       <tr><td><kbd>Esc</kbd></td><td>Close any open modal or context menu</td></tr>
-      <tr><td><kbd>Ctrl+P</kbd> / <kbd>?P</kbd></td><td>Print (shows right panel only)</td></tr>
+      <tr><td><kbd>Ctrl+P</kbd> / <kbd>⌘P</kbd></td><td>Print (shows right panel only)</td></tr>
     </table>
     <h3>Mouse — Graph Area</h3>
     <table>
@@ -4491,17 +4491,17 @@ const helpTopics = [
     <table>
       <tr><th>Action</th><th>Effect</th></tr>
       <tr><td>Left click</td><td>Pan the graph viewport to that position</td></tr>
-      <tr><td>Ctrl + drag (? on Mac)</td><td>Reposition the minimap within the graph area</td></tr>
+      <tr><td>Ctrl + drag (⌘ on Mac)</td><td>Reposition the minimap within the graph area</td></tr>
     </table>
   `},
-  { id: 'formats-detail', label: '?? Format Details', content: `
+  { id: 'formats-detail', label: '🔧 Format Details', content: `
     <h2>Format Conversion Details</h2>
     <h3>OpenAI / ChatGPT</h3>
     <p>The native format. Tree structure is preserved exactly. Each node has <code>parent</code>, <code>children[]</code>, and a <code>message</code> with <code>author.role</code> and <code>content.parts[]</code>. Both single conversation objects and arrays of conversations are supported.</p>
     <h3>DeepSeek (Exporter Format)</h3>
     <p>Identified by <code>metadata.platform === "DeepSeek"</code>. Messages may contain nested content objects: <code>search_hint</code>, <code>thinking_chain</code>, and <code>final_answer</code> — these are assembled into readable Markdown. Parent-child links are built from array order.</p>
     <h3>DeepSeek (Chat Export / Mapping Format)</h3>
-    <p>Has a <code>mapping</code> object but messages use <code>fragments[]</code> instead of <code>content</code>. Each fragment has a <code>type</code> field: <code>REQUEST</code> ? user role, <code>RESPONSE</code> ? assistant role. Content is joined from all fragments.</p>
+    <p>Has a <code>mapping</code> object but messages use <code>fragments[]</code> instead of <code>content</code>. Each fragment has a <code>type</code> field: <code>REQUEST</code> → user role, <code>RESPONSE</code> → assistant role. Content is joined from all fragments.</p>
     <h3>DeepSeek (Conversation Format)</h3>
     <p>A <code>messages[]</code> array where each message may have a <code>raw_html</code> field. HTML tags are stripped for preview and content display.</p>
     <h3>Claude / Anthropic</h3>
@@ -4519,7 +4519,7 @@ const helpTopics = [
       <li><code>_format</code> — the detected format name for debugging</li>
     </ul>
   `},
-  { id: 'license', label: '?? License & Credits', content: `
+  { id: 'license', label: '📜 License & Credits', content: `
     <h2>License & Credits</h2>
     <h3>This Project</h3>
     <p><strong>chatgpt-json-tree-viewer</strong> is released under the <strong>MIT License</strong>.</p>
@@ -4570,7 +4570,7 @@ const helpTopics = [
     <h3>All libraries are loaded via CDN</h3>
     <p>All third-party code is loaded from <code>cdnjs.cloudflare.com</code> and <code>fonts.googleapis.com</code>. No code is bundled or modified. The viewer requires an internet connection on first load for these resources; once cached by the browser, it works offline.</p>
   `},
-  { id: 'changelog', label: '?? What\'s New', content: '__changelog__' },
+  { id: 'changelog', label: '🆕 What\'s New', content: '__changelog__' },
 ];
 
 function buildHelp() {
@@ -5002,7 +5002,7 @@ document.querySelectorAll('.search-scope-btn').forEach(btn => {
 
 function updateSortDirButton(btn, dir) {
   btn.dataset.dir = dir;
-  btn.textContent = dir === 'asc' ? '?' : '?';
+  btn.textContent = dir === 'asc' ? '↑' : '↓';
   btn.title = dir === 'asc' ? 'Ascending' : 'Descending';
 }
 
@@ -5519,7 +5519,7 @@ function exportGraphRaster(fmt) {
     const conv = getActiveConv();
     a.download = (conv?.title || 'graph').replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '.' + ext;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    status.textContent = '? Downloaded as ' + ext.toUpperCase();
+    status.textContent = '✓ Downloaded as ' + ext.toUpperCase();
     setTimeout(() => closeModal('modal-graph-export'), 1200);
   }).catch(err => {
     status.textContent = 'Failed: ' + err.message;
@@ -5565,7 +5565,7 @@ function exportGraphVector() {
     a.download = (conv?.title || 'graph').replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '.svg';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    status.textContent = '? Downloaded as SVG';
+    status.textContent = '✓ Downloaded as SVG';
     setTimeout(() => closeModal('modal-graph-export'), 1200);
   } catch(err) {
     status.textContent = 'Failed: ' + err.message;
@@ -5951,7 +5951,7 @@ const changelog = [
   {
     version: 'v7.2.0', date: '2026-05-05', latest: false,
     items: [
-      { type: 'new', text: '<strong>Custom theme color picker</strong> — a rainbow ? dot after the theme presets opens a live-editing panel. Customize background, secondary background, panel background, primary and secondary text, accent color, border color, and all four node colors individually.' },
+      { type: 'new', text: '<strong>Custom theme color picker</strong> — a rainbow ✦ dot after the theme presets opens a live-editing panel. Customize background, secondary background, panel background, primary and secondary text, accent color, border color, and all four node colors individually.' },
       { type: 'new', text: '<strong>Quick presets inside the custom panel</strong> — apply any of the 5 named themes as a starting point, then adjust from there.' },
       { type: 'new', text: '<strong>Reset to defaults</strong> — a Reset button inside the panel restores all custom colors back to the dark theme defaults.' },
       { type: 'new', text: '<strong>Custom theme persists</strong> — all custom color choices are saved to localStorage and restored on every visit.' },
@@ -6001,7 +6001,7 @@ const changelog = [
   {
     version: 'v7.0.4', date: '2026-05-04', latest: false,
     items: [
-      { type: 'new', text: '<strong>Reset dropdown</strong> — the Reset button now has a <strong>?</strong> arrow that expands three options: <em>Reset All</em> (nodes + view together), <em>Reset Nodes</em> (restore positions only), and <em>Reset View</em> (refit viewport only)' },
+      { type: 'new', text: '<strong>Reset dropdown</strong> — the Reset button now has a <strong>▾</strong> arrow that expands three options: <em>Reset All</em> (nodes + view together), <em>Reset Nodes</em> (restore positions only), and <em>Reset View</em> (refit viewport only)' },
       { type: 'change', text: '<strong>Reset All is the new default</strong> — clicking the main Reset button now resets node positions <em>and</em> refits the viewport, so the graph is always fully visible after a reset' },
       { type: 'new', text: '<strong>Help guide updated</strong> — Graph & Navigation topic now documents all three reset options' },
     ]
@@ -6017,7 +6017,7 @@ const changelog = [
   {
     version: 'v7.0.2', date: '2026-05-04', latest: false,
     items: [
-      { type: 'new', text: '<strong>Smart duplicate handling on import</strong> — when adding files to an existing project, each conversation is matched by <code>conversation_id</code>. Same ID with more nodes ? updated in place; same or fewer nodes ? skipped. Works across visible, hidden, and deleted pools.' },
+      { type: 'new', text: '<strong>Smart duplicate handling on import</strong> — when adding files to an existing project, each conversation is matched by <code>conversation_id</code>. Same ID with more nodes → updated in place; same or fewer nodes → skipped. Works across visible, hidden, and deleted pools.' },
       { type: 'new', text: '<strong>Import summary notification</strong> — shows a breakdown after every load: <em>3 new, 2 updated, 1 skipped — from file.json</em>.' },
       { type: 'new', text: '<strong>Help guide updated</strong> — Loading & Unloading topic now documents the duplicate logic with a re-import tip.' },
     ]
@@ -6045,14 +6045,14 @@ const changelog = [
       { type: 'new', text: '<strong>Show Only / Restore All / Start Over</strong> — right-click sidebar: Show Only hides (not deletes) others; Restore All brings them back; Start Over resets all convs including deleted ones to original state' },
       { type: 'new', text: '<strong>Deleted conversation recovery</strong> — Delete Conv stashes to a recovery pool; Start Over restores it' },
       { type: 'new', text: '<strong>Export All</strong> — exports every loaded conversation as a single OpenAI <code>conversations.json</code> array' },
-      { type: 'new', text: '<strong>ChatGPT JSON export</strong> — GPT? button in Branch panel exports current conversation in OpenAI format' },
+      { type: 'new', text: '<strong>ChatGPT JSON export</strong> — GPT↓ button in Branch panel exports current conversation in OpenAI format' },
       { type: 'new', text: '<strong>Branch view filters</strong> — Show/hide roles, search within branch, "Only in" scope selector, all live-filtering with hidden messages removed entirely' },
       { type: 'new', text: '<strong>Branch view modes</strong> — Rendered / Markdown / HTML / JSON with matching per-mode export (styled HTML, .md, .html, .json)' },
       { type: 'new', text: '<strong>Branch pop-out</strong> — opens full thread in new tab with role-colored shading, timestamps, and per-message Copy buttons' },
       { type: 'new', text: '<strong>Node right-click menu</strong> — Copy Message, Select & View, Delete Node directly from graph' },
-      { type: 'new', text: '<strong>Search result cards</strong> — show depth (?N), timestamp, conversation breadcrumb, and node ID with click-to-jump-and-zoom' },
+      { type: 'new', text: '<strong>Search result cards</strong> — show depth (↳N), timestamp, conversation breadcrumb, and node ID with click-to-jump-and-zoom' },
       { type: 'new', text: '<strong>Search term highlighting</strong> — H toggle highlights every match in the Selected Node and Branch panels; toggleable per panel' },
-      { type: 'new', text: '<strong>Node location bar</strong> — Selected Node header shows ?depth, YYYY-MM-DD HH:MM timestamp, and ancestor breadcrumb' },
+      { type: 'new', text: '<strong>Node location bar</strong> — Selected Node header shows ↳depth, YYYY-MM-DD HH:MM timestamp, and ancestor breadcrumb' },
       { type: 'new', text: '<strong>Metadata level chain</strong> — M toggle shows every ancestor level with depth, pos/total, and preview; scrollable; clicking jumps without closing branch' },
       { type: 'new', text: '<strong>Branch Index levels</strong> — each entry shows depth and position-at-level (e.g. <code>3,2/5</code>)' },
       { type: 'new', text: '<strong>Minimap toggle + reposition</strong> — hide/show minimap with button; Ctrl+drag to move it anywhere in the graph area' },
@@ -6101,7 +6101,7 @@ const changelog = [
       { type: 'new', text: '<strong>Branch pop-out</strong> — opens full thread in new tab with role-colored shading' },
       { type: 'new', text: '<strong>Per-message copy</strong> — copy button on each branch message card' },
       { type: 'new', text: '<strong>Node right-click menu</strong> — Copy Message, Select & View, Delete Node' },
-      { type: 'new', text: '<strong>GPT? export</strong> — download current conversation as OpenAI conversations.json' },
+      { type: 'new', text: '<strong>GPT↓ export</strong> — download current conversation as OpenAI conversations.json' },
       { type: 'new', text: '<strong>Export All</strong> — export entire project as single OpenAI JSON array' },
       { type: 'new', text: '<strong>Search result cards</strong> — show depth, timestamp, breadcrumb, and node ID' },
       { type: 'new', text: '<strong>Search persists</strong> — results stay open after clicking a result' },
