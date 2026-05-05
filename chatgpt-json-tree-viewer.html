@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.0.1</title>
+<title>ChatGPT JSON Tree Viewer v7.0.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -941,7 +941,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.0.1</span>
+      <span class="logo-version">v7.0.3</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1312,7 +1312,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.0.1 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.0.3 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -2832,24 +2832,58 @@ function loadFile(file) {
       const text = e.target.result.replace(/^\uFEFF/, ''); // strip UTF-8 BOM if present
       const raw = JSON.parse(text);
       const converted = convertToUnified(raw);
+      // Build a map of all known IDs → existing conv across all pools
+      const existingMap = new Map([
+        ...state.conversations.map(c => [c.id, { pool: 'conversations', conv: c }]),
+        ...state.hiddenConversations.map(c => [c.id, { pool: 'hidden', conv: c }]),
+        ...state.deletedConversations.map(c => [c.id, { pool: 'deleted', conv: c }]),
+      ]);
+      let added = 0, skipped = 0, updated = 0;
       converted.forEach(data => {
         const id = data.conversation_id || genId();
-        // Deep-clone original data for reset
+        if (existingMap.has(id)) {
+          // Compare node counts — update if incoming has more nodes
+          const existing = existingMap.get(id).conv;
+          const existingNodes = Object.keys(existing.data?.mapping || {}).length;
+          const incomingNodes = Object.keys(data.mapping || {}).length;
+          if (incomingNodes > existingNodes) {
+            // Replace in whichever pool it lives in
+            const pool = existingMap.get(id).pool;
+            const arr = pool === 'conversations' ? state.conversations
+                      : pool === 'hidden' ? state.hiddenConversations
+                      : state.deletedConversations;
+            const idx = arr.findIndex(c => c.id === id);
+            if (idx !== -1) {
+              const originalData = JSON.parse(JSON.stringify(data));
+              arr[idx] = { id, title: data.title || 'Untitled', data, format: data._format, _originalData: originalData };
+            }
+            updated++;
+          } else {
+            skipped++;
+          }
+          return;
+        }
+        existingMap.set(id, { pool: 'conversations' }); // prevent dupes within same file
         const originalData = JSON.parse(JSON.stringify(data));
         state.conversations.push({
           id, title: data.title || 'Untitled',
           data, format: data._format,
           _originalData: originalData,
         });
+        added++;
       });
-      // Show format badge from first loaded format
       if (converted.length) setFormatBadge(converted[0]._format);
       document.getElementById('btn-close-conv').style.display = '';
       renderConvList();
       if (!state.activeConvId && state.conversations.length) {
         loadConversation(state.conversations[state.conversations.length - 1].id);
       }
-      showNotif(`Loaded ${converted.length} conversation(s) from ${file.name}`, 'success');
+      const parts = [];
+      if (added)   parts.push(`${added} new`);
+      if (updated) parts.push(`${updated} updated`);
+      if (skipped) parts.push(`${skipped} skipped`);
+      const summary = parts.join(', ') || '0 new';
+      showNotif(`${summary} — from ${file.name}`, added || updated ? 'success' : '');
     } catch(err) {
       showNotif('Error parsing file: ' + err.message, 'error');
       console.error(err);
@@ -3260,7 +3294,7 @@ function updateTopbarTitle(title) {
   } else {
     el.textContent = '';
     el.style.display = 'none';
-    document.title = 'ChatGPT JSON Tree Viewer v7.0.1';
+    document.title = 'ChatGPT JSON Tree Viewer v7.0.3';
   }
 }
 
@@ -3385,14 +3419,39 @@ function convToOpenAIFormat(conv) {
 }
 
 function exportAllAsChatGPT() {
-  if (!state.conversations.length) { showNotif('No conversations loaded', 'error'); return; }
-  const all = state.conversations.map(convToOpenAIFormat);
-  const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `chatgpt_tree_export_${all.length}convs_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  showNotif(`Exported ${all.length} conversation${all.length !== 1 ? 's' : ''} as ChatGPT JSON`, 'success');
+  const all = [
+    ...state.conversations,
+    ...state.hiddenConversations,
+  ];
+  if (!all.length) { showNotif('No conversations loaded', 'error'); return; }
+
+  showNotif(`Preparing export of ${all.length} conversations…`, '');
+
+  // Stream JSON in chunks to avoid one giant in-memory string
+  setTimeout(() => {
+    try {
+      const parts = ['[\n'];
+      for (let i = 0; i < all.length; i++) {
+        const conv = convToOpenAIFormat(all[i]);
+        parts.push(JSON.stringify(conv, null, 2));
+        if (i < all.length - 1) parts.push(',\n');
+      }
+      parts.push('\n]');
+
+      const blob = new Blob(parts, { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `chatgpt_tree_export_${all.length}convs_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      showNotif(`Exported ${all.length} conversation${all.length !== 1 ? 's' : ''} as ChatGPT JSON`, 'success');
+    } catch(err) {
+      showNotif('Export failed: ' + err.message, 'error');
+      console.error('Export error:', err);
+    }
+  }, 50);
 }
 
 function getCurrentContent() {
@@ -3467,7 +3526,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.0.1</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.0.3</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -3493,6 +3552,15 @@ const helpTopics = [
     </ul>
     <h3>Format Detection</h3>
     <p>Detection is fully automatic. The viewer inspects the JSON structure and picks the correct conversion path. If a file cannot be recognized, it falls back to a generic converter and displays what it can.</p>
+    <h3>Duplicate Handling</h3>
+    <p>When loading into an existing project, each incoming conversation is matched against all already-loaded conversations (including hidden and deleted ones) by <code>conversation_id</code>. Three outcomes are possible:</p>
+    <ul>
+      <li><strong>New</strong> — ID not seen before; added to the project normally</li>
+      <li><strong>Updated</strong> — same ID but the incoming version has more nodes; the existing entry is replaced in place (in whichever pool it currently lives — visible, hidden, or deleted)</li>
+      <li><strong>Skipped</strong> — same ID and same or fewer nodes; the existing entry is kept unchanged</li>
+    </ul>
+    <p>The notification after loading tells you the exact breakdown, e.g. <em>"3 new, 2 updated, 1 skipped — from conversations.json"</em>.</p>
+    <div class="tip"><strong>Tip:</strong> Re-importing your <code>conversations.json</code> export regularly is a safe way to incrementally update your project — only truly new or extended conversations will be touched.</div>
     <h3>Unloading</h3>
     <p>Click <strong>Unload All</strong> in the top bar to clear every loaded conversation and return to a blank slate. A confirmation dialog appears first. This action cannot be undone — export anything important before unloading.</p>
     <div class="tip"><strong>Tip:</strong> To remove a single conversation, right-click it in the sidebar and choose <strong>Delete Conv</strong>.</div>
@@ -3727,7 +3795,7 @@ const helpTopics = [
     </ul>
     <h3>Project Export (Top Bar)</h3>
     <ul>
-      <li><strong>Export All</strong> — exports every loaded conversation as a single OpenAI-format JSON array. Filename: <code>chatgpt_tree_export_Nconvs_YYYY-MM-DD.json</code>. This file can be re-imported into ChatGPT-compatible tools</li>
+      <li><strong>Export All</strong> — exports every conversation as a single OpenAI-format JSON array. Filename: <code>chatgpt_tree_export_Nconvs_YYYY-MM-DD.json</code>. Includes both visible and hidden conversations (anything stashed via Show Only). The export streams each conversation individually so it works reliably even with thousands of conversations.</li>
     </ul>
     <h3>OpenAI Export Format</h3>
     <p>Exported conversations use the standard ChatGPT <code>conversations.json</code> structure:</p>
@@ -4630,11 +4698,27 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.0.1', date: '2025-05-04', latest: true,
+    version: 'v7.0.3', date: '2025-05-04', latest: true,
+    items: [
+      { type: 'fix', text: '<strong>Export All failed silently on large projects</strong> — <code>JSON.stringify</code> on 1000+ conversations caused memory exhaustion; export now streams each conversation individually into a <code>Blob</code> array, eliminating the memory spike' },
+      { type: 'fix', text: '<strong>Export All now includes hidden conversations</strong> — conversations stashed via Show Only were previously excluded from the export; they are now included alongside visible ones' },
+      { type: 'fix', text: '<strong>Download anchor now appended to DOM</strong> — some browsers (Firefox) require the anchor element to be in the document before a programmatic click; fixes silent no-download in those browsers' },
+    ]
+  },
+  {
+    version: 'v7.0.2', date: '2025-05-04', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Smart duplicate handling on import</strong> — when adding files to an existing project, each conversation is matched by <code>conversation_id</code>. Same ID with more nodes → updated in place; same or fewer nodes → skipped. Works across visible, hidden, and deleted pools.' },
+      { type: 'new', text: '<strong>Import summary notification</strong> — shows a breakdown after every load: <em>3 new, 2 updated, 1 skipped — from file.json</em>.' },
+      { type: 'new', text: '<strong>Help guide updated</strong> — Loading & Unloading topic now documents the duplicate logic with a re-import tip.' },
+    ]
+  },
+  {
+    version: 'v7.0.1', date: '2025-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>Metadata level chain showed "undefined" on OpenAI files</strong> — BFS depth calculation was hardcoded to start at <code>root</code>; OpenAI files use a UUID as their root node, causing all levels to show as undefined' },
-      { type: 'fix', text: '<strong>Branch Index depth badges also affected</strong> — same hardcoded root issue fixed for position-at-level badges in the Branch Index panel' },
-      { type: 'fix', text: '<strong>Empty assistant nodes misclassified as system</strong> — the smart system-detection heuristic was incorrectly reclassifying <code>role: assistant</code> nodes with empty text (OpenAI placeholder nodes) as system nodes, causing them to be hidden or collapsed' },
+      { type: 'fix', text: '<strong>Branch Index depth badges also affected</strong> — same hardcoded root fix applied to the Branch Index depth/position-at-level badges' },
+      { type: 'fix', text: '<strong>Empty assistant nodes misclassified as system</strong> — the smart system-detection heuristic was incorrectly reclassifying <code>role: assistant</code> nodes with empty text (OpenAI placeholder nodes) as system nodes' },
     ]
   },
   {
@@ -4728,7 +4812,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.0.1 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.0.3 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
