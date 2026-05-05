@@ -2,7 +2,22 @@
 
 ---
 
-## v7.0.8 — 2025-05-04 *(Current)*
+## v7.1.0 — 2025-05-05 *(Current)*
+
+### 🆕 New
+- **Claude new export format** — detects and correctly converts Claude.ai's current export format (`chat_messages[]` with `sender` + `parent_message_uuid`). Branching is fully preserved — regenerated responses appear as real branches in the graph, not a flat chain.
+- **Reset confirmation** — clicking Reset (main button, or Reset All / Reset Nodes from the dropdown) now asks for confirmation before moving nodes. Reset View has no confirmation since it doesn't move nodes.
+- **Graph image export** — camera button at the bottom of the graph controls. Three formats:
+  - **PNG** — current viewport at 2× scale, lossless
+  - **JPG** — current viewport, compressed
+  - **SVG** — full graph as vector (all nodes, regardless of zoom/pan), editable in Inkscape/Figma/Illustrator
+
+### 🐛 Bug Fixes
+- **Claude new format misdetected as Mistral** — both formats use `chat_messages[]`; now distinguished by `sender` field (Claude new) vs `role` field (Mistral)
+
+---
+
+## v7.0.8 — 2025-05-04
 
 ### 🐛 Bug Fixes
 - **Chunk export re-import showed "unknown format / 0 messages"** — `convToOpenAIFormat` was reading `content.text` directly, missing text from non-OpenAI formats (Claude, DeepSeek, Grok, GLM). Now uses `getNodeText()` which handles all formats, with multiple fallbacks.
