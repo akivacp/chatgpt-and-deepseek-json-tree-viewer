@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.0.3</title>
+<title>ChatGPT JSON Tree Viewer v7.0.8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -215,6 +215,43 @@ body {
 .topbar-btn.primary:hover { background: var(--accent-teal-dim); border-color: var(--accent-teal-dim); }
 .topbar-btn svg { width: 14px; height: 14px; }
 #file-input { display: none; }
+
+/* Reset split button */
+.reset-btn-wrap {
+  position: relative; display: flex; flex-shrink: 0;
+}
+.reset-btn-wrap .reset-main {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  border-right: none;
+}
+.reset-btn-wrap .reset-arrow {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 5px 6px; border-left: 1px solid var(--border-light);
+}
+.reset-btn-wrap .reset-main:hover,
+.reset-btn-wrap .reset-arrow:hover {
+  background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-light);
+}
+.reset-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--bg-secondary); border: 1px solid var(--border-light);
+  border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 5000; min-width: 190px; padding: 4px;
+  flex-direction: column; gap: 2px;
+}
+.reset-dropdown.open { display: flex; }
+.reset-opt {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  background: transparent; border: none;
+  color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; font-family: var(--font-ui);
+  text-align: left; width: 100%; white-space: nowrap;
+  transition: all var(--transition);
+}
+.reset-opt:hover { background: var(--bg-hover); color: var(--text-primary); }
+.reset-opt svg { width: 13px; height: 13px; flex-shrink: 0; }
+.reset-opt span { color: var(--text-muted); font-size: 11px; margin-left: auto; padding-left: 8px; }
 
 /* Theme buttons */
 #theme-picker { display: flex; gap: 4px; align-items: center; }
@@ -941,7 +978,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.0.3</span>
+      <span class="logo-version">v7.0.8</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -962,10 +999,29 @@ body {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
       Unload All
     </button>
-    <button class="topbar-btn" id="btn-reset-layout" title="Reset node layout">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
-      Reset
-    </button>
+    <div class="reset-btn-wrap" id="reset-btn-wrap">
+      <button class="topbar-btn reset-main" id="btn-reset-layout" title="Reset All — realign nodes and refit view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+        Reset
+      </button>
+      <button class="topbar-btn reset-arrow" id="btn-reset-dropdown" title="Reset options">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="reset-dropdown" id="reset-dropdown">
+        <button class="reset-opt" id="reset-opt-all">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+          Reset All <span>nodes + view</span>
+        </button>
+        <button class="reset-opt" id="reset-opt-nodes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+          Reset Nodes <span>restore positions</span>
+        </button>
+        <button class="reset-opt" id="reset-opt-view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          Reset View <span>refit viewport</span>
+        </button>
+      </div>
+    </div>
     <button class="topbar-btn" id="btn-settings" title="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       Settings
@@ -1295,6 +1351,91 @@ body {
   </div>
 </div>
 
+<!-- LARGE FILE WARNING MODAL -->
+<div class="modal-backdrop" id="modal-large-file">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h2>⚠️ Large File Detected</h2>
+      <button class="modal-close" onclick="closeModal('modal-large-file')">✕</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
+      <p id="large-file-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:4px;"></p>
+      <button class="topbar-btn primary" id="large-file-try" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+        Try Import Anyway
+      </button>
+      <button class="topbar-btn" id="large-file-split" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+        Split into Chunks First
+      </button>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;">
+        <input type="checkbox" id="large-file-never" style="accent-color:var(--accent-teal);width:14px;height:14px;">
+        <span style="font-size:12px;color:var(--text-muted);">Don't warn again for large files</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT WARNING MODAL -->
+<div class="modal-backdrop" id="modal-export-warn">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-header">
+      <h2>⚠️ Large Export</h2>
+      <button class="modal-close" onclick="closeModal('modal-export-warn')">✕</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
+      <p id="export-warn-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;"></p>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">Conversations per chunk:</label>
+        <input type="number" id="export-chunk-input" min="100" max="10000" step="100"
+          style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-primary);font-size:13px;font-family:var(--font-ui);">
+      </div>
+      <div id="export-chunk-warn" style="display:none;font-size:12px;color:#f87171;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);padding:8px 12px;line-height:1.5;">
+        ⚠️ That's a large chunk size — the tab may run out of memory and crash. <strong>Any unsaved work will be lost.</strong> Consider a lower number.
+      </div>
+      <button class="topbar-btn primary" id="export-warn-chunked" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export as Chunks
+      </button>
+      <button class="topbar-btn" id="export-warn-single" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Try Single File Anyway
+      </button>
+      <div id="export-warn-progress" style="display:none;font-size:12px;color:var(--text-muted);text-align:center;padding:4px 0;line-height:1.6;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPLIT FILE MODAL -->
+<div class="modal-backdrop" id="modal-split-file">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h2>✂️ Split &amp; Import</h2>
+      <button class="modal-close" onclick="closeModal('modal-split-file')">✕</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;padding:20px;gap:12px;">
+      <p id="split-file-desc" style="font-size:13px;color:var(--text-secondary);line-height:1.6;"></p>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">Chunk size:</label>
+        <select id="split-chunk-size" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text-primary);font-size:13px;font-family:var(--font-ui);">
+          <option value="52428800">50 MB</option>
+          <option value="104857600" selected>100 MB</option>
+          <option value="209715200">200 MB</option>
+        </select>
+      </div>
+      <button class="topbar-btn primary" id="split-file-run" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+        Split &amp; Import Automatically
+      </button>
+      <button class="topbar-btn" id="split-file-download" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Chunk Files Instead
+      </button>
+      <div id="split-progress" style="display:none;font-size:12px;color:var(--text-muted);text-align:center;padding:4px 0;line-height:1.6;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="modal-backdrop" id="modal-settings">
   <div class="modal-box" style="max-width:480px">
@@ -1312,7 +1453,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.0.3 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.0.8 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1359,6 +1500,8 @@ const state = {
     showOther: true,
     tooltips: true,
     tooltipDelay: 800,
+    largeFileWarn: 300,  // MB threshold for large file warning, 0 = never warn
+    exportChunkSize: 1000, // conversations per chunk when export is large, 0 = always single file
   },
   transform: d3.zoomIdentity,
   nodePositions: new Map(), // nodeId -> {x, y}
@@ -2048,12 +2191,11 @@ function fitGraph() {
   d3.select('#graph-svg').transition().duration(500).call(zoom.transform, t);
 }
 
-function resetLayout() {
+function resetNodes() {
   if (!state.initialPositions.size) return;
   state.initialPositions.forEach((pos, id) => {
     state.nodePositions.set(id, { ...pos });
   });
-  // Animate
   d3.selectAll('g.node').each(function(d) {
     const pos = state.initialPositions.get(d?.data?.id);
     if (pos) {
@@ -2826,6 +2968,20 @@ function runSearch(query) {
 // CONVERSATION MANAGEMENT
 // ============================================================
 function loadFile(file) {
+  const SIZE_WARN = (state.settings.largeFileWarn || 0) * 1024 * 1024;
+  if (SIZE_WARN > 0 && file.size > SIZE_WARN) {
+    const mb = (file.size / 1024 / 1024).toFixed(0);
+    document.getElementById('large-file-desc').textContent =
+      `"${file.name}" is ~${mb} MB. Files this large may exhaust browser memory during import and fail silently. You can try anyway, or split it into smaller chunks first and import those one by one.`;
+    // Store file reference for deferred actions
+    window._pendingLargeFile = file;
+    openModal('modal-large-file');
+    return;
+  }
+  _doLoadFile(file);
+}
+
+function _doLoadFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
@@ -2911,7 +3067,17 @@ function loadFile(file) {
       const summary = parts.join(', ') || '0 new';
       showNotif(`${summary} — from ${file.name}`, added || updated ? 'success' : '');
     } catch(err) {
-      showNotif('Error parsing file: ' + err.message, 'error');
+      const warnThresh = (state.settings.largeFileWarn || 0) * 1024 * 1024;
+      const isBig = warnThresh > 0 && file.size > warnThresh;
+      if (isBig) {
+        window._pendingLargeFile = file;
+        const mb = (file.size / 1024 / 1024).toFixed(0);
+        document.getElementById('large-file-desc').textContent =
+          `Import failed for "${file.name}" (~${mb} MB): ${err.message}. The file may be too large for your browser to parse. Try splitting it into chunks instead.`;
+        openModal('modal-large-file');
+      } else {
+        showNotif('Error parsing file: ' + err.message, 'error');
+      }
       console.error(err);
     }
   };
@@ -3320,7 +3486,7 @@ function updateTopbarTitle(title) {
   } else {
     el.textContent = '';
     el.style.display = 'none';
-    document.title = 'ChatGPT JSON Tree Viewer v7.0.3';
+    document.title = 'ChatGPT JSON Tree Viewer v7.0.8';
   }
 }
 
@@ -3403,6 +3569,18 @@ function exportAsChatGPT(conv) {
 }
 
 function convToOpenAIFormat(conv) {
+  if (!conv?.data?.mapping) {
+    console.warn('convToOpenAIFormat: missing data.mapping for conv', conv?.id);
+    return {
+      title: conv?.title || 'Untitled',
+      create_time: Date.now() / 1000,
+      update_time: Date.now() / 1000,
+      mapping: { root: { id: 'root', parent: null, children: [], message: null } },
+      moderation_results: [],
+      current_node: null,
+      conversation_id: conv?.id || genId(),
+    };
+  }
   const mapping = {};
   Object.entries(conv.data.mapping).forEach(([id, node]) => {
     const msg = node.message;
@@ -3417,7 +3595,7 @@ function convToOpenAIFormat(conv) {
         update_time: msg.create_time || null,
         content: {
           content_type: 'text',
-          parts: [msg.content?.text || '']
+          parts: [getNodeText(node) || msg.content?.text || msg.content?.parts?.join('\n') || '']
         },
         status: 'finished_successfully',
         end_turn: true,
@@ -3444,6 +3622,8 @@ function convToOpenAIFormat(conv) {
   };
 }
 
+const EXPORT_WARN_THRESHOLD = 1000; // show dialog if more than this many convs
+
 function exportAllAsChatGPT() {
   const all = [
     ...state.conversations,
@@ -3451,9 +3631,31 @@ function exportAllAsChatGPT() {
   ];
   if (!all.length) { showNotif('No conversations loaded', 'error'); return; }
 
-  showNotif(`Preparing export of ${all.length} conversations…`, '');
+  const chunkSize = state.settings.exportChunkSize || 1000;
 
-  // Stream JSON in chunks to avoid one giant in-memory string
+  if (chunkSize > 0 && all.length > EXPORT_WARN_THRESHOLD) {
+    const numChunks = Math.ceil(all.length / chunkSize);
+    document.getElementById('export-warn-desc').textContent =
+      `You have ${all.length.toLocaleString()} conversations. Exporting as a single file may crash the tab and lose your work. Split into ${numChunks} chunk${numChunks !== 1 ? 's' : ''} of ${chunkSize.toLocaleString()} conversations each, or adjust the chunk size below.`;
+    // Populate input with current setting
+    const input = document.getElementById('export-chunk-input');
+    input.value = chunkSize;
+    document.getElementById('export-chunk-warn').style.display = 'none';
+    const prog = document.getElementById('export-warn-progress');
+    prog.style.display = 'none';
+    prog.textContent = '';
+    document.getElementById('export-warn-chunked').disabled = false;
+    document.getElementById('export-warn-single').disabled = false;
+    window._pendingExportAll = all;
+    openModal('modal-export-warn');
+    return;
+  }
+
+  _doExportAll(all);
+}
+
+function _doExportAll(all) {
+  showNotif(`Preparing export of ${all.length} conversations…`, '');
   setTimeout(() => {
     try {
       const parts = ['[\n'];
@@ -3463,7 +3665,6 @@ function exportAllAsChatGPT() {
         if (i < all.length - 1) parts.push(',\n');
       }
       parts.push('\n]');
-
       const blob = new Blob(parts, { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -3478,6 +3679,57 @@ function exportAllAsChatGPT() {
       console.error('Export error:', err);
     }
   }, 50);
+}
+
+function _doExportChunked(all, chunkSize) {
+  const total = all.length;
+  const numChunks = Math.ceil(total / chunkSize);
+  const date = new Date().toISOString().slice(0, 10);
+  const prog = document.getElementById('export-warn-progress');
+  prog.style.display = '';
+
+  function exportChunk(idx) {
+    if (idx >= numChunks) {
+      prog.textContent = `✓ Done — ${numChunks} file${numChunks !== 1 ? 's' : ''} downloaded.`;
+      document.getElementById('export-warn-chunked').disabled = false;
+      document.getElementById('export-warn-single').disabled = false;
+      showNotif(`Exported ${total} conversations in ${numChunks} chunks`, 'success');
+      return;
+    }
+    const slice = all.slice(idx * chunkSize, (idx + 1) * chunkSize);
+    prog.textContent = `Exporting chunk ${idx + 1} of ${numChunks} (${slice.length} conversations)…`;
+    setTimeout(() => {
+      try {
+        const parts = ['[\n'];
+        let exported = 0;
+        for (let i = 0; i < slice.length; i++) {
+          try {
+            parts.push(JSON.stringify(convToOpenAIFormat(slice[i]), null, 2));
+            if (i < slice.length - 1) parts.push(',\n');
+            exported++;
+          } catch(convErr) {
+            console.warn('Skipping conv', slice[i]?.id, convErr.message);
+          }
+        }
+        parts.push('\n]');
+        const blob = new Blob(parts, { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `chatgpt_tree_export_part${idx + 1}of${numChunks}_${slice.length}convs_${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      } catch(err) {
+        prog.textContent = `Chunk ${idx + 1} failed: ${err.message}`;
+        showNotif(`Chunk ${idx + 1} export failed`, 'error');
+        return;
+      }
+      exportChunk(idx + 1);
+    }, 300); // stagger downloads
+  }
+
+  exportChunk(0);
 }
 
 function getCurrentContent() {
@@ -3525,13 +3777,58 @@ function buildSettings() {
         </div>
       </div>
     </div>
+    <div class="setting-group">
+      <h3>Large File Warning</h3>
+      <div class="setting-row">
+        <div><div class="setting-label">Show large file warning</div><div class="setting-desc">Warn before importing files above the threshold</div></div>
+        <div class="toggle${state.settings.largeFileWarn > 0 ? ' on' : ''}" data-setting="largeFileWarnEnabled"></div>
+      </div>
+      <div class="setting-row" id="setting-row-largeFileWarn" style="${state.settings.largeFileWarn === 0 ? 'opacity:0.4;pointer-events:none;' : ''}">
+        <div><div class="setting-label">Warn threshold</div><div class="setting-desc">Warn when file exceeds this size</div></div>
+        <div class="setting-range">
+          <input type="range" min="50" max="1000" step="50" value="${state.settings.largeFileWarn || 300}" data-range="largeFileWarn">
+          <span class="range-val" id="range-val-largeFileWarn">${state.settings.largeFileWarn > 0 ? state.settings.largeFileWarn + ' MB' : '300 MB'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <h3>Export</h3>
+      <div class="setting-row">
+        <div><div class="setting-label">Chunk size for large exports</div><div class="setting-desc">Conversations per file when splitting exports. Set to 0 to always export as a single file (risky for large projects).</div></div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:120px;">
+          <input type="number" id="settings-export-chunk" min="0" max="10000" step="100"
+            value="${state.settings.exportChunkSize}"
+            style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-primary);font-size:12px;font-family:var(--font-ui);text-align:right;width:90px;">
+          <span style="font-size:11px;color:var(--text-muted);text-align:right;">${state.settings.exportChunkSize === 0 ? 'Single file always' : state.settings.exportChunkSize + ' per chunk'}</span>
+        </div>
+      </div>
+    </div>
   `;
 
   body.querySelectorAll('.toggle').forEach(t => {
     t.addEventListener('click', () => {
       const key = t.dataset.setting;
-      state.settings[key] = !state.settings[key];
-      t.classList.toggle('on', state.settings[key]);
+      if (key === 'largeFileWarnEnabled') {
+        // Toggle between 0 (off) and last known value (or 300 default)
+        const isOn = state.settings.largeFileWarn > 0;
+        if (isOn) {
+          state.settings._largeFileWarnSaved = state.settings.largeFileWarn; // stash
+          state.settings.largeFileWarn = 0;
+        } else {
+          state.settings.largeFileWarn = state.settings._largeFileWarnSaved || 300;
+        }
+        t.classList.toggle('on', state.settings.largeFileWarn > 0);
+        // Update slider row visibility
+        const row = document.getElementById('setting-row-largeFileWarn');
+        if (row) row.style.cssText = state.settings.largeFileWarn === 0 ? 'opacity:0.4;pointer-events:none;' : '';
+        const rangeVal = document.getElementById('range-val-largeFileWarn');
+        if (rangeVal) rangeVal.textContent = (state.settings.largeFileWarn || 300) + ' MB';
+        const slider = body.querySelector('input[data-range="largeFileWarn"]');
+        if (slider) slider.value = state.settings.largeFileWarn || 300;
+      } else {
+        state.settings[key] = !state.settings[key];
+        t.classList.toggle('on', state.settings[key]);
+      }
       localStorage.setItem('mv-settings', JSON.stringify(state.settings));
       if (key === 'showSystem' || key === 'showOther') {
         const conv = getActiveConv();
@@ -3543,16 +3840,34 @@ function buildSettings() {
     r.addEventListener('input', () => {
       const key = r.dataset.range;
       state.settings[key] = parseInt(r.value);
-      document.getElementById(`range-val-${key}`).textContent = r.value + 'ms';
+      const label = document.getElementById(`range-val-${key}`);
+      if (key === 'largeFileWarn') {
+        label.textContent = state.settings[key] === 0 ? 'Off' : state.settings[key] + ' MB';
+      } else {
+        label.textContent = r.value + 'ms';
+      }
       localStorage.setItem('mv-settings', JSON.stringify(state.settings));
     });
   });
+
+  // Export chunk size number input
+  const exportChunkInput = body.querySelector('#settings-export-chunk');
+  if (exportChunkInput) {
+    exportChunkInput.addEventListener('change', function() {
+      const val = Math.max(0, parseInt(this.value) || 0);
+      this.value = val;
+      state.settings.exportChunkSize = val;
+      localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+      const hint = this.parentElement.querySelector('span');
+      if (hint) hint.textContent = val === 0 ? 'Single file always' : val + ' per chunk';
+    });
+  }
 }
 
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.0.3</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.0.8</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -3578,7 +3893,13 @@ const helpTopics = [
     </ul>
     <h3>Format Detection</h3>
     <p>Detection is fully automatic. The viewer inspects the JSON structure and picks the correct conversion path. If a file cannot be recognized, it falls back to a generic converter and displays what it can.</p>
-    <h3>Duplicate Handling</h3>
+    <h3>Large File Handling</h3>
+    <p>When you select a file over <strong>300 MB</strong>, the app warns you before attempting to load it. You have two options:</p>
+    <ul>
+      <li><strong>Try Import Anyway</strong> — attempts the normal import. Works fine for most files up to ~200 MB depending on your browser and device memory. If it fails, the split dialog reappears automatically.</li>
+      <li><strong>Split & Import Automatically</strong> — the recommended path for large files. Choose a chunk size (50 / 100 / 200 MB) and click <em>Split & Import Automatically</em>. The file is split in a background Web Worker (UI stays responsive), then all chunks are imported sequentially with no manual steps needed. Progress is shown per chunk. A secondary <em>Download Chunk Files Instead</em> button is also available if you want portable files to import on another machine.</li>
+    </ul>
+    <div class="tip"><strong>Tip:</strong> If an import fails on a large file, the split dialog reappears automatically — you don't need to re-select the file.</div>
     <p>When loading into an existing project, each incoming conversation is matched against all already-loaded conversations (including hidden and deleted ones) by <code>conversation_id</code>. Three outcomes are possible:</p>
     <ul>
       <li><strong>New</strong> — ID not seen before; added to the project normally</li>
@@ -3626,7 +3947,13 @@ const helpTopics = [
       <li><strong>Click + drag</strong> on the background — pan the view</li>
       <li><strong>+ / − buttons</strong> (bottom-left) — zoom in/out by a fixed step</li>
       <li><strong>Fit button</strong> (bottom-left) — zoom and pan to fit all nodes in view</li>
-      <li><strong>Reset button</strong> (top bar) — animate all nodes back to their calculated layout positions</li>
+      <li><strong>Reset button</strong> (top bar) — click to run <em>Reset All</em> (nodes + view). Click the <strong>▾</strong> arrow next to it to choose from three options:
+        <ul>
+          <li><strong>Reset All</strong> — animates all nodes back to their original calculated positions, then fits the viewport so the whole tree is visible</li>
+          <li><strong>Reset Nodes</strong> — restores node positions only; leaves your current zoom/pan in place</li>
+          <li><strong>Reset View</strong> — re-fits the viewport to show all nodes without moving any nodes</li>
+        </ul>
+      </li>
     </ul>
     <h3>Node Types</h3>
     <table>
@@ -3821,7 +4148,14 @@ const helpTopics = [
     </ul>
     <h3>Project Export (Top Bar)</h3>
     <ul>
-      <li><strong>Export All</strong> — exports every conversation as a single OpenAI-format JSON array. Filename: <code>chatgpt_tree_export_Nconvs_YYYY-MM-DD.json</code>. Includes both visible and hidden conversations (anything stashed via Show Only). The export streams each conversation individually so it works reliably even with thousands of conversations.</li>
+      <li><strong>Export All</strong> — exports every conversation as a single OpenAI-format JSON array. Includes both visible and hidden conversations. The export streams each conversation individually so it works reliably for large projects.
+        <ul>
+          <li>If you have more than 1,000 conversations, a dialog appears asking how many per chunk. Enter a number and click <strong>Export as Chunks</strong> — multiple numbered files are downloaded (<code>part1of5_1000convs</code>, etc.).</li>
+          <li>If you type a large chunk size, a warning appears that the tab may crash and unsaved work will be lost.</li>
+          <li>Chunk files can be re-imported one by one — the duplicate-handling logic merges everything correctly, and all formats (OpenAI, Claude, DeepSeek, Grok, GLM) are fully preserved through the export/import round-trip.</li>
+          <li>The default chunk size can be set in <strong>Settings → Export</strong> so you don't have to re-enter it each time.</li>
+        </ul>
+      </li>
     </ul>
     <h3>OpenAI Export Format</h3>
     <p>Exported conversations use the standard ChatGPT <code>conversations.json</code> structure:</p>
@@ -4506,6 +4840,35 @@ document.getElementById('btn-export-chatgpt').addEventListener('click', () => {
 
 document.getElementById('btn-export-all').addEventListener('click', exportAllAsChatGPT);
 
+// Export warning modal — chunk size input
+document.getElementById('export-chunk-input').addEventListener('input', function() {
+  const val = parseInt(this.value) || 0;
+  const crashWarn = document.getElementById('export-chunk-warn');
+  crashWarn.style.display = val > 2000 ? '' : 'none';
+  // Save to settings live
+  if (val >= 100) {
+    state.settings.exportChunkSize = val;
+    localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+  }
+});
+
+document.getElementById('export-warn-chunked').addEventListener('click', () => {
+  const all = window._pendingExportAll;
+  if (!all) return;
+  const val = parseInt(document.getElementById('export-chunk-input').value) || state.settings.exportChunkSize || 1000;
+  state.settings.exportChunkSize = val;
+  localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+  document.getElementById('export-warn-chunked').disabled = true;
+  document.getElementById('export-warn-single').disabled = true;
+  _doExportChunked(all, val);
+});
+document.getElementById('export-warn-single').addEventListener('click', () => {
+  const all = window._pendingExportAll;
+  closeModal('modal-export-warn');
+  window._pendingExportAll = null;
+  if (all) _doExportAll(all);
+});
+
 document.getElementById('btn-unload-all').addEventListener('click', () => {
   const total = state.conversations.length + state.hiddenConversations.length + state.deletedConversations.length;
   if (!total) { showNotif('Nothing loaded', ''); return; }
@@ -4605,7 +4968,247 @@ document.getElementById('btn-zoom-out').addEventListener('click', () => {
   d3.select('#graph-svg').transition().duration(300).call(zoom.scaleBy, 0.7);
 });
 document.getElementById('btn-fit').addEventListener('click', fitGraph);
-document.getElementById('btn-reset-layout').addEventListener('click', resetLayout);
+// Reset split button
+document.getElementById('btn-reset-layout').addEventListener('click', () => { resetNodes(); fitGraph(); });
+document.getElementById('btn-reset-dropdown').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('reset-dropdown').classList.toggle('open');
+});
+document.getElementById('reset-opt-all').addEventListener('click', () => {
+  document.getElementById('reset-dropdown').classList.remove('open');
+  resetNodes(); fitGraph();
+});
+document.getElementById('reset-opt-nodes').addEventListener('click', () => {
+  document.getElementById('reset-dropdown').classList.remove('open');
+  resetNodes();
+});
+document.getElementById('reset-opt-view').addEventListener('click', () => {
+  document.getElementById('reset-dropdown').classList.remove('open');
+  fitGraph();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#reset-btn-wrap')) {
+    document.getElementById('reset-dropdown').classList.remove('open');
+  }
+});
+// Large file modal
+function applyLargeFileNeverWarn() {
+  if (document.getElementById('large-file-never')?.checked) {
+    state.settings.largeFileWarn = 0;
+    localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+    showNotif('Large file warning disabled — re-enable in Settings', '');
+  }
+}
+document.getElementById('large-file-try').addEventListener('click', () => {
+  applyLargeFileNeverWarn();
+  closeModal('modal-large-file');
+  if (window._pendingLargeFile) {
+    _doLoadFile(window._pendingLargeFile);
+    window._pendingLargeFile = null;
+  }
+});
+document.getElementById('large-file-split').addEventListener('click', () => {
+  applyLargeFileNeverWarn();
+  closeModal('modal-large-file');
+  if (window._pendingLargeFile) {
+    const f = window._pendingLargeFile;
+    const mb = (f.size / 1024 / 1024).toFixed(0);
+    document.getElementById('split-file-desc').textContent =
+      `"${f.name}" is ~${mb} MB. Choose a chunk size and click Split & Import.`;
+    openModal('modal-split-file');
+  }
+});
+
+// Split file
+function runSplitter(mode) {
+  // mode: 'import' or 'download'
+  const file = window._pendingLargeFile;
+  if (!file) return;
+  const chunkSize = parseInt(document.getElementById('split-chunk-size').value);
+  const progress = document.getElementById('split-progress');
+  const btnRun = document.getElementById('split-file-run');
+  const btnDl = document.getElementById('split-file-download');
+  btnRun.disabled = true;
+  btnDl.disabled = true;
+  progress.style.display = '';
+  progress.textContent = 'Reading file…';
+
+  splitFileWorker(file, chunkSize, (msg) => { progress.textContent = msg; })
+    .then(chunks => {
+      if (mode === 'import') {
+        // Auto-import chunks sequentially
+        closeModal('modal-split-file');
+        window._pendingLargeFile = null;
+        let idx = 0;
+        function importNext() {
+          if (idx >= chunks.length) {
+            showNotif(`Split import complete — ${chunks.length} chunk${chunks.length !== 1 ? 's' : ''} loaded`, 'success');
+            return;
+          }
+          const chunk = chunks[idx];
+          progress.textContent = `Importing chunk ${chunk.index} of ${chunk.total}…`;
+          showNotif(`Importing chunk ${chunk.index}/${chunk.total} (${chunk.count} conversations)…`, '');
+          // Parse and load this chunk's JSON text directly
+          try {
+            const raw = JSON.parse(chunk.text);
+            const converted = convertToUnified(raw);
+            const existingMap = new Map([
+              ...state.conversations.map(c => [c.id, { pool: 'conversations', conv: c }]),
+              ...state.hiddenConversations.map(c => [c.id, { pool: 'hidden', conv: c }]),
+              ...state.deletedConversations.map(c => [c.id, { pool: 'deleted', conv: c }]),
+            ]);
+            let added = 0, updated = 0, skipped = 0;
+            converted.forEach(data => {
+              const id = data.conversation_id || genId();
+              if (existingMap.has(id)) {
+                const existing = existingMap.get(id).conv;
+                const existingNodes = Object.keys(existing?.data?.mapping || {}).length;
+                const incomingNodes = Object.keys(data.mapping || {}).length;
+                if (incomingNodes > existingNodes) {
+                  const pool = existingMap.get(id).pool;
+                  const arr = pool === 'conversations' ? state.conversations
+                            : pool === 'hidden' ? state.hiddenConversations
+                            : state.deletedConversations;
+                  const i2 = arr.findIndex(c => c.id === id);
+                  if (i2 !== -1) {
+                    const od = JSON.parse(JSON.stringify(data));
+                    arr[i2] = { id, title: data.title || 'Untitled', data, format: data._format, _originalData: od };
+                  }
+                  updated++;
+                } else { skipped++; }
+                return;
+              }
+              existingMap.set(id, { pool: 'conversations' });
+              const od = JSON.parse(JSON.stringify(data));
+              state.conversations.push({ id, title: data.title || 'Untitled', data, format: data._format, _originalData: od });
+              added++;
+            });
+            if (converted.length) setFormatBadge(converted[0]._format);
+            document.getElementById('btn-close-conv').style.display = '';
+            renderConvList();
+            if (!state.activeConvId && state.conversations.length)
+              loadConversation(state.conversations[state.conversations.length - 1].id);
+          } catch(err) {
+            showNotif(`Chunk ${chunk.index} failed: ${err.message}`, 'error');
+          }
+          idx++;
+          // Small delay between chunks to let UI breathe
+          setTimeout(importNext, 100);
+        }
+        importNext();
+      } else {
+        // Download mode
+        const baseName = file.name.replace(/\.json$/i, '');
+        chunks.forEach((chunk, i) => {
+          setTimeout(() => {
+            const b = new Blob([chunk.text], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = baseName + '_part' + chunk.index + 'of' + chunk.total + '_' + chunk.count + 'convs.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+          }, i * 300);
+        });
+        progress.textContent = `Downloading ${chunks.length} chunk file${chunks.length !== 1 ? 's' : ''}… import them one by one when ready.`;
+        window._pendingLargeFile = null;
+        btnRun.disabled = false;
+        btnDl.disabled = false;
+      }
+    })
+    .catch(err => {
+      progress.textContent = 'Error: ' + err.message;
+      btnRun.disabled = false;
+      btnDl.disabled = false;
+    });
+}
+
+document.getElementById('split-file-run').addEventListener('click', () => runSplitter('import'));
+document.getElementById('split-file-download').addEventListener('click', () => runSplitter('download'));
+
+function splitFileWorker(file, chunkBytes, onProgress) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const text = e.target.result.replace(/^\uFEFF/, '');
+        onProgress('Finding conversation boundaries…');
+
+        // Use a Web Worker to do the heavy splitting off the main thread
+        function workerFn() {
+          self.onmessage = function(e) {
+            var text = e.data.text, chunkBytes = e.data.chunkBytes;
+            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+            var trimmed = text.trim();
+
+            // Handle non-array formats: wrapped object or single conversation
+            if (trimmed.startsWith('{')) {
+              var arrStart = trimmed.indexOf('[');
+              var arrEnd = trimmed.lastIndexOf(']');
+              if (arrStart !== -1 && arrEnd !== -1 && arrStart < arrEnd) {
+                trimmed = trimmed.slice(arrStart, arrEnd + 1);
+              } else {
+                trimmed = '[' + trimmed + ']';
+              }
+            }
+
+            if (!trimmed.startsWith('[')) {
+              self.postMessage({ error: 'Could not find a JSON array in this file.' });
+              return;
+            }
+
+            var chunks = [], current = [], currentSize = 2;
+            var depth = 0, inString = false, escape = false, i = 0, objStart = -1;
+            while (i < trimmed.length && trimmed[i] !== '[') i++;
+            i++;
+            while (i < trimmed.length) {
+              var ch = trimmed[i];
+              if (escape) { escape = false; i++; continue; }
+              if (ch === '\\' && inString) { escape = true; i++; continue; }
+              if (ch === '"') { inString = !inString; i++; continue; }
+              if (inString) { i++; continue; }
+              if (ch === '{') { if (depth === 0) objStart = i; depth++; }
+              else if (ch === '}') {
+                depth--;
+                if (depth === 0 && objStart !== -1) {
+                  var obj = trimmed.slice(objStart, i + 1);
+                  var objSize = obj.length + 2;
+                  if (current.length > 0 && currentSize + objSize > chunkBytes) {
+                    chunks.push(current); current = [obj]; currentSize = 2 + objSize;
+                  } else { current.push(obj); currentSize += objSize; }
+                  objStart = -1;
+                  var total = chunks.reduce(function(a,c){return a+c.length;},0) + current.length;
+                  self.postMessage({ progress: 'Processed ' + total + ' conversations\u2026' });
+                }
+              }
+              i++;
+            }
+            if (current.length) chunks.push(current);
+            var result = chunks.map(function(c, idx) { return {
+              index: idx + 1, total: chunks.length, count: c.length,
+              text: '[\n' + c.join(',\n') + '\n]'
+            }; });
+            self.postMessage({ done: true, chunks: result });
+          };
+        }
+        const workerCode = '(' + workerFn.toString() + ')()'
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+        const baseName = file.name.replace(/\.json$/i, '');
+        worker.postMessage({ text, chunkBytes, baseName });
+        worker.onmessage = ev => {
+          const msg = ev.data;
+          if (msg.progress) { onProgress(msg.progress); return; }
+          if (msg.error) { worker.terminate(); reject(new Error(msg.error)); return; }
+          if (msg.done) { worker.terminate(); resolve(msg.chunks); }
+        };
+        worker.onerror = err => { worker.terminate(); reject(err); };
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsText(file);
+  });
+}
+
 document.getElementById('btn-close-conv').addEventListener('click', closeConversation);
 
 // Modals
@@ -4724,7 +5327,47 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.0.3', date: '2025-05-04', latest: true,
+    version: 'v7.0.8', date: '2025-05-04', latest: true,
+    items: [
+      { type: 'fix', text: '<strong>Chunk export re-import showed "unknown format / 0 messages"</strong> — <code>convToOpenAIFormat</code> was reading <code>content.text</code> directly, missing text from non-OpenAI formats (Claude, DeepSeek, Grok, GLM). Now uses <code>getNodeText()</code> which handles all formats, with fallbacks.' },
+      { type: 'fix', text: '<strong>Corrupt or missing mapping crashed entire chunk export</strong> — conversations with malformed <code>data.mapping</code> are now skipped with a console warning rather than aborting the whole export' },
+      { type: 'fix', text: '<strong>convToOpenAIFormat guard</strong> — if a conversation has no <code>data.mapping</code>, a minimal valid skeleton is returned instead of throwing an unhandled error' },
+    ]
+  },
+  {
+    version: 'v7.0.7', date: '2025-05-04', latest: false,
+    items: [
+      { type: 'fix', text: '<strong>File splitter failed on non-array JSON</strong> — worker now handles wrapped objects (<code>{"conversations":[...]}</code>), single conversation objects, and BOM-prefixed files before splitting' },
+      { type: 'change', text: '<strong>Large file warning threshold raised to 300 MB</strong> — was 50 MB, which was too aggressive for normal use' },
+      { type: 'new', text: '<strong>"Don\'t warn again" checkbox</strong> — added to the large file warning dialog; checking it before clicking Try or Split permanently disables the warning' },
+      { type: 'new', text: '<strong>Large file warning toggle in Settings</strong> — on/off toggle plus threshold slider (50–1000 MB). Turning it off grays the slider; turning it back on restores the last threshold. Persists across sessions.' },
+    ]
+  },
+  {
+    version: 'v7.0.6', date: '2025-05-04', latest: false,
+    items: [
+      { type: 'change', text: '<strong>Split & Import is now fully automatic</strong> — the primary action splits the file in a background Web Worker and imports all chunks sequentially without any manual steps. Progress is shown per chunk.' },
+      { type: 'new', text: '<strong>Download Chunks option retained</strong> — a secondary button lets you download the chunk files instead, for portability or re-import on another machine.' },
+    ]
+  },
+  {
+    version: 'v7.0.5', date: '2025-05-04', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Large file warning</strong> — files over 50 MB trigger a warning before import with two choices: Try Import Anyway or Split into Chunks First' },
+      { type: 'new', text: '<strong>Smart error recovery</strong> — if a large file fails to parse, the error dialog reappears with the Split option rather than just showing a raw error message' },
+      { type: 'new', text: '<strong>File splitter (Web Worker)</strong> — splits any oversized JSON array into numbered chunk files without freezing the UI. Choose 50 / 100 / 200 MB per chunk. Files download as <code>name_part1of7_500convs.json</code> etc. Import chunks one by one — duplicate handling takes care of the rest' },
+    ]
+  },
+  {
+    version: 'v7.0.4', date: '2025-05-04', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Reset dropdown</strong> — the Reset button now has a <strong>▾</strong> arrow that expands three options: <em>Reset All</em> (nodes + view together), <em>Reset Nodes</em> (restore positions only), and <em>Reset View</em> (refit viewport only)' },
+      { type: 'change', text: '<strong>Reset All is the new default</strong> — clicking the main Reset button now resets node positions <em>and</em> refits the viewport, so the graph is always fully visible after a reset' },
+      { type: 'new', text: '<strong>Help guide updated</strong> — Graph & Navigation topic now documents all three reset options' },
+    ]
+  },
+  {
+    version: 'v7.0.3', date: '2025-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>Export All failed silently on large projects</strong> — <code>JSON.stringify</code> on 1000+ conversations caused memory exhaustion; export now streams each conversation individually into a <code>Blob</code> array, eliminating the memory spike' },
       { type: 'fix', text: '<strong>Export All now includes hidden conversations</strong> — conversations stashed via Show Only were previously excluded from the export; they are now included alongside visible ones' },
@@ -4838,7 +5481,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.0.3 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.0.8 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
