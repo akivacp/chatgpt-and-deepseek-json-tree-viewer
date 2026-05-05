@@ -2,7 +2,62 @@
 
 ---
 
-## v7.0.3 — 2025-05-04 *(Current)*
+## v7.0.8 — 2025-05-04 *(Current)*
+
+### 🐛 Bug Fixes
+- **Chunk export re-import showed "unknown format / 0 messages"** — `convToOpenAIFormat` was reading `content.text` directly, missing text from non-OpenAI formats (Claude, DeepSeek, Grok, GLM). Now uses `getNodeText()` which handles all formats, with multiple fallbacks.
+- **Corrupt or missing mapping crashed entire chunk export** — conversations with malformed `data.mapping` are now skipped with a console warning rather than aborting the whole export
+- **`convToOpenAIFormat` guard** — if a conversation has no `data.mapping`, a minimal valid skeleton is returned instead of throwing an unhandled error
+
+### 📚 Help Guide
+- Export All section now documents the chunked export flow, the crash warning, re-import compatibility, and the Settings default
+
+---
+
+## v7.0.7 — 2025-05-04
+
+### 🐛 Bug Fixes
+- **File splitter failed on non-array JSON** — worker now handles wrapped objects (`{"conversations":[...]}`), single conversation objects, and BOM-prefixed files before splitting
+
+### 🔄 Changed
+- **Large file warning threshold raised to 300 MB** — was 50 MB, which triggered too often for normal use
+
+### 🆕 New
+- **"Don't warn again" checkbox** — in the large file warning dialog; checking it before clicking Try or Split permanently disables the warning
+- **Large file warning toggle in Settings** — on/off toggle plus threshold slider (50–1000 MB). Turning it off grays the slider; turning it back on restores the previous threshold. Persists across sessions.
+
+---
+
+## v7.0.6 — 2025-05-04
+
+### 🔄 Changed
+- **Split & Import is now fully automatic** — the primary action in the split dialog splits the file in a background Web Worker and imports all chunks sequentially without any manual steps. Progress is shown per chunk as each one loads.
+- **Download Chunks retained as secondary option** — a separate button lets you download the chunk files for portability or re-import on another machine
+
+---
+
+## v7.0.5 — 2025-05-04
+
+### 🆕 New
+- **Large file warning** — selecting a file over 50 MB shows a warning before import with two choices: *Try Import Anyway* or *Split into Chunks First*
+- **Import error recovery** — if a large file fails to parse, the split dialog reappears automatically with the same file pre-loaded rather than showing a raw error
+- **File splitter (Web Worker)** — splits any oversized JSON array into numbered chunk files in a background thread (UI stays responsive). Choose 50 / 100 / 200 MB per chunk. Downloads files named `export_part1of7_500convs.json`. Import chunks one by one — duplicate handling merges everything correctly
+- **Help guide updated** — Loading & Unloading topic now has a Large File Handling section
+
+---
+
+## v7.0.4 — 2025-05-04
+
+### 🆕 New
+- **Reset dropdown** — the Reset button now has a `▾` arrow that expands three options:
+  - **Reset All** — animates nodes back to original positions, then refits the viewport (default action when clicking Reset directly)
+  - **Reset Nodes** — restores node positions only; leaves your current zoom/pan intact
+  - **Reset View** — refits the viewport to show all nodes without moving any nodes
+- **Help guide updated** — Graph & Navigation topic now documents all three reset options
+
+---
+
+## v7.0.3 — 2025-05-04
 
 ### 🐛 Bug Fixes
 - **Export All failed silently on large projects** — `JSON.stringify` on 1000+ conversations caused memory exhaustion; export now streams each conversation individually into a `Blob` array, eliminating the memory spike. Tested with 3000+ conversations.
