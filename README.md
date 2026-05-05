@@ -124,7 +124,9 @@ Each message card displays:
 ### 🗂️ Project & Conversation Management
 
 - Load **multiple files** at once; each becomes a separate conversation entry
+- **Duplicate handling** — on re-import, conversations with the same ID but more nodes are updated in place; identical copies are skipped. Works across visible, hidden, and deleted pools.
 - **Load dialog** — when files are already open, choose to add to the current project or start fresh
+- **Large file handling** — files over the warn threshold (default 300 MB) show a warning before import with two options: Try Anyway or Split & Import. The splitter runs in a Web Worker (UI stays responsive) and imports all chunks automatically.
 - Sidebar sorted by most-recent message date (`YYYY-MM-DD`)
 - **Right-click a conversation** for:
   - **Show Only** — hides others (non-destructive; stashed, not deleted)
@@ -134,7 +136,7 @@ Each message card displays:
   - **Delete Conv** — stashes to a recovery pool (recoverable via Start Over)
 - **Close Conversation** — removes only the active conversation; switches to next if others are loaded
 - **Unload All** — clears all conversation pools for a fresh start
-- **Export All** (top bar) — exports every loaded conversation as a single OpenAI `conversations.json` array
+- **Export All** (top bar) — exports every loaded conversation as an OpenAI `conversations.json` array. For projects over 1,000 conversations, a dialog asks how many per chunk — entering a high number shows a crash warning. Chunk files are re-importable one by one with full duplicate handling. All formats (OpenAI, Claude, DeepSeek, Grok, GLM) are preserved through the export/import round-trip.
 
 ---
 
@@ -158,6 +160,8 @@ Theme preference is saved to `localStorage` and applied on every future visit. O
 - **Show other nodes** — toggle visibility of non-standard role nodes (purple circles)
 - **Show tooltips** — enable/disable hover previews on graph nodes
 - **Tooltip delay** — adjust how long to hover before the tooltip appears (500ms–10,000ms)
+- **Large file warning** — toggle on/off with a threshold slider (50–1000 MB). When off, large files load without a warning dialog.
+- **Export chunk size** — default number of conversations per chunk when exporting large projects (0 = always single file)
 
 All settings saved to `localStorage`.
 
