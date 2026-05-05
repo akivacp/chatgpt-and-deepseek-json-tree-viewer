@@ -2830,7 +2830,33 @@ function loadFile(file) {
   reader.onload = e => {
     try {
       const text = e.target.result.replace(/^\uFEFF/, ''); // strip UTF-8 BOM if present
-      const raw = JSON.parse(text);
+
+      // Attempt to repair truncated JSON arrays (e.g. from a cut-off export)
+      let raw;
+      try {
+        raw = JSON.parse(text);
+      } catch(parseErr) {
+        // If it looks like a truncated array, try to recover complete objects
+        if (text.trimStart().startsWith('[')) {
+          showNotif('File appears truncated — attempting recovery…', '');
+          let depth = 0, lastGood = -1, inString = false, escape = false;
+          for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            if (escape) { escape = false; continue; }
+            if (ch === '\\' && inString) { escape = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (ch === '{') depth++;
+            else if (ch === '}') { depth--; if (depth === 0) lastGood = i; }
+          }
+          if (lastGood > 0) {
+            try {
+              raw = JSON.parse(text.slice(0, lastGood + 1) + '\n]');
+              showNotif(`Recovered ${Array.isArray(raw) ? raw.length : 1} conversation(s) from truncated file`, 'success');
+            } catch(e2) { throw parseErr; }
+          } else { throw parseErr; }
+        } else { throw parseErr; }
+      }
       const converted = convertToUnified(raw);
       // Build a map of all known IDs → existing conv across all pools
       const existingMap = new Map([
