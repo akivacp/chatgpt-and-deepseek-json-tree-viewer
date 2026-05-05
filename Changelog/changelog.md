@@ -2,7 +2,7 @@
 
 ---
 
-## v7.2.1 — 2025-05-05 *(Current)*
+## v7.2.1 — 2026-05-05 *(Current)*
 
 ### 🔄 Changed
 - **PDF export rewritten** — no longer a blurry screenshot. Opens a clean print-ready window with proper typography (Georgia serif, 11pt), correct 8.5×11 letter margins, paginated real text, and formatted code blocks. Browser print dialog opens automatically — choose "Save as PDF". Respects active view mode and filters.
@@ -19,7 +19,7 @@
 
 ---
 
-## v7.2.0 — 2025-05-05
+## v7.2.0 — 2026-05-05
 
 ### 🆕 New
 - **Custom theme color picker** — a rainbow ✦ dot after the preset theme dots opens a live color editing panel. Customize backgrounds, text, accent color, borders, and all four node colors individually. Changes apply instantly across the entire UI.
@@ -29,7 +29,7 @@
 
 ---
 
-## v7.1.0 — 2025-05-05
+## v7.1.0 — 2026-05-05
 
 ### 🆕 New
 - **Claude new export format** — detects and correctly converts Claude.ai's current export format (`chat_messages[]` with `sender` + `parent_message_uuid`). Branching is fully preserved — regenerated responses appear as real branches in the graph, not a flat chain.
@@ -44,7 +44,7 @@
 
 ---
 
-## v7.0.8 — 2025-05-04
+## v7.0.8 — 2026-05-04
 
 ### 🐛 Bug Fixes
 - **Chunk export re-import showed "unknown format / 0 messages"** — `convToOpenAIFormat` was reading `content.text` directly, missing text from non-OpenAI formats (Claude, DeepSeek, Grok, GLM). Now uses `getNodeText()` which handles all formats, with multiple fallbacks.
@@ -56,7 +56,7 @@
 
 ---
 
-## v7.0.7 — 2025-05-04
+## v7.0.7 — 2026-05-04
 
 ### 🐛 Bug Fixes
 - **File splitter failed on non-array JSON** — worker now handles wrapped objects (`{"conversations":[...]}`), single conversation objects, and BOM-prefixed files before splitting
@@ -70,7 +70,7 @@
 
 ---
 
-## v7.0.6 — 2025-05-04
+## v7.0.6 — 2026-05-04
 
 ### 🔄 Changed
 - **Split & Import is now fully automatic** — the primary action in the split dialog splits the file in a background Web Worker and imports all chunks sequentially without any manual steps. Progress is shown per chunk as each one loads.
@@ -78,7 +78,7 @@
 
 ---
 
-## v7.0.5 — 2025-05-04
+## v7.0.5 — 2026-05-04
 
 ### 🆕 New
 - **Large file warning** — selecting a file over 50 MB shows a warning before import with two choices: *Try Import Anyway* or *Split into Chunks First*
@@ -88,7 +88,7 @@
 
 ---
 
-## v7.0.4 — 2025-05-04
+## v7.0.4 — 2026-05-04
 
 ### 🆕 New
 - **Reset dropdown** — the Reset button now has a `▾` arrow that expands three options:
@@ -99,7 +99,7 @@
 
 ---
 
-## v7.0.3 — 2025-05-04
+## v7.0.3 — 2026-05-04
 
 ### 🐛 Bug Fixes
 - **Export All failed silently on large projects** — `JSON.stringify` on 1000+ conversations caused memory exhaustion; export now streams each conversation individually into a `Blob` array, eliminating the memory spike. Tested with 3000+ conversations.
@@ -108,7 +108,7 @@
 
 ---
 
-## v7.0.2 — 2025-05-04
+## v7.0.2 — 2026-05-04
 
 ### 🆕 New
 - **Smart duplicate handling on import** — when adding files to an existing project, each conversation is matched by `conversation_id`. Same ID with more nodes → updated in place (in whichever pool it lives — visible, hidden, or deleted). Same or fewer nodes → skipped unchanged.
@@ -117,7 +117,7 @@
 
 ---
 
-## v7.0.1 — 2025-05-04
+## v7.0.1 — 2026-05-04
 
 ### 🐛 Bug Fixes
 - **Metadata level chain showed "undefined" on OpenAI files** — BFS depth calculation was hardcoded to start at `root`; OpenAI files use a UUID as their root node, causing all levels to show as undefined
@@ -126,7 +126,7 @@
 
 ---
 
-## v7.0 — 2025-05-04
+## v7.0 — 2026-05-04
 
 This is a major release that replaces the original Multiverse Viewer. The tool has been rebuilt from the ground up with a new name, new architecture, and a large set of new features.
 
@@ -210,7 +210,7 @@ This is a major release that replaces the original Multiverse Viewer. The tool h
 
 ---
 
-## v6.0 — 2025-05-01 *(Original release)*
+## v6.0 — 2026-05-01 *(Original release)*
 
 Initial public release of the Multiverse Viewer.
 
