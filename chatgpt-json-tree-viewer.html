@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.0.8</title>
+<title>ChatGPT JSON Tree Viewer v7.1.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -978,7 +978,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.0.8</span>
+      <span class="logo-version">v7.1.0</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1148,6 +1148,10 @@ body {
         </button>
         <button class="graph-ctrl-btn" id="btn-toggle-minimap" title="Toggle minimap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </button>
+        <div style="width:100%;height:1px;background:var(--border-color);margin:2px 0;"></div>
+        <button class="graph-ctrl-btn" id="btn-export-graph" title="Export graph as image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         </button>
       </div>
       <div id="minimap">
@@ -1376,6 +1380,33 @@ body {
   </div>
 </div>
 
+<!-- GRAPH EXPORT MODAL -->
+<div class="modal-backdrop" id="modal-graph-export">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <h2>🖼 Export Graph</h2>
+      <button class="modal-close" onclick="closeModal('modal-graph-export')">✕</button>
+    </div>
+    <div class="modal-body" style="flex-direction:column;padding:20px;gap:10px;">
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0 0 4px;">Export the current graph view as an image file.</p>
+      <button class="topbar-btn primary" id="graph-export-png" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        PNG — current view (lossless)
+      </button>
+      <button class="topbar-btn" id="graph-export-jpg" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        JPG — current view (compressed)
+      </button>
+      <button class="topbar-btn" id="graph-export-svg" style="width:100%;justify-content:center;padding:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="14 2 14 8 20 8"/><path d="M20 8L14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+        SVG — full graph (vector, all nodes)
+      </button>
+      <div id="graph-export-status" style="display:none;font-size:12px;color:var(--text-muted);text-align:center;padding:4px 0;"></div>
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;line-height:1.5;margin:0;">PNG/JPG captures what's currently visible in the viewport.<br>SVG exports the entire graph regardless of zoom/pan.</p>
+    </div>
+  </div>
+</div>
+
 <!-- EXPORT WARNING MODAL -->
 <div class="modal-backdrop" id="modal-export-warn">
   <div class="modal-box" style="max-width:440px;">
@@ -1453,7 +1484,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.0.8 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.1.0 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -3553,7 +3584,7 @@ function updateTopbarTitle(title) {
   } else {
     el.textContent = '';
     el.style.display = 'none';
-    document.title = 'ChatGPT JSON Tree Viewer v7.0.8';
+    document.title = 'ChatGPT JSON Tree Viewer v7.1.0';
   }
 }
 
@@ -3936,13 +3967,14 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.0.8</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.1.0</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
       <tr><th>Platform</th><th>Format Type</th><th>Detection Signal</th></tr>
       <tr><td><strong>OpenAI / ChatGPT</strong></td><td>Single or array with <code>mapping</code></td><td><code>mapping[].message.author.role</code></td></tr>
-      <tr><td><strong>Claude / Anthropic</strong></td><td>Messages array</td><td><code>role</code> + <code>contentChunks</code> or <code>createdAt</code></td></tr>
+      <tr><td><strong>Claude / Anthropic (old)</strong></td><td>Messages array</td><td><code>role</code> + <code>contentChunks</code> or <code>createdAt</code></td></tr>
+      <tr><td><strong>Claude / Anthropic (new)</strong></td><td>Conversations array</td><td><code>chat_messages[]</code> + <code>sender</code> + <code>parent_message_uuid</code> — branching fully preserved</td></tr>
       <tr><td><strong>DeepSeek (exporter)</strong></td><td>Metadata + messages</td><td><code>metadata.platform === "DeepSeek"</code></td></tr>
       <tr><td><strong>DeepSeek (chat export)</strong></td><td>Mapping with fragments</td><td><code>mapping[].message.fragments[]</code></td></tr>
       <tr><td><strong>DeepSeek (conversation)</strong></td><td>Messages with raw_html</td><td><code>messages[].raw_html</code></td></tr>
@@ -4016,14 +4048,22 @@ const helpTopics = [
       <li><strong>Click + drag</strong> on the background — pan the view</li>
       <li><strong>+ / − buttons</strong> (bottom-left) — zoom in/out by a fixed step</li>
       <li><strong>Fit button</strong> (bottom-left) — zoom and pan to fit all nodes in view</li>
-      <li><strong>Reset button</strong> (top bar) — click to run <em>Reset All</em> (nodes + view). Click the <strong>▾</strong> arrow next to it to choose from three options:
+      <li><strong>Reset button</strong> (top bar) — click to run <em>Reset All</em> (nodes + view). A confirmation dialog appears before moving any nodes. Click the <strong>▾</strong> arrow for three options:
         <ul>
-          <li><strong>Reset All</strong> — animates all nodes back to their original calculated positions, then fits the viewport so the whole tree is visible</li>
-          <li><strong>Reset Nodes</strong> — restores node positions only; leaves your current zoom/pan in place</li>
-          <li><strong>Reset View</strong> — re-fits the viewport to show all nodes without moving any nodes</li>
+          <li><strong>Reset All</strong> — animates all nodes back to their original calculated positions, then fits the viewport. Requires confirmation.</li>
+          <li><strong>Reset Nodes</strong> — restores node positions only; leaves your current zoom/pan in place. Requires confirmation.</li>
+          <li><strong>Reset View</strong> — re-fits the viewport to show all nodes without moving any nodes. No confirmation needed.</li>
         </ul>
       </li>
     </ul>
+    <h3>Graph Image Export</h3>
+    <p>The <strong>camera icon</strong> at the bottom of the graph controls (bottom-left) exports the graph as an image. Three formats are available:</p>
+    <ul>
+      <li><strong>PNG</strong> — captures the current viewport at 2× scale. Lossless. Best for sharing or documentation.</li>
+      <li><strong>JPG</strong> — same viewport capture at 92% quality. Smaller file size.</li>
+      <li><strong>SVG</strong> — exports the <em>entire</em> graph as a vector file, regardless of current zoom or pan position. All nodes and links are included. Scales to any size without loss of quality. Can be opened in Inkscape, Figma, Illustrator, or any vector editor.</li>
+    </ul>
+    <div class="tip"><strong>Tip:</strong> Use PNG/JPG to capture what you see on screen. Use SVG when you need the full graph or want to edit it further.</div>
     <h3>Node Types</h3>
     <table>
       <tr><th>Appearance</th><th>Role</th><th>Description</th></tr>
@@ -5037,23 +5077,113 @@ document.getElementById('btn-zoom-out').addEventListener('click', () => {
   d3.select('#graph-svg').transition().duration(300).call(zoom.scaleBy, 0.7);
 });
 document.getElementById('btn-fit').addEventListener('click', fitGraph);
+
+// Graph export
+document.getElementById('btn-export-graph').addEventListener('click', () => {
+  if (!state.activeConvId) { showNotif('No conversation loaded', 'error'); return; }
+  document.getElementById('graph-export-status').style.display = 'none';
+  openModal('modal-graph-export');
+});
+
+document.getElementById('graph-export-png').addEventListener('click', () => exportGraphRaster('png'));
+document.getElementById('graph-export-jpg').addEventListener('click', () => exportGraphRaster('jpg'));
+document.getElementById('graph-export-svg').addEventListener('click', () => exportGraphVector());
+
+function exportGraphRaster(fmt) {
+  const status = document.getElementById('graph-export-status');
+  status.style.display = '';
+  status.textContent = 'Capturing graph…';
+  const graphArea = document.getElementById('graph-area');
+  html2canvas(graphArea, {
+    backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg-graph').trim() || '#1a1a2e',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  }).then(canvas => {
+    const mime = fmt === 'jpg' ? 'image/jpeg' : 'image/png';
+    const ext = fmt === 'jpg' ? 'jpg' : 'png';
+    const quality = fmt === 'jpg' ? 0.92 : undefined;
+    const url = canvas.toDataURL(mime, quality);
+    const a = document.createElement('a');
+    a.href = url;
+    const conv = getActiveConv();
+    a.download = (conv?.title || 'graph').replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '.' + ext;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    status.textContent = '✓ Downloaded as ' + ext.toUpperCase();
+    setTimeout(() => closeModal('modal-graph-export'), 1200);
+  }).catch(err => {
+    status.textContent = 'Failed: ' + err.message;
+  });
+}
+
+function exportGraphVector() {
+  const status = document.getElementById('graph-export-status');
+  status.style.display = '';
+  status.textContent = 'Generating SVG…';
+  try {
+    // Clone the SVG and embed styles
+    const svgEl = document.getElementById('graph-svg');
+    if (!svgEl) { status.textContent = 'Graph SVG not found'; return; }
+    const clone = svgEl.cloneNode(true);
+
+    // Get computed bounding box and set viewBox to full graph
+    const bbox = document.getElementById('graph-root')?.getBBox?.();
+    if (bbox) {
+      const pad = 40;
+      clone.setAttribute('viewBox', `${bbox.x - pad} ${bbox.y - pad} ${bbox.width + pad*2} ${bbox.height + pad*2}`);
+      clone.setAttribute('width', bbox.width + pad*2);
+      clone.setAttribute('height', bbox.height + pad*2);
+    }
+
+    // Embed a basic style block so colors survive outside the app
+    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    style.textContent = `
+      .link-line { fill: none; stroke: #4a5568; stroke-width: 1.5; }
+      text { font-family: system-ui, sans-serif; font-size: 11px; fill: #e2e8f0; }
+    `;
+    clone.insertBefore(style, clone.firstChild);
+
+    // Reset transform so the full graph shows (not the current panned/zoomed view)
+    const root = clone.querySelector('#graph-root');
+    if (root) root.removeAttribute('transform');
+
+    const svgStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const conv = getActiveConv();
+    a.download = (conv?.title || 'graph').replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '.svg';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    status.textContent = '✓ Downloaded as SVG';
+    setTimeout(() => closeModal('modal-graph-export'), 1200);
+  } catch(err) {
+    status.textContent = 'Failed: ' + err.message;
+  }
+}
 // Reset split button
-document.getElementById('btn-reset-layout').addEventListener('click', () => { resetNodes(); fitGraph(); });
+function confirmReset(action) {
+  if (!state.activeConvId) return;
+  if (!confirm('Reset the graph layout? This will undo any manual node repositioning.')) return;
+  action();
+}
+
+document.getElementById('btn-reset-layout').addEventListener('click', () => confirmReset(() => { resetNodes(); fitGraph(); }));
 document.getElementById('btn-reset-dropdown').addEventListener('click', e => {
   e.stopPropagation();
   document.getElementById('reset-dropdown').classList.toggle('open');
 });
 document.getElementById('reset-opt-all').addEventListener('click', () => {
   document.getElementById('reset-dropdown').classList.remove('open');
-  resetNodes(); fitGraph();
+  confirmReset(() => { resetNodes(); fitGraph(); });
 });
 document.getElementById('reset-opt-nodes').addEventListener('click', () => {
   document.getElementById('reset-dropdown').classList.remove('open');
-  resetNodes();
+  confirmReset(() => resetNodes());
 });
 document.getElementById('reset-opt-view').addEventListener('click', () => {
   document.getElementById('reset-dropdown').classList.remove('open');
-  fitGraph();
+  fitGraph(); // view reset needs no confirmation — it doesn't move nodes
 });
 document.addEventListener('click', e => {
   if (!e.target.closest('#reset-btn-wrap')) {
@@ -5396,7 +5526,16 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.0.8', date: '2025-05-04', latest: true,
+    version: 'v7.1.0', date: '2025-05-05', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Claude new export format</strong> — detects and correctly converts Claude.ai\'s current export format (<code>chat_messages[]</code> with <code>sender</code> + <code>parent_message_uuid</code>). Branching is preserved using the parent UUID so regenerated responses appear as real branches in the graph.' },
+      { type: 'fix', text: '<strong>Claude new format was misdetected as Mistral</strong> — both use <code>chat_messages[]</code>; now distinguished by presence of <code>sender</code> field (Claude) vs <code>role</code> field (Mistral).' },
+      { type: 'new', text: '<strong>Reset confirmation</strong> — clicking Reset (main button or Reset All / Reset Nodes from the dropdown) now asks for confirmation before moving nodes, preventing accidental layout loss.' },
+      { type: 'new', text: '<strong>Graph image export</strong> — camera button in the graph controls opens an export dialog with three formats: PNG (current viewport, lossless), JPG (current viewport, compressed), SVG (full graph as vector, all nodes regardless of zoom/pan).' },
+    ]
+  },
+  {
+    version: 'v7.0.8', date: '2025-05-04', latest: false,
     items: [
       { type: 'fix', text: '<strong>Chunk export re-import showed "unknown format / 0 messages"</strong> — <code>convToOpenAIFormat</code> was reading <code>content.text</code> directly, missing text from non-OpenAI formats (Claude, DeepSeek, Grok, GLM). Now uses <code>getNodeText()</code> which handles all formats, with fallbacks.' },
       { type: 'fix', text: '<strong>Corrupt or missing mapping crashed entire chunk export</strong> — conversations with malformed <code>data.mapping</code> are now skipped with a console warning rather than aborting the whole export' },
@@ -5550,7 +5689,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.0.8 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.1.0 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
