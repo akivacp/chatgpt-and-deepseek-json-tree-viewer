@@ -2,7 +2,34 @@
 
 ---
 
-## v7.0 — 2025-05-04 *(Current)*
+## v7.0.3 — 2025-05-04 *(Current)*
+
+### 🐛 Bug Fixes
+- **Export All failed silently on large projects** — `JSON.stringify` on 1000+ conversations caused memory exhaustion; export now streams each conversation individually into a `Blob` array, eliminating the memory spike. Tested with 3000+ conversations.
+- **Export All now includes hidden conversations** — conversations stashed via Show Only were previously excluded from the export; they are now included alongside visible ones
+- **Download anchor fix for Firefox** — the anchor element is now appended to the DOM before the programmatic click, fixing a silent no-download in Firefox and some other browsers
+
+---
+
+## v7.0.2 — 2025-05-04
+
+### 🆕 New
+- **Smart duplicate handling on import** — when adding files to an existing project, each conversation is matched by `conversation_id`. Same ID with more nodes → updated in place (in whichever pool it lives — visible, hidden, or deleted). Same or fewer nodes → skipped unchanged.
+- **Import summary notification** — after every load, a breakdown shows exactly what happened: *3 new, 2 updated, 1 skipped — from conversations.json*
+- **Help guide updated** — Loading & Unloading topic now documents the duplicate logic with a re-import tip
+
+---
+
+## v7.0.1 — 2025-05-04
+
+### 🐛 Bug Fixes
+- **Metadata level chain showed "undefined" on OpenAI files** — BFS depth calculation was hardcoded to start at `root`; OpenAI files use a UUID as their root node, causing all levels to show as undefined
+- **Branch Index depth badges also affected** — same hardcoded root fix applied to the Branch Index depth/position-at-level badges
+- **Empty assistant nodes misclassified as system** — the smart system-detection heuristic was incorrectly reclassifying `role: assistant` nodes with empty text (OpenAI placeholder nodes) as system nodes, hiding or collapsing them
+
+---
+
+## v7.0 — 2025-05-04
 
 This is a major release that replaces the original Multiverse Viewer. The tool has been rebuilt from the ground up with a new name, new architecture, and a large set of new features.
 
