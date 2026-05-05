@@ -2,7 +2,17 @@
 
 ---
 
-## v7.1.0 — 2025-05-05 *(Current)*
+## v7.2.0 — 2025-05-05 *(Current)*
+
+### 🆕 New
+- **Custom theme color picker** — a rainbow ✦ dot after the preset theme dots opens a live color editing panel. Customize backgrounds, text, accent color, borders, and all four node colors individually. Changes apply instantly across the entire UI.
+- **Quick presets in custom panel** — one-click buttons to load any of the 5 named themes as a starting point
+- **Reset to defaults** — button inside the custom panel restores all colors to Dark theme defaults
+- **Custom theme persists** — all custom colors saved to `localStorage` and restored automatically on every visit
+
+---
+
+## v7.1.0 — 2025-05-05
 
 ### 🆕 New
 - **Claude new export format** — detects and correctly converts Claude.ai's current export format (`chat_messages[]` with `sender` + `parent_message_uuid`). Branching is fully preserved — regenerated responses appear as real branches in the graph, not a flat chain.
