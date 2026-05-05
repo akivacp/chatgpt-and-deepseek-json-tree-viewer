@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.1.0</title>
+<title>ChatGPT JSON Tree Viewer v7.2.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -104,7 +104,29 @@
   --accent-teal-dim: #aa66dd;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+[data-theme="custom"] {
+  --bg-primary: var(--custom-bg-primary, #0d0f14);
+  --bg-secondary: var(--custom-bg-secondary, #141720);
+  --bg-tertiary: var(--custom-bg-tertiary, #1a1e2a);
+  --bg-panel: var(--custom-bg-panel, #111318);
+  --bg-hover: var(--custom-bg-hover, #1e2333);
+  --bg-active: var(--custom-bg-active, #242840);
+  --border-color: var(--custom-border, #2a2f42);
+  --border-light: var(--custom-border-light, #333850);
+  --text-primary: var(--custom-text-primary, #e8eaf0);
+  --text-secondary: var(--custom-text-secondary, #9096b0);
+  --text-muted: var(--custom-text-muted, #5a6080);
+  --accent-teal: var(--custom-accent, #00d4aa);
+  --accent-teal-dim: var(--custom-accent-dim, #00a882);
+  --node-user: var(--custom-node-user, linear-gradient(135deg, #1e40af, #3b82f6));
+  --node-user-border: var(--custom-node-user-border, #60a5fa);
+  --node-assistant: var(--custom-node-assistant, linear-gradient(135deg, #166534, #22c55e));
+  --node-assistant-border: var(--custom-node-assistant-border, #4ade80);
+  --node-other: var(--custom-node-other, linear-gradient(135deg, #6b21a8, #a855f7));
+  --node-other-border: var(--custom-node-other-border, #c084fc);
+}
+
+
 *::-webkit-scrollbar { width: var(--scrollbar-width); height: var(--scrollbar-width); }
 *::-webkit-scrollbar-track { background: var(--bg-secondary); }
 *::-webkit-scrollbar-thumb { background: var(--scrollbar-color); border-radius: 99px; }
@@ -254,7 +276,7 @@ body {
 .reset-opt span { color: var(--text-muted); font-size: 11px; margin-left: auto; padding-left: 8px; }
 
 /* Theme buttons */
-#theme-picker { display: flex; gap: 4px; align-items: center; }
+#theme-picker { display: flex; gap: 4px; align-items: center; position: relative; }
 .theme-dot {
   width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
   border: 2px solid transparent; transition: all var(--transition);
@@ -265,6 +287,33 @@ body {
 .theme-dot.t-blue { background: #0a1525; border-color: #224060; }
 .theme-dot.t-green { background: #0a1a0c; border-color: #224830; }
 .theme-dot.t-purple { background: #130c1a; border-color: #382255; }
+.theme-dot.t-custom { background: conic-gradient(red,yellow,lime,cyan,blue,magenta,red); }
+.theme-dot.t-custom.active { border-color: var(--text-primary); }
+#custom-theme-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 300px; background: var(--bg-secondary);
+  border: 1px solid var(--border-light); border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 9999;
+  padding: 16px; display: none; flex-direction: column; gap: 10px;
+}
+#custom-theme-panel.open { display: flex; }
+.ctp-section h4 { font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-muted); margin-bottom: 6px; }
+.ctp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ctp-row label { font-size: 12px; color: var(--text-secondary); flex: 1; }
+.ctp-row input[type="color"] { width: 32px; height: 22px; border: 1px solid var(--border-color);
+  border-radius: 3px; cursor: pointer; padding: 1px 2px; background: var(--bg-tertiary); }
+.ctp-presets { display: flex; gap: 5px; flex-wrap: wrap; }
+.ctp-preset { font-size: 11px; padding: 3px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color); background: var(--bg-tertiary);
+  color: var(--text-secondary); cursor: pointer; transition: all var(--transition); }
+.ctp-preset:hover { border-color: var(--accent-teal); color: var(--text-primary); }
+.ctp-divider { height: 1px; background: var(--border-color); }
+.ctp-reset { font-size: 12px; padding: 7px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color); background: var(--bg-tertiary);
+  color: var(--text-secondary); cursor: pointer; text-align: center;
+  transition: all var(--transition); width: 100%; }
+.ctp-reset:hover { border-color: var(--accent-teal); color: var(--accent-teal); }
 
 /* ===== SIDEBAR LEFT ===== */
 #sidebar-search-wrap {
@@ -979,7 +1028,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.1.0</span>
+      <span class="logo-version">v7.2.0</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1037,11 +1086,50 @@ body {
       chatgpt-json-tree-viewer
     </a>
     <div id="theme-picker">
-      <div class="theme-dot t-dark active" data-theme="dark" title="Dark"></div>
+      <div class="theme-dot t-dark" data-theme="dark" title="Dark"></div>
       <div class="theme-dot t-light" data-theme="light" title="Light"></div>
       <div class="theme-dot t-blue" data-theme="blue" title="Blue"></div>
       <div class="theme-dot t-green" data-theme="green" title="Green"></div>
       <div class="theme-dot t-purple" data-theme="purple" title="Purple"></div>
+      <div class="theme-dot t-custom" data-theme="custom" title="Custom theme" id="btn-custom-theme"></div>
+      <div id="custom-theme-panel">
+        <div class="ctp-section">
+          <h4>Quick Presets</h4>
+          <div class="ctp-presets">
+            <button class="ctp-preset" data-preset="dark">Dark</button>
+            <button class="ctp-preset" data-preset="light">Light</button>
+            <button class="ctp-preset" data-preset="blue">Blue</button>
+            <button class="ctp-preset" data-preset="green">Green</button>
+            <button class="ctp-preset" data-preset="purple">Purple</button>
+          </div>
+        </div>
+        <div class="ctp-divider"></div>
+        <div class="ctp-section">
+          <h4>Backgrounds</h4>
+          <div class="ctp-row"><label>Primary background</label><input type="color" data-var="--custom-bg-primary"></div>
+          <div class="ctp-row"><label>Secondary background</label><input type="color" data-var="--custom-bg-secondary"></div>
+          <div class="ctp-row"><label>Panel background</label><input type="color" data-var="--custom-bg-panel"></div>
+        </div>
+        <div class="ctp-section">
+          <h4>Text</h4>
+          <div class="ctp-row"><label>Primary text</label><input type="color" data-var="--custom-text-primary"></div>
+          <div class="ctp-row"><label>Secondary text</label><input type="color" data-var="--custom-text-secondary"></div>
+        </div>
+        <div class="ctp-section">
+          <h4>Accent &amp; Borders</h4>
+          <div class="ctp-row"><label>Accent color</label><input type="color" data-var="--custom-accent"></div>
+          <div class="ctp-row"><label>Border color</label><input type="color" data-var="--custom-border"></div>
+        </div>
+        <div class="ctp-section">
+          <h4>Node Colors</h4>
+          <div class="ctp-row"><label>User node</label><input type="color" data-var="--custom-node-user-border"></div>
+          <div class="ctp-row"><label>Assistant node</label><input type="color" data-var="--custom-node-assistant-border"></div>
+          <div class="ctp-row"><label>System node</label><input type="color" data-var="--custom-node-system-border"></div>
+          <div class="ctp-row"><label>Other node</label><input type="color" data-var="--custom-node-other-border"></div>
+        </div>
+        <div class="ctp-divider"></div>
+        <button class="ctp-reset" id="ctp-reset-btn">↺ Reset to current theme defaults</button>
+      </div>
     </div>
   </div>
 
@@ -1485,7 +1573,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.1.0 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.2.0 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1544,8 +1632,12 @@ const state = {
 const savedTheme = localStorage.getItem('mv-theme') ||
   (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 document.body.setAttribute('data-theme', savedTheme);
-document.querySelector(`.theme-dot[data-theme="${savedTheme}"]`)?.classList.add('active');
-document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === savedTheme));
+if (savedTheme === 'custom') {
+  document.getElementById('btn-custom-theme')?.classList.add('active');
+} else {
+  document.querySelector(`.theme-dot[data-theme="${savedTheme}"]`)?.classList.add('active');
+}
+document.querySelectorAll('.theme-dot:not(.t-custom)').forEach(d => d.classList.toggle('active', d.dataset.theme === savedTheme));
 try {
   const s = JSON.parse(localStorage.getItem('mv-settings') || '{}');
   Object.assign(state.settings, s);
@@ -3585,7 +3677,7 @@ function updateTopbarTitle(title) {
   } else {
     el.textContent = '';
     el.style.display = 'none';
-    document.title = 'ChatGPT JSON Tree Viewer v7.1.0';
+    document.title = 'ChatGPT JSON Tree Viewer v7.2.0';
   }
 }
 
@@ -3968,7 +4060,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.1.0</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.2.0</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4293,16 +4385,30 @@ const helpTopics = [
   `},
   { id: 'themes', label: '🎨 Themes', content: `
     <h2>Themes</h2>
-    <p>Click any of the five colored dots in the top-right corner of the toolbar to switch themes. The preference is saved to <code>localStorage</code> automatically.</p>
+    <p>Click any of the colored dots in the top-right corner of the toolbar to switch themes instantly. The preference is saved to <code>localStorage</code> automatically.</p>
+    <h3>Built-in Themes</h3>
     <table>
-      <tr><th>Dot color</th><th>Theme name</th><th>Description</th></tr>
+      <tr><th>Dot</th><th>Name</th><th>Description</th></tr>
       <tr><td>Dark gray</td><td><strong>Dark</strong></td><td>Default. Deep dark backgrounds with teal accents</td></tr>
       <tr><td>Light gray</td><td><strong>Light</strong></td><td>Soft light gray backgrounds with dark text</td></tr>
-      <tr><td>Dark navy</td><td><strong>Blue</strong></td><td>Deep navy blue theme with blue accent color</td></tr>
-      <tr><td>Dark green</td><td><strong>Green</strong></td><td>Forest green theme with bright green accents</td></tr>
-      <tr><td>Dark purple</td><td><strong>Purple</strong></td><td>Deep purple theme with lavender accents</td></tr>
+      <tr><td>Dark navy</td><td><strong>Blue</strong></td><td>Deep navy blue with blue accent</td></tr>
+      <tr><td>Dark green</td><td><strong>Green</strong></td><td>Forest green with bright green accents</td></tr>
+      <tr><td>Dark purple</td><td><strong>Purple</strong></td><td>Deep purple with lavender accents</td></tr>
     </table>
-    <p>All CSS colors use custom properties (<code>--bg-primary</code>, <code>--accent-teal</code>, etc.) so every element respects the theme including the graph, panels, modals, and scrollbars.</p>
+    <h3>Custom Theme</h3>
+    <p>The <strong>rainbow ✦ dot</strong> at the end of the row opens the custom theme panel, where you can set every color individually with a color picker:</p>
+    <ul>
+      <li><strong>Backgrounds</strong> — primary, secondary, and panel background colors</li>
+      <li><strong>Text</strong> — primary and secondary text colors</li>
+      <li><strong>Accent &amp; Borders</strong> — the main accent color (used for highlights, active states, badges) and border color</li>
+      <li><strong>Node Colors</strong> — individual colors for User, Assistant, System, and Other nodes</li>
+    </ul>
+    <p>All changes are <strong>live</strong> — the entire UI updates as you drag the color picker.</p>
+    <h3>Quick Presets</h3>
+    <p>Inside the custom panel, the five preset buttons (Dark, Light, Blue, Green, Purple) apply that theme's colors as a starting point. Adjust from there to create your own look.</p>
+    <h3>Reset</h3>
+    <p>The <strong>↺ Reset to current theme defaults</strong> button at the bottom of the panel restores all custom colors to the Dark theme defaults.</p>
+    <div class="tip"><strong>Tip:</strong> Custom colors are saved automatically and restored on every visit — even across sessions.</div>
   `},
   { id: 'panels', label: '🖥 Panel Layout', content: `
     <h2>Panel Layout</h2>
@@ -4704,14 +4810,152 @@ graphArea.addEventListener('drop', e => {
 });
 
 // Theme
-document.querySelectorAll('.theme-dot').forEach(dot => {
+// Theme presets data for custom theme reset/presets
+const THEME_PRESETS = {
+  dark:   { '--custom-bg-primary':'#0d0f14','--custom-bg-secondary':'#141720','--custom-bg-panel':'#111318','--custom-text-primary':'#e8eaf0','--custom-text-secondary':'#9096b0','--custom-accent':'#00d4aa','--custom-accent-dim':'#00a882','--custom-border':'#2a2f42','--custom-node-user-border':'#60a5fa','--custom-node-assistant-border':'#4ade80','--custom-node-system-border':'#6b7280','--custom-node-other-border':'#c084fc' },
+  light:  { '--custom-bg-primary':'#f0f2f8','--custom-bg-secondary':'#e8eaf2','--custom-bg-panel':'#f5f6fc','--custom-text-primary':'#1a1d2e','--custom-text-secondary':'#4a5080','--custom-accent':'#00a882','--custom-accent-dim':'#007a60','--custom-border':'#c8cce0','--custom-node-user-border':'#3b82f6','--custom-node-assistant-border':'#22c55e','--custom-node-system-border':'#9ca3af','--custom-node-other-border':'#a855f7' },
+  blue:   { '--custom-bg-primary':'#060d1a','--custom-bg-secondary':'#0a1525','--custom-bg-panel':'#08111f','--custom-text-primary':'#d0e8ff','--custom-text-secondary':'#7090b8','--custom-accent':'#00aaff','--custom-accent-dim':'#0088cc','--custom-border':'#1a3050','--custom-node-user-border':'#60a5fa','--custom-node-assistant-border':'#4ade80','--custom-node-system-border':'#6b7280','--custom-node-other-border':'#c084fc' },
+  green:  { '--custom-bg-primary':'#061008','--custom-bg-secondary':'#0a1a0c','--custom-bg-panel':'#081208','--custom-text-primary':'#d0ffd8','--custom-text-secondary':'#70b880','--custom-accent':'#00ff88','--custom-accent-dim':'#00cc66','--custom-border':'#1a3820','--custom-node-user-border':'#60a5fa','--custom-node-assistant-border':'#4ade80','--custom-node-system-border':'#6b7280','--custom-node-other-border':'#c084fc' },
+  purple: { '--custom-bg-primary':'#0d080f','--custom-bg-secondary':'#130c1a','--custom-bg-panel':'#100a14','--custom-text-primary':'#ead0ff','--custom-text-secondary':'#9070b8','--custom-accent':'#cc88ff','--custom-accent-dim':'#aa66dd','--custom-border':'#2a1840','--custom-node-user-border':'#60a5fa','--custom-node-assistant-border':'#4ade80','--custom-node-system-border':'#6b7280','--custom-node-other-border':'#c084fc' },
+};
+
+function applyCustomVars(vars) {
+  Object.entries(vars).forEach(([k, v]) => {
+    document.documentElement.style.setProperty(k, v);
+    // Also set gradient versions for node fills
+    if (k === '--custom-node-user-border') {
+      document.documentElement.style.setProperty('--custom-node-user', `linear-gradient(135deg, ${v}88, ${v})`);
+    }
+    if (k === '--custom-node-assistant-border') {
+      document.documentElement.style.setProperty('--custom-node-assistant', `linear-gradient(135deg, ${v}88, ${v})`);
+    }
+    if (k === '--custom-node-other-border') {
+      document.documentElement.style.setProperty('--custom-node-other', `linear-gradient(135deg, ${v}88, ${v})`);
+    }
+    if (k === '--custom-accent') {
+      document.documentElement.style.setProperty('--custom-accent-dim', adjustColor(v, -0.2));
+      document.documentElement.style.setProperty('--custom-bg-hover', v + '22');
+      document.documentElement.style.setProperty('--custom-bg-active', v + '33');
+    }
+    if (k === '--custom-border') {
+      document.documentElement.style.setProperty('--custom-border-light', adjustColor(v, 0.1));
+    }
+  });
+}
+
+function adjustColor(hex, amount) {
+  // Lighten/darken a hex color
+  try {
+    const num = parseInt(hex.replace('#',''), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + Math.round(amount * 255)));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(amount * 255)));
+    const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(amount * 255)));
+    return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+  } catch { return hex; }
+}
+
+function syncCustomInputs(vars) {
+  document.querySelectorAll('#custom-theme-panel input[type="color"]').forEach(inp => {
+    const val = vars[inp.dataset.var];
+    if (val) inp.value = val;
+  });
+}
+
+function saveCustomTheme(vars) {
+  localStorage.setItem('mv-custom-theme', JSON.stringify(vars));
+}
+
+function loadCustomTheme() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mv-custom-theme') || 'null');
+    if (saved) { applyCustomVars(saved); syncCustomInputs(saved); return true; }
+  } catch {}
+  return false;
+}
+
+// Named theme dots
+document.querySelectorAll('.theme-dot:not(.t-custom)').forEach(dot => {
   dot.addEventListener('click', () => {
     const theme = dot.dataset.theme;
     document.body.setAttribute('data-theme', theme);
-    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === theme));
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d === dot));
     localStorage.setItem('mv-theme', theme);
+    localStorage.setItem('mv-theme-before-custom', theme); // remember for custom reset
+    document.getElementById('custom-theme-panel').classList.remove('open');
   });
 });
+
+// Custom theme dot — toggle panel
+document.getElementById('btn-custom-theme').addEventListener('click', e => {
+  e.stopPropagation();
+  const panel = document.getElementById('custom-theme-panel');
+  const isOpen = panel.classList.toggle('open');
+  if (isOpen) {
+    // Switch to custom theme
+    document.body.setAttribute('data-theme', 'custom');
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.id === 'btn-custom-theme'));
+    localStorage.setItem('mv-theme', 'custom');
+    // Load saved custom, or default to whatever theme was active before
+    if (!loadCustomTheme()) {
+      const activeName = localStorage.getItem('mv-theme-before-custom') ||
+        ['dark','light','blue','green','purple'].find(t =>
+          document.querySelector(`.theme-dot[data-theme="${t}"]`)?.classList.contains('active')
+        ) || 'dark';
+      const base = THEME_PRESETS[activeName] || THEME_PRESETS.dark;
+      applyCustomVars(base); syncCustomInputs(base); saveCustomTheme(base);
+    }
+  }
+});
+
+// Close panel on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#theme-picker')) {
+    document.getElementById('custom-theme-panel').classList.remove('open');
+  }
+});
+
+// Color inputs — live update
+document.querySelectorAll('#custom-theme-panel input[type="color"]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    const varName = inp.dataset.var;
+    const val = inp.value;
+    const current = {};
+    document.querySelectorAll('#custom-theme-panel input[type="color"]').forEach(i => {
+      current[i.dataset.var] = i.value;
+    });
+    current[varName] = val;
+    applyCustomVars({ [varName]: val });
+    saveCustomTheme(current);
+  });
+});
+
+// Preset buttons
+document.querySelectorAll('.ctp-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const preset = THEME_PRESETS[btn.dataset.preset];
+    if (!preset) return;
+    applyCustomVars(preset);
+    syncCustomInputs(preset);
+    saveCustomTheme(preset);
+  });
+});
+
+// Reset button
+document.getElementById('ctp-reset-btn').addEventListener('click', () => {
+  const baseName = localStorage.getItem('mv-theme-before-custom') || 'dark';
+  const preset = THEME_PRESETS[baseName] || THEME_PRESETS.dark;
+  applyCustomVars(preset);
+  syncCustomInputs(preset);
+  saveCustomTheme(preset);
+});
+// On load: restore custom theme if it was active
+(function() {
+  const saved = localStorage.getItem('mv-theme');
+  if (saved === 'custom') {
+    document.getElementById('btn-custom-theme').classList.add('active');
+    loadCustomTheme();
+  }
+})();
 
 // Search
 document.getElementById('sidebar-search').addEventListener('input', e => runSearch(e.target.value));
@@ -5527,7 +5771,16 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.1.0', date: '2025-05-05', latest: true,
+    version: 'v7.2.0', date: '2025-05-05', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Custom theme color picker</strong> — a rainbow ✦ dot after the theme presets opens a live-editing panel. Customize background, secondary background, panel background, primary and secondary text, accent color, border color, and all four node colors individually.' },
+      { type: 'new', text: '<strong>Quick presets inside the custom panel</strong> — apply any of the 5 named themes as a starting point, then adjust from there.' },
+      { type: 'new', text: '<strong>Reset to defaults</strong> — a Reset button inside the panel restores all custom colors back to the dark theme defaults.' },
+      { type: 'new', text: '<strong>Custom theme persists</strong> — all custom color choices are saved to localStorage and restored on every visit.' },
+    ]
+  },
+  {
+    version: 'v7.1.0', date: '2025-05-05', latest: false,
     items: [
       { type: 'new', text: '<strong>Claude new export format</strong> — detects and correctly converts Claude.ai\'s current export format (<code>chat_messages[]</code> with <code>sender</code> + <code>parent_message_uuid</code>). Branching is preserved using the parent UUID so regenerated responses appear as real branches in the graph.' },
       { type: 'fix', text: '<strong>Claude new format was misdetected as Mistral</strong> — both use <code>chat_messages[]</code>; now distinguished by presence of <code>sender</code> field (Claude) vs <code>role</code> field (Mistral).' },
@@ -5690,7 +5943,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.1.0 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.2.0 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
