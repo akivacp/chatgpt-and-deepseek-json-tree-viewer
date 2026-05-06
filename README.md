@@ -131,8 +131,10 @@ Works with exports from:
 | **Claude (Anthropic)** | Settings → Export Data |
 | **DeepSeek** | Settings → Export |
 | **Grok / xAI** | Settings → Export |
-| **Mistral AI** | Settings → Export |
+| **Mistral AI** | Profile → Export your personal data → Le Chat → Export|
 | **GLM / Zhipu AI** | Settings → Export |
+| **Qwen Studio** | Settings → Chats → Export Chats |
+
 
 The format is detected automatically — you don't need to tell the app which platform it came from.
 
