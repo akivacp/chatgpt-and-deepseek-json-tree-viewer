@@ -1,260 +1,172 @@
 # 🌳 ChatGPT JSON Tree Viewer
 
-*A standalone, offline, multi-platform conversation explorer and branching tree visualizer.*
+**Ever wanted to actually *see* your AI conversations — not just scroll through them?**
 
-## 📷 Screenshots
+This tool takes your exported chat history from ChatGPT, Claude, DeepSeek, and other AI apps and turns it into an interactive map you can explore, search, and read.
+
+**[➜ Open the Viewer](https://akivacp.github.io/chatgpt-json-tree-viewer/)** &nbsp;|&nbsp; [GitHub](https://github.com/akivacp/chatgpt-json-tree-viewer)
 
 ![Main UI](docs/screenshot-main.png)
 
 ---
 
-## 🧭 Overview
+## What does it do?
 
-**ChatGPT JSON Tree Viewer** is a **single-file HTML application** that loads exported AI conversation data and converts it into an **interactive branching tree**, complete with metadata inspection, Markdown rendering, multi-format compatibility, full-text search, and a polished UI.
+When you chat with an AI, you often go back and try different responses, rewrite your questions, or branch off in different directions. Most chat apps show this as one long scroll — but it's actually a *tree*. Some messages have multiple replies. Some threads go deep. Some branch off and go different places.
 
-Everything runs **100 percent locally**, right inside your browser.
-No servers, no uploads, no telemetry.
+This viewer shows you that tree as a visual map. You can:
 
-This tool supports exports from:
+- **See the full shape** of a conversation at a glance
+- **Click any message** to read it in the panel on the right
+- **Follow a branch** from start to finish — see the full back-and-forth that led to any response
+- **Search** across everything you've ever said or asked — across thousands of chats at once
+- **Export** what you find as a readable document, PDF, or file
 
-- **ChatGPT / OpenAI** (single conversation and `conversations.json`)
-- **DeepSeek** (Chat export, Exporter format, Conversation format)
-- **Claude (Anthropic)**
-- **xAI Grok**
-- **Mistral AI**
-- **GLM / Zhipu AI**
-
-The viewer auto-detects format, auto-converts it, and presents it visually.
+Everything runs in your browser. Nothing is uploaded anywhere. Your conversations stay on your device.
 
 ---
 
-## 🚀 Features
+## Who is this for?
 
-### 🔍 Universal Format Detection
+**You don't need to know anything about code to use this.** If you've ever exported your ChatGPT history and wondered what to do with the JSON file — this is it.
 
-The viewer intelligently identifies and converts all major AI export formats:
+- 📚 **Researchers and students** — find that conversation where you worked through a problem, see how your thinking branched
+- ✍️ **Writers** — revisit brainstorming sessions, compare different directions you explored
+- 💼 **Professionals** — review past AI-assisted work, document conversations for records
+- 🧑‍💻 **Developers** — inspect conversation structure, export for analysis, or browse your history with a better interface
+- 🗃️ **Anyone with a lot of chats** — finally make sense of years of conversations
 
-| Format | Detection |
+---
+
+## Getting started
+
+### Step 1 — Export your chats
+
+**ChatGPT:** Settings → Data Controls → Export Data. You'll get an email with a ZIP file. Inside is a file called `conversations.json`.
+
+**Claude:** Settings → Export Data. You'll get a `claude_conversations.json` file.
+
+**DeepSeek, Grok, Mistral:** Each has an export option in settings. Download the JSON file.
+
+### Step 2 — Open the viewer
+
+Download `chatgpt-json-tree-viewer.html` from this page and open it in your browser (Chrome, Edge, or Firefox work best). No installation. No account. Just open the file.
+
+### Step 3 — Load your chats
+
+Click **Load File** and select your JSON file, or drag it onto the page. Your conversations appear in the sidebar and the tree map appears in the middle.
+
+---
+
+## How to use it
+
+### Reading a conversation
+
+Click any dot on the map to select it. The right panel shows you that message. Switch between two tabs:
+
+- **Selected Node** — just that one message, with its timestamp and which AI model was used
+- **Branch** — the full conversation thread from beginning to end
+
+### Understanding the map
+
+Each dot is a message. Lines show which messages led to which. Colors show who sent it:
+
+- 🔵 **Blue** — you
+- 🟢 **Green** — the AI
+- ⭕ **Gray dashed** — system messages (usually hidden behind the scenes)
+- 🟣 **Purple** — other types
+
+When a conversation branches — like when you regenerated a response or tried a different question — the map splits into multiple paths, showing you all the directions it went.
+
+### Searching
+
+Type anything in the search bar on the left to find messages across your conversations. Matching messages glow on the map and appear as clickable cards. You can search the current conversation or everything loaded at once.
+
+### Working with many conversations
+
+Load as many files as you want — they all appear together in the sidebar. If you load the same conversation twice, duplicates are skipped automatically. If you load an updated version with more messages, it quietly updates the old one.
+
+If your export file is very large (hundreds of megabytes), the app warns you and offers to split it into smaller pieces and import them automatically — no manual work needed.
+
+---
+
+## Themes and customization
+
+Click the colored dots in the top-right corner to switch between Dark, Light, Blue, Green, and Purple themes.
+
+The **rainbow dot ✦** opens a color editor where you can customize every color — backgrounds, text, accents, and individual node colors. Changes apply live and are saved automatically.
+
+---
+
+## Exporting and saving
+
+Whatever you're reading, you can save it:
+
+- **Copy** — copies the text to your clipboard
+- **Export** — downloads as a file (styled HTML, Markdown, or JSON)
+- **PDF** — opens a clean print window. Use your browser's "Save as PDF" to save it. Looks like a proper document with correct fonts and page margins.
+- **Pop-out** — opens the current view in a new browser tab
+
+To save your whole project, use **Export All** in the top bar. This downloads all your loaded conversations as a single file you can reload later. For very large projects it splits into numbered chunk files automatically.
+
+---
+
+## Supported formats
+
+Works with exports from:
+
+| Platform | How to export |
 |---|---|
-| OpenAI / ChatGPT | Single conversation or `conversations.json` array |
-| DeepSeek Chat | Mapping with `fragments[]` |
-| DeepSeek Exporter | `metadata.platform === "DeepSeek"` |
-| DeepSeek Conversation | `messages[].raw_html` |
-| Claude / Anthropic | `messages[]` with `role` + `contentChunks` |
-| Grok / xAI | `conversation` + `responses[]` |
-| Mistral AI | `chat_messages[]` |
-| GLM / Zhipu AI | `chat.history.messages` |
+| **ChatGPT / OpenAI** | Settings → Data Controls → Export |
+| **Claude (Anthropic)** | Settings → Export Data |
+| **DeepSeek** | Settings → Export |
+| **Grok / xAI** | Settings → Export |
+| **Mistral AI** | Settings → Export |
+| **GLM / Zhipu AI** | Settings → Export |
 
-It reconstructs parent/child mapping, roles, timestamps, titles, and linear or branching structure.
+The format is detected automatically — you don't need to tell the app which platform it came from.
 
 ---
 
-### 🌳 Interactive Graph Viewer
+## Frequently asked questions
 
-- D3.js tree layout with pan, zoom, and fit-to-screen
-- Drag nodes to reposition — moves entire subtree by default; **Shift+drag** to move only the selected node
-- **Reset Layout** — animates all nodes back to their original positions
-- Color-coded nodes: 🔵 User · 🟢 Assistant · ⭕ System (dashed) · 🟣 Other
-- Selected node pulses pink; ancestors pulse blue; descendants pulse green; everything else dims
-- Search-matching nodes highlighted with yellow glow
-- **Right-click a node** for: Copy Message, Select & View, Delete Node
-- **Minimap** in the bottom corner — click to navigate; Ctrl+drag to reposition it; toggle button to show/hide
+**Is my data safe?**
+Yes. Everything runs inside your browser. No data is ever sent anywhere. When you close the tab, nothing is stored (except your theme and settings, which stay on your device).
 
----
+**Can I use it offline?**
+Yes, once you've downloaded the HTML file. You need an internet connection the first time to load some libraries, but after that it works offline.
 
-### 📑 Selected Node Panel
+**Do I need to install anything?**
+No. It's a single HTML file — open it like any other file on your computer.
 
-Four view modes:
+**What if my file is too big to open?**
+The app will warn you and offer to handle it automatically. It can split huge files and import the pieces one by one.
 
-- **Rendered** — Markdown rendered to HTML with syntax-highlighted code blocks
-- **Markdown** — raw source text
-- **HTML** — rendered HTML source
-- **JSON** — raw node object from the internal mapping
+**Can I load multiple files at once?**
+Yes. Load as many as you want. The app handles duplicates intelligently.
 
-Each mode includes:
-
-- **Copy** — copies content in the active view mode
-- **Export** — downloads a format-matched file
-- **Pop-Out** — opens in a new browser tab
-- **PDF** — via jsPDF + html2canvas
-- **M** — toggles metadata bar (timestamp, model, parent ID, child count) plus a **level chain** showing every ancestor's depth and position-at-level; click any row to jump to that node
-- **H** — toggles search term highlighting (synced with Branch panel)
-
-The node header shows a **location bar** with depth (↳N), timestamp, and ancestor breadcrumb.
+**Can I get back a conversation I accidentally deleted from the viewer?**
+Yes — deleted conversations go to a recovery pool. Right-click any conversation in the sidebar and choose **Start Over** to restore everything.
 
 ---
 
-### 🌿 Branch View Panel
+## Libraries used
 
-Shows the full conversation path from root to the selected node, in order.
+| Library | Purpose |
+|---|---|
+| [D3.js](https://d3js.org) v7.9.0 | Interactive tree map |
+| [marked.js](https://marked.js.org) v9.1.6 | Markdown rendering |
+| [DOMPurify](https://github.com/cure53/DOMPurify) v3.0.6 | Safe content display |
+| [html2canvas](https://html2canvas.hertzen.com) v1.4.1 | Graph image export |
+| [jsPDF](https://github.com/parallax/jsPDF) v2.5.1 | PDF support |
 
-Each message card displays:
-- Role badge with color-tinted background (blue / green / gray / purple)
-- Depth indicator, timestamp, and ancestor breadcrumb
-- **Copy button** on hover
-
-**Filter bar** (three rows):
-1. **Show:** — toggle which roles are visible (User / Assistant / System / Other / All)
-2. **Search bar** — real-time filter; non-matching messages hidden completely; matches highlighted in yellow
-3. **Only in:** — narrows which roles are searched and shown in results
-
-**View modes:** Rendered / Markdown / HTML / JSON — export downloads in the matching format.
-
-**Toolbar buttons:**
-- **Copy** — copies all branch messages as plain text
-- **Export** — format-matched file download
-- **Pop-out** — opens styled thread in a new tab with role shading and per-message copy buttons
-- **GPT↓** — exports the current conversation as an OpenAI-compatible `conversations.json`
-- **H** — toggles search highlighting
-
-**Branch Index** (collapsible bottom panel) — lists all messages in the branch with depth and position-at-level badge (e.g. `3,2/5`); click to scroll and pulse the target message.
+Fonts: DM Sans, Literata, JetBrains Mono (SIL Open Font License, via Google Fonts).
 
 ---
 
-### 🔎 Global Search
+## License
 
-- Real-time search across the current conversation or **all loaded conversations**
-- Result cards show: role, depth (↳N), timestamp, conversation breadcrumb, and highlighted preview snippet
-- Clicking a result selects the node, zooms in, and centers the graph — result list stays open for continued browsing
-- Matching nodes highlighted with yellow glow on the graph
-- Conversations with matches float to the top of the sidebar with a match count badge
-
----
-
-### 🗂️ Project & Conversation Management
-
-- Load **multiple files** at once; each becomes a separate conversation entry
-- **Duplicate handling** — on re-import, conversations with the same ID but more nodes are updated in place; identical copies are skipped. Works across visible, hidden, and deleted pools.
-- **Load dialog** — when files are already open, choose to add to the current project or start fresh
-- **Large file handling** — files over the warn threshold (default 300 MB) show a warning before import with two options: Try Anyway or Split & Import. The splitter runs in a Web Worker (UI stays responsive) and imports all chunks automatically.
-- Sidebar sorted by most-recent message date (`YYYY-MM-DD`)
-- **Right-click a conversation** for:
-  - **Show Only** — hides others (non-destructive; stashed, not deleted)
-  - **Restore All** — brings hidden conversations back
-  - **Start Over** — resets all conversations (visible, hidden, deleted) to their original loaded state; warns before proceeding
-  - **Export Conv** — downloads as OpenAI JSON
-  - **Delete Conv** — stashes to a recovery pool (recoverable via Start Over)
-- **Close Conversation** — removes only the active conversation; switches to next if others are loaded
-- **Unload All** — clears all conversation pools for a fresh start
-- **Export All** (top bar) — exports every loaded conversation as an OpenAI `conversations.json` array. For projects over 1,000 conversations, a dialog asks how many per chunk — entering a high number shows a crash warning. Chunk files are re-importable one by one with full duplicate handling. All formats (OpenAI, Claude, DeepSeek, Grok, GLM) are preserved through the export/import round-trip.
-
----
-
-### 🎨 Themes
-
-Five themes, switchable without reload:
-
-- **Dark** (default if OS is in dark mode)
-- **Light** (default if OS is in light mode)
-- **Blue**
-- **Green**
-- **Purple**
-
-Theme preference is saved to `localStorage` and applied on every future visit. On first visit, the theme is chosen automatically based on your OS `prefers-color-scheme` setting.
-
----
-
-### ⚙️ Settings
-
-- **Show system nodes** — toggle visibility of system/prompt nodes (dashed circles)
-- **Show other nodes** — toggle visibility of non-standard role nodes (purple circles)
-- **Show tooltips** — enable/disable hover previews on graph nodes
-- **Tooltip delay** — adjust how long to hover before the tooltip appears (500ms–10,000ms)
-- **Large file warning** — toggle on/off with a threshold slider (50–1000 MB). When off, large files load without a warning dialog.
-- **Export chunk size** — default number of conversations per chunk when exporting large projects (0 = always single file)
-
-All settings saved to `localStorage`.
-
----
-
-### 🗺️ Minimap
-
-A live-updating canvas minimap shows the full graph with a teal rectangle for the current viewport.
-
-- Click to jump the viewport to any position
-- **Ctrl+drag** (⌘+drag on Mac) to reposition the minimap anywhere in the graph area
-- Toggle button to hide/show
-
----
-
-### ↔️ Resizable Panels
-
-Drag handles between the left sidebar, graph, and right panel to resize. The minimap and graph update in real time.
-
----
-
-### 📚 Help & Changelog
-
-- **Help** button opens a modal with 15 detailed topics and full-text search
-- **What's New** tab inside Help shows a versioned changelog
-- **License & Credits** topic lists the MIT license, all third-party libraries, and fonts used
-
----
-
-## 📥 Installation
-
-No installation required. Download and open in your browser:
-
-```
-chatgpt-json-tree-viewer.html
-```
-
-Everything runs locally. Works best on Chrome, Edge, Brave, or Firefox.
-
----
-
-## 📘 Usage Guide
-
-### 1. Load a JSON File
-
-Click **Load File** in the top bar, or **drag and drop** a `.json` file onto the graph area.
-
-If conversations are already loaded, a dialog asks whether to add to the current project or start fresh.
-
-### 2. Explore the Graph
-
-- Scroll to zoom; click and drag the background to pan
-- Click a node to select it and view its content
-- Drag a node to move it with its subtree (Shift+drag for single node)
-- Right-click a node for Copy, Select & View, or Delete
-
-### 3. Search Messages
-
-Type in the **search bar** in the left sidebar. Switch between **Current** and **All** scope. Click any result to jump to that node in the graph.
-
-Use the **branch search bar** to filter messages within the current branch view.
-
-### 4. Inspect Message Content
-
-Select a node and use the **Selected Node** or **Branch** tab in the right panel. Switch view modes (Rendered / Markdown / HTML / JSON), then Copy, Export, Pop-Out, or generate a PDF.
-
-### 5. Manage Conversations
-
-When multiple conversations are loaded, use the sidebar to switch between them. Right-click for Show Only, Restore All, Start Over, Export, or Delete.
-
-### 6. Customize
-
-Click **Settings** in the top bar to toggle node types and tooltips. Click the colored dots (top-right) to switch themes.
-
----
-
-## 🛠️ Libraries Used
-
-| Library | Version | License |
-|---|---|---|
-| D3.js | v7.9.0 | BSD 3-Clause |
-| marked.js | v9.1.6 | MIT |
-| DOMPurify | v3.0.6 | Apache 2.0 / MIT |
-| html2canvas | v1.4.1 | MIT |
-| jsPDF | v2.5.1 | MIT |
-
-Fonts (SIL Open Font License): DM Sans, Literata, JetBrains Mono — served via Google Fonts CDN.
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
+MIT — free to use, modify, and share. See [LICENSE](LICENSE) for details.
 
 ---
 
