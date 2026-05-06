@@ -38,6 +38,16 @@ Everything runs in your browser. Nothing is uploaded anywhere. Your conversation
 
 ---
 
+## Why this exists
+
+AI conversations are becoming a form of external memory — brainstorming, research, journaling, coding, problem-solving.
+
+But most interfaces flatten those conversations into endless scrolling.
+
+This tool was built to make those conversations navigable again.
+
+---
+
 ## Getting started
 
 ### Step 1 — Export your chats
