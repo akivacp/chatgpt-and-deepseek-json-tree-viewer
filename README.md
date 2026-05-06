@@ -129,10 +129,10 @@ Works with exports from:
 |---|---|
 | **ChatGPT / OpenAI** | Settings → Data Controls → Export |
 | **Claude (Anthropic)** | Settings → Export Data |
-| **DeepSeek** | Settings → Export |
-| **Grok / xAI** | Settings → Export |
+| **DeepSeek** | Settings → Data → Export Data → Download |
+| **Grok / xAI** | Settings → Export Account Data → Export |
 | **Mistral AI** | Profile → Export your personal data → Le Chat → Export|
-| **GLM / Zhipu AI** | Settings → Export |
+| **z.AI (GLM / Zhipu AI)** | Settings → Dialogue →  Export Chats |
 | **Qwen Studio** | Settings → Chats → Export Chats |
 
 
