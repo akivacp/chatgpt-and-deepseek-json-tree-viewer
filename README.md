@@ -4,8 +4,6 @@
 
 This tool takes your exported chat history from ChatGPT, Claude, DeepSeek, and other AI apps and turns it into an interactive map you can explore, search, and read.
 
-**[➜ Open the Viewer](https://akivacp.github.io/chatgpt-json-tree-viewer/)** &nbsp;|&nbsp; [GitHub](https://github.com/akivacp/chatgpt-json-tree-viewer)
-
 ![Main UI](docs/screenshot-main.png)
 
 ---
