@@ -1,4 +1,6 @@
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1688,6 +1690,7 @@ function detectFormat(data) {
     return 'mistral';
   }
   if (data.conversation && data.responses) return 'grok';
+  if (data.info?.id && Array.isArray(data.messages)) return 'opencode';
   if (data.messages && (data.messages[0]?.role || data.messages[0]?.contentChunks)) return 'claude';
   // GLM/Zhipu AI: single object or array
   if (data.chat?.history?.messages) return 'glm';
@@ -1712,6 +1715,7 @@ function convertToUnified(raw) {
     case 'mistral-array': return raw.map(convertMistral);
     case 'glm': return [convertGLM(raw)];
     case 'glm-array': return raw.map(convertGLM);
+    case 'opencode': return [convertOpenCode(raw)];
     default: return [tryGenericConvert(raw)];
   }
 }
@@ -2055,6 +2059,66 @@ function tryGenericConvert(data) {
     mapping: { root: { id: 'root', parent: null, children: [], message: null } },
     _format: 'unknown',
     _original_data: data,
+  };
+}
+
+function convertOpenCode(data) {
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+  const messages = data.messages || [];
+  messages.forEach(msg => {
+    const info = msg.info || {};
+    const id = info.id;
+    if (!id) return;
+    const role = (info.role || 'unknown').toLowerCase();
+    let text = '';
+    if (Array.isArray(msg.parts)) {
+      const texts = [];
+      msg.parts.forEach(part => {
+        if (part.type === 'text' && part.text) texts.push(part.text);
+        else if (part.type === 'reasoning' && part.text) texts.push('> _Thinking:_ ' + part.text);
+        else if (part.type === 'tool' && part.state) {
+          const toolName = part.tool || 'tool';
+          const output = part.state.output;
+          const input = part.state.input;
+          let block = '```\n[' + toolName + ']';
+          if (input) block += '\nInput: ' + (typeof input === 'string' ? input : JSON.stringify(input));
+          if (output) block += '\nOutput: ' + (typeof output === 'string' ? output : JSON.stringify(output));
+          block += '\n```';
+          texts.push(block);
+        }
+      });
+      text = texts.join('\n\n');
+    }
+    mapping[id] = {
+      id, parent: info.parentID || 'root', children: [],
+      message: {
+        id, author: { role },
+        content: { text, parts: text ? [text] : [] },
+        create_time: info.time?.created ? info.time.created / 1000 : null,
+        metadata: {},
+      }
+    };
+    if (info.model) mapping[id].message.metadata.model = info.model?.id || info.model?.modelID;
+    if (info.agent) mapping[id].message.metadata.agent = info.agent;
+  });
+  Object.keys(mapping).forEach(id => {
+    if (id === 'root') return;
+    const node = mapping[id];
+    const parentId = node.parent;
+    if (mapping[parentId]) {
+      mapping[parentId].children.push(id);
+    } else {
+      node.parent = 'root';
+      mapping['root'].children.push(id);
+    }
+  });
+  return {
+    conversation_id: data.info?.id || genId(),
+    title: data.info?.title || 'OpenCode Session',
+    create_time: data.info?.time?.created ? data.info.time.created / 1000 : null,
+    update_time: data.info?.time?.updated ? data.info.time.updated / 1000 : null,
+    mapping, _format: 'opencode',
   };
 }
 
