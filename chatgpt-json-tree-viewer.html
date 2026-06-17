@@ -6,7 +6,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.2.1</title>
+<title>ChatGPT JSON Tree Viewer v7.3.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -1043,7 +1043,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.2.1</span>
+      <span class="logo-version">v7.3.0</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1587,7 +1587,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.2.1 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.3.0 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1689,6 +1689,7 @@ function detectFormat(data) {
     if (firstMsg?.sender !== undefined) return 'claude-new';
     return 'mistral';
   }
+  if (data.conversations && Array.isArray(data.conversations) && data.conversations[0]?.responses) return 'grok-backend-array';
   if (data.conversation && data.responses) return 'grok';
   if (data.info?.id && Array.isArray(data.messages)) return 'opencode';
   if (data.messages && (data.messages[0]?.role || data.messages[0]?.contentChunks)) return 'claude';
@@ -1710,6 +1711,7 @@ function convertToUnified(raw) {
     case 'claude': return [convertClaude(raw)];
     case 'claude-array': return raw.map(convertClaude);
     case 'grok': return [convertGrok(raw)];
+    case 'grok-backend-array': return raw.conversations.map(convertGrokBackend);
     case 'claude-new': return [convertClaudeNew(raw)];
     case 'claude-new-array': return raw.map(convertClaudeNew);
     case 'mistral-array': return raw.map(convertMistral);
@@ -1918,6 +1920,58 @@ function convertGrok(data) {
     conversation_id: data.conversation?.id || genId(),
     title: data.conversation?.title || 'Grok Chat',
     mapping, _format: 'grok',
+  };
+}
+
+function convertGrokBackend(data) {
+  const conv = data.conversation || {};
+  const responses = data.responses || [];
+  const mapping = {};
+  mapping['root'] = { id: 'root', parent: null, children: [], message: null };
+
+  const parseTime = (t) => t?.$date?.$numberLong ? parseInt(t.$date.$numberLong) / 1000 : null;
+
+  responses.forEach((item) => {
+    const msg = item.response || {};
+    const id = msg._id || genId();
+    const role = msg.sender === 'ASSISTANT' ? 'assistant' : 'user';
+    let text = msg.message || '';
+    if (msg.agent_thinking_traces) {
+      const stitched = msg.agent_thinking_traces.map(t => t.thinking_trace || '').join('\n\n');
+      if (stitched) text = (text ? text + '\n\n---\n\n' : '') + stitched;
+    }
+    mapping[id] = {
+      id,
+      parent: msg.parent_response_id || 'root',
+      children: [],
+      message: {
+        id,
+        author: { role },
+        content: { text },
+        create_time: parseTime(msg.create_time),
+        metadata: { model: msg.model || msg.model_slug },
+      }
+    };
+  });
+
+  responses.forEach((item) => {
+    const msg = item.response || {};
+    const id = msg._id;
+    if (!id || !mapping[id]) return;
+    const parentId = msg.parent_response_id || 'root';
+    const resolved = mapping[parentId] ? parentId : 'root';
+    mapping[id].parent = resolved;
+    if (!mapping[resolved].children.includes(id)) {
+      mapping[resolved].children.push(id);
+    }
+  });
+
+  return {
+    conversation_id: conv.id || genId(),
+    title: conv.title || 'Grok Chat',
+    create_time: parseTime({ $date: { $numberLong: conv.create_time ? new Date(conv.create_time).getTime().toString() : null } }) || parseTime({ $date: { $numberLong: conv.modify_time ? new Date(conv.modify_time).getTime().toString() : null } }),
+    mapping,
+    _format: 'grok-backend',
   };
 }
 
@@ -3773,7 +3827,7 @@ function updateTopbarTitle(title) {
   if (title) {
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    document.title = 'ChatGPT JSON Tree Viewer v7.2.1';
+    document.title = 'ChatGPT JSON Tree Viewer v7.3.0';
   }
 }
 
@@ -3792,6 +3846,7 @@ function setFormatBadge(fmt) {
     'claude-new':         ['Claude',           '#d946ef'],
     'claude-new-array':   ['Claude',           '#d946ef'],
     'grok':               ['Grok/xAI',         '#f97316'],
+    'grok-backend-array': ['Grok (Backend)',   '#f97316'],
     'mistral':            ['Mistral AI',       '#8b5cf6'],
     'mistral-array':      ['Mistral AI',       '#8b5cf6'],
     'glm':                ['GLM/Zhipu AI',     '#0099ff'],
@@ -4156,7 +4211,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.2.1</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.3.0</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4570,8 +4625,10 @@ const helpTopics = [
     <p>A <code>messages[]</code> array where each message may have a <code>raw_html</code> field. HTML tags are stripped for preview and content display.</p>
     <h3>Claude / Anthropic</h3>
     <p>A <code>messages[]</code> array (or a single object with a <code>messages</code> key). Each message has <code>role</code> and either a <code>content</code> string, a <code>content[]</code> array, or a <code>contentChunks[]</code> array. Timestamps come from <code>createdAt</code> or <code>created_at</code>.</p>
-    <h3>Grok / xAI</h3>
+    <h3>Grok / xAI (Direct Export)</h3>
     <p>Has a <code>conversation</code> object and a <code>responses[]</code> array. Human messages and AI responses are sorted by <code>create_time</code> and interleaved. Role is determined by <code>sender: "human"</code> vs <code>"ASSISTANT"</code>. Model metadata from <code>model_slug</code>.</p>
+    <h3>Grok / xAI (Backend Export)</h3>
+    <p>Top-level <code>conversations[]</code> array where each entry has a <code>conversation</code> object and a <code>responses[]</code> array. Uses <code>parent_response_id</code> for tree structure (preserves branching). Timestamps use MongoDB <code>$date.$numberLong</code> format. Role from <code>sender: "human"/"ASSISTANT"</code>. Agent thinking traces from <code>agent_thinking_traces[]</code> are stitched into message content.</p>
     <h3>Mistral AI</h3>
     <p>Has a <code>chat_messages[]</code> array (or <code>messages[]</code>) plus <code>account</code> or <code>uuid</code>. Content is extracted from <code>content[]</code> array items where <code>type === "text"</code>. UUIDs and timestamps are preserved.</p>
     <h3>Unified Internal Format</h3>
@@ -6000,7 +6057,13 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.2.1', date: '2026-05-05', latest: true,
+    version: 'v7.3.0', date: '2026-06-17', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Grok (Backend Export) format</strong> — detects and converts the xAI backend JSON format (<code>conversations[]</code> with <code>parent_response_id</code> branching, MongoDB <code>$date.$numberLong</code> timestamps, and <code>agent_thinking_traces</code> stitched into message content). Tree structure is fully preserved including regenerated branches.' },
+    ]
+  },
+  {
+    version: 'v7.2.1', date: '2026-05-05', latest: false,
     items: [
       { type: 'change', text: '<strong>PDF export rewritten</strong> — no longer a blurry screenshot. Opens a clean print-ready window with proper typography (Georgia serif, 11pt), correct 8.5×11 letter margins, paginated text, and formatted code blocks. Browser print dialog opens automatically — choose "Save as PDF".' },
       { type: 'new', text: '<strong>PDF respects current view mode and filters</strong> — exports exactly what you see: Rendered, Markdown, HTML, or JSON; active role filters and search filters are applied.' },
@@ -6185,7 +6248,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.2.1 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.3.0 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
