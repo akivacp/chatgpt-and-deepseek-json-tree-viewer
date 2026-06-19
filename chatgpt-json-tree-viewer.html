@@ -6,7 +6,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.3.0</title>
+<title>ChatGPT JSON Tree Viewer v7.6.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -445,6 +445,17 @@ body {
 }
 .search-msg-item:hover .search-msg-nav { opacity: 1; }
 .search-msg-nodeid { font-family: var(--font-mono); color: var(--accent-teal); }
+
+.search-conv-group { margin-bottom: 4px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; }
+.search-conv-group-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer; background: var(--bg-tertiary); user-select: none; transition: background var(--transition); }
+.search-conv-group-header:hover { background: var(--bg-hover); }
+.search-conv-group-toggle { flex-shrink: 0; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); transition: transform 0.15s; }
+.search-conv-group-toggle.collapsed { transform: rotate(-90deg); }
+.search-conv-group-title { font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-conv-group-badge { font-size: 10px; font-family: var(--font-mono); color: var(--accent-teal); background: rgba(0,212,170,0.1); padding: 1px 5px; border-radius: 3px; margin-left: auto; flex-shrink: 0; }
+.search-conv-group-body { padding: 0 6px 6px; }
+.search-conv-group-body.collapsed { display: none; }
+.search-conv-group-body .search-msg-item { border: none; margin-bottom: 4px; }
 
 /* ===== GRAPH AREA ===== */
 #graph-svg {
@@ -899,7 +910,7 @@ body {
 .cl-item.change .cl-badge { background: rgba(96,165,250,0.15); color: var(--accent-blue); }
 
 /* Settings modal */
-.settings-body { padding: 20px; overflow-y: auto; }
+.settings-body { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
 .setting-group { margin-bottom: 20px; }
 .setting-group h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; }
 .setting-row {
@@ -930,6 +941,10 @@ body {
   width: 120px; accent-color: var(--accent-teal);
 }
 .range-val { font-family: var(--font-mono); font-size: 11px; color: var(--accent-teal); min-width: 40px; }
+
+.setting-combo { display: flex; align-items: center; gap: 6px; min-width: 120px; }
+.setting-combo input[type="range"] { flex: 1; width: auto; }
+.combo-num { width: 60px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 4px 6px; color: var(--text-primary); font-size: 12px; font-family: var(--font-ui); text-align: right; }
 
 /* Notification */
 #notif {
@@ -1043,7 +1058,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.3.0</span>
+      <span class="logo-version">v7.6.1</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1190,7 +1205,7 @@ body {
         <div class="conversations-header" style="padding-bottom:2px;">
           <span id="search-results-label">Messages</span>
         </div>
-        <div id="search-results-list" style="overflow-y:auto;max-height:240px;padding:0 6px 6px;"></div>
+        <div id="search-results-list" style="overflow-y:auto;max-height:400px;padding:0 6px 6px;"></div>
       </div>
       <div id="conv-list"></div>
     </div>
@@ -1587,7 +1602,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.3.0 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.6.1 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1627,6 +1642,7 @@ const state = {
   resultSortField: 'latest',// name|nodes|created|latest
   resultSortDir: 'desc',    // asc|desc
   searchMatches: new Map(), // convId -> Set of nodeIds
+  searchCollapsedConvs: new Set(), // convIds collapsed in grouped results
   viewMode: 'rendered',    // rendered|markdown|html|json
   showMeta: false,
   settings: {
@@ -1636,6 +1652,8 @@ const state = {
     tooltipDelay: 800,
     largeFileWarn: 300,  // MB threshold for large file warning, 0 = never warn
     exportChunkSize: 1000, // conversations per chunk when export is large, 0 = always single file
+    searchDebounceMs: 220, // ms delay before search runs after user stops typing
+    searchDebounceEnabled: true,
   },
   transform: d3.zoomIdentity,
   nodePositions: new Map(), // nodeId -> {x, y}
@@ -3235,6 +3253,7 @@ function runSearch(query) {
   if (!query.trim()) {
     panel.style.display = 'none';
     resultsList.innerHTML = '';
+    state.searchCollapsedConvs.clear();
     renderConvList();
     updateNodeHighlights();
     return;
@@ -3273,34 +3292,103 @@ function runSearch(query) {
     return toMillis(a.node.message?.create_time) - toMillis(b.node.message?.create_time);
   });
 
-  allMatchMsgs.forEach(({ conv, nodeId, node }) => {
-    const role = getNodeRole(node);
-    const text = getNodeText(node);
-    const item = document.createElement('div');
-    item.className = 'search-msg-item';
-
-    // Compute depth and breadcrumb
-    const { depth, breadcrumb } = getNodeLocation(conv, nodeId);
-    const dateStr = formatNodeDate(node.message?.create_time);
-    const roleColor = role === 'user' ? 'var(--accent-blue)' : role === 'assistant' ? 'var(--accent-green)' : role === 'system' ? 'var(--text-muted)' : 'var(--accent-purple)';
-
-    item.innerHTML = `
-      <div class="search-msg-item-header">
-        <span class="search-msg-role" style="color:${roleColor}">${role}</span>
-        <span class="search-msg-depth" title="Depth in thread">↳${depth}</span>
-        ${dateStr ? `<span class="search-msg-date">${dateStr}</span>` : ''}
-      </div>
-      <div class="search-msg-breadcrumb">${escapeHtml(conv.title)}${breadcrumb ? ` <span class="search-crumb-sep">›</span> ${escapeHtml(breadcrumb)}` : ''}</div>
-      <div class="search-msg-preview">${highlightMatch(text, query)}</div>
-      <div class="search-msg-nav">Click to jump · node <span class="search-msg-nodeid">${nodeId.slice(0,10)}</span></div>
-    `;
-    item.addEventListener('click', () => {
-      if (conv.id !== state.activeConvId) loadConversation(conv.id, true);
-      const jump = () => { selectNode(nodeId); scrollToNode(nodeId, true); };
-      conv.id !== state.activeConvId ? setTimeout(jump, 150) : jump();
+  if (state.searchScope === 'all') {
+    // Group by conversation
+    const grouped = new Map();
+    allMatchMsgs.forEach(({ conv, nodeId, node }) => {
+      if (!grouped.has(conv.id)) grouped.set(conv.id, { conv, msgs: [] });
+      grouped.get(conv.id).msgs.push({ nodeId, node });
     });
-    resultsList.appendChild(item);
-  });
+
+    grouped.forEach(({ conv, msgs }) => {
+      const groupEl = document.createElement('div');
+      groupEl.className = 'search-conv-group';
+      const isCollapsed = state.searchCollapsedConvs.has(conv.id);
+
+      const header = document.createElement('div');
+      header.className = 'search-conv-group-header';
+      header.innerHTML = `
+        <span class="search-conv-group-toggle${isCollapsed ? ' collapsed' : ''}">▼</span>
+        <span class="search-conv-group-title">${escapeHtml(conv.title || 'Untitled')}</span>
+        <span class="search-conv-group-badge">${msgs.length}</span>
+      `;
+
+      const body = document.createElement('div');
+      body.className = `search-conv-group-body${isCollapsed ? ' collapsed' : ''}`;
+
+      msgs.forEach(({ nodeId, node }) => {
+        const role = getNodeRole(node);
+        const text = getNodeText(node);
+        const item = document.createElement('div');
+        item.className = 'search-msg-item';
+        const { depth, breadcrumb } = getNodeLocation(conv, nodeId);
+        const dateStr = formatNodeDate(node.message?.create_time);
+        const roleColor = role === 'user' ? 'var(--accent-blue)' : role === 'assistant' ? 'var(--accent-green)' : role === 'system' ? 'var(--text-muted)' : 'var(--accent-purple)';
+        item.innerHTML = `
+          <div class="search-msg-item-header">
+            <span class="search-msg-role" style="color:${roleColor}">${role}</span>
+            <span class="search-msg-depth" title="Depth in thread">↳${depth}</span>
+            ${dateStr ? `<span class="search-msg-date">${dateStr}</span>` : ''}
+          </div>
+          <div class="search-msg-breadcrumb">${escapeHtml(conv.title)}${breadcrumb ? ` <span class="search-crumb-sep">›</span> ${escapeHtml(breadcrumb)}` : ''}</div>
+          <div class="search-msg-preview">${highlightMatch(text, query)}</div>
+          <div class="search-msg-nav">Click to jump · node <span class="search-msg-nodeid">${nodeId.slice(0,10)}</span></div>
+        `;
+        item.addEventListener('click', () => {
+          if (conv.id !== state.activeConvId) loadConversation(conv.id, true);
+          const jump = () => { selectNode(nodeId); scrollToNode(nodeId, true); };
+          conv.id !== state.activeConvId ? setTimeout(jump, 150) : jump();
+        });
+        body.appendChild(item);
+      });
+
+      header.addEventListener('click', () => {
+        const isNowCollapsed = state.searchCollapsedConvs.has(conv.id);
+        if (isNowCollapsed) {
+          state.searchCollapsedConvs.delete(conv.id);
+          body.classList.remove('collapsed');
+          header.querySelector('.search-conv-group-toggle').classList.remove('collapsed');
+        } else {
+          state.searchCollapsedConvs.add(conv.id);
+          body.classList.add('collapsed');
+          header.querySelector('.search-conv-group-toggle').classList.add('collapsed');
+        }
+      });
+
+      groupEl.appendChild(header);
+      groupEl.appendChild(body);
+      resultsList.appendChild(groupEl);
+    });
+  } else {
+    allMatchMsgs.forEach(({ conv, nodeId, node }) => {
+      const role = getNodeRole(node);
+      const text = getNodeText(node);
+      const item = document.createElement('div');
+      item.className = 'search-msg-item';
+
+      // Compute depth and breadcrumb
+      const { depth, breadcrumb } = getNodeLocation(conv, nodeId);
+      const dateStr = formatNodeDate(node.message?.create_time);
+      const roleColor = role === 'user' ? 'var(--accent-blue)' : role === 'assistant' ? 'var(--accent-green)' : role === 'system' ? 'var(--text-muted)' : 'var(--accent-purple)';
+
+      item.innerHTML = `
+        <div class="search-msg-item-header">
+          <span class="search-msg-role" style="color:${roleColor}">${role}</span>
+          <span class="search-msg-depth" title="Depth in thread">↳${depth}</span>
+          ${dateStr ? `<span class="search-msg-date">${dateStr}</span>` : ''}
+        </div>
+        <div class="search-msg-breadcrumb">${escapeHtml(conv.title)}${breadcrumb ? ` <span class="search-crumb-sep">›</span> ${escapeHtml(breadcrumb)}` : ''}</div>
+        <div class="search-msg-preview">${highlightMatch(text, query)}</div>
+        <div class="search-msg-nav">Click to jump · node <span class="search-msg-nodeid">${nodeId.slice(0,10)}</span></div>
+      `;
+      item.addEventListener('click', () => {
+        if (conv.id !== state.activeConvId) loadConversation(conv.id, true);
+        const jump = () => { selectNode(nodeId); scrollToNode(nodeId, true); };
+        conv.id !== state.activeConvId ? setTimeout(jump, 150) : jump();
+      });
+      resultsList.appendChild(item);
+    });
+  }
 
   panel.style.display = totalMatches > 0 ? 'flex' : 'none';
 
@@ -3438,6 +3526,7 @@ function loadConversation(convId, preserveSearch = false) {
     document.getElementById('search-results-panel').style.display = 'none';
     document.getElementById('search-results-list').innerHTML = '';
     state.searchMatches.clear();
+    state.searchCollapsedConvs.clear();
   }
 
   const conv = state.conversations.find(c => c.id === convId);
@@ -3754,6 +3843,7 @@ document.getElementById('ctx-start-over').addEventListener('click', () => {
   state.selectedNodeId = null;
   state.searchQuery = '';
   state.searchMatches.clear();
+  state.searchCollapsedConvs.clear();
   state._branchPath = null;
   state.nodePositions.clear();
   state.initialPositions.clear();
@@ -3827,7 +3917,7 @@ function updateTopbarTitle(title) {
   if (title) {
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    document.title = 'ChatGPT JSON Tree Viewer v7.3.0';
+    document.title = 'ChatGPT JSON Tree Viewer v7.6.1';
   }
 }
 
@@ -3866,6 +3956,7 @@ function closeConversation() {
   state.selectedNodeId = null;
   state.searchQuery = '';
   state.searchMatches.clear();
+  state.searchCollapsedConvs.clear();
   state._branchPath = null;
   state.nodePositions.clear();
   state.initialPositions.clear();
@@ -4115,9 +4206,25 @@ function buildSettings() {
       </div>
       <div class="setting-row">
         <div><div class="setting-label">Tooltip Delay</div><div class="setting-desc">Time before tooltip appears</div></div>
-        <div class="setting-range">
+        <div class="setting-combo">
           <input type="range" min="500" max="10000" step="100" value="${state.settings.tooltipDelay}" data-range="tooltipDelay">
+          <input type="number" class="combo-num" min="500" max="10000" step="100" value="${state.settings.tooltipDelay}" data-num="tooltipDelay">
           <span class="range-val" id="range-val-tooltipDelay">${state.settings.tooltipDelay}ms</span>
+        </div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <h3>Search</h3>
+      <div class="setting-row">
+        <div><div class="setting-label">Search debounce</div><div class="setting-desc">Delay search until you stop typing</div></div>
+        <div class="toggle${state.settings.searchDebounceEnabled ? ' on' : ''}" data-setting="searchDebounceEnabled"></div>
+      </div>
+      <div class="setting-row" id="setting-row-searchDebounce" style="${!state.settings.searchDebounceEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+        <div><div class="setting-label">Debounce delay (ms)</div><div class="setting-desc">Wait time before search runs</div></div>
+        <div class="setting-combo">
+          <input type="range" min="50" max="800" step="10" value="${state.settings.searchDebounceMs}" data-range="searchDebounceMs">
+          <input type="number" class="combo-num" min="50" max="800" step="10" value="${state.settings.searchDebounceMs}" data-num="searchDebounceMs">
+          <span class="range-val" id="range-val-searchDebounceMs">${state.settings.searchDebounceMs}ms</span>
         </div>
       </div>
     </div>
@@ -4153,22 +4260,25 @@ function buildSettings() {
     t.addEventListener('click', () => {
       const key = t.dataset.setting;
       if (key === 'largeFileWarnEnabled') {
-        // Toggle between 0 (off) and last known value (or 300 default)
         const isOn = state.settings.largeFileWarn > 0;
         if (isOn) {
-          state.settings._largeFileWarnSaved = state.settings.largeFileWarn; // stash
+          state.settings._largeFileWarnSaved = state.settings.largeFileWarn;
           state.settings.largeFileWarn = 0;
         } else {
           state.settings.largeFileWarn = state.settings._largeFileWarnSaved || 300;
         }
         t.classList.toggle('on', state.settings.largeFileWarn > 0);
-        // Update slider row visibility
         const row = document.getElementById('setting-row-largeFileWarn');
         if (row) row.style.cssText = state.settings.largeFileWarn === 0 ? 'opacity:0.4;pointer-events:none;' : '';
         const rangeVal = document.getElementById('range-val-largeFileWarn');
         if (rangeVal) rangeVal.textContent = (state.settings.largeFileWarn || 300) + ' MB';
         const slider = body.querySelector('input[data-range="largeFileWarn"]');
         if (slider) slider.value = state.settings.largeFileWarn || 300;
+      } else if (key === 'searchDebounceEnabled') {
+        state.settings.searchDebounceEnabled = !state.settings.searchDebounceEnabled;
+        t.classList.toggle('on', state.settings.searchDebounceEnabled);
+        const row = document.getElementById('setting-row-searchDebounce');
+        if (row) row.style.cssText = state.settings.searchDebounceEnabled ? '' : 'opacity:0.4;pointer-events:none;';
       } else {
         state.settings[key] = !state.settings[key];
         t.classList.toggle('on', state.settings[key]);
@@ -4180,16 +4290,38 @@ function buildSettings() {
       }
     });
   });
+
   body.querySelectorAll('input[type="range"]').forEach(r => {
     r.addEventListener('input', () => {
       const key = r.dataset.range;
       state.settings[key] = parseInt(r.value);
       const label = document.getElementById(`range-val-${key}`);
+      const numInput = body.querySelector(`input[data-num="${key}"]`);
+      if (numInput) numInput.value = r.value;
       if (key === 'largeFileWarn') {
         label.textContent = state.settings[key] === 0 ? 'Off' : state.settings[key] + ' MB';
       } else {
         label.textContent = r.value + 'ms';
       }
+      localStorage.setItem('mv-settings', JSON.stringify(state.settings));
+    });
+  });
+
+  body.querySelectorAll('.combo-num').forEach(n => {
+    n.addEventListener('change', function() {
+      const key = this.dataset.num;
+      let val = parseInt(this.value);
+      const min = parseInt(this.min);
+      const max = parseInt(this.max);
+      const step = parseInt(this.step);
+      if (isNaN(val)) val = state.settings[key] || 220;
+      val = Math.max(min, Math.min(max, Math.round(val / step) * step));
+      this.value = val;
+      state.settings[key] = val;
+      const slider = body.querySelector(`input[data-range="${key}"]`);
+      if (slider) slider.value = val;
+      const label = document.getElementById(`range-val-${key}`);
+      if (label) label.textContent = val + 'ms';
       localStorage.setItem('mv-settings', JSON.stringify(state.settings));
     });
   });
@@ -4211,7 +4343,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.3.0</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.6.1</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4928,6 +5060,7 @@ document.getElementById('load-mode-replace').addEventListener('click', () => {
   state.selectedNodeId = null;
   state.searchQuery = '';
   state.searchMatches.clear();
+  state.searchCollapsedConvs.clear();
   state._branchPath = null;
   state.nodePositions.clear();
   state.initialPositions.clear();
@@ -5110,13 +5243,22 @@ document.getElementById('ctp-reset-btn').addEventListener('click', () => {
   }
 })();
 
-// Search
-document.getElementById('sidebar-search').addEventListener('input', e => runSearch(e.target.value));
+// Search (debounced)
+let searchTimer = null;
+document.getElementById('sidebar-search').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  if (state.settings.searchDebounceEnabled) {
+    searchTimer = setTimeout(() => runSearch(e.target.value), state.settings.searchDebounceMs);
+  } else {
+    runSearch(e.target.value);
+  }
+});
 document.querySelectorAll('.search-scope-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.search-scope-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.searchScope = btn.dataset.scope;
+    state.searchCollapsedConvs.clear();
     runSearch(state.searchQuery);
   });
 });
@@ -5196,12 +5338,14 @@ document.getElementById('btn-popout').addEventListener('click', () => {
   let body = '';
   let title = node ? (getNodeRole(node) + ' message') : 'Message';
 
+  const renderedHtml = DOMPurify.sanitize(marked.parse(text || ''));
+
   if (mode === 'rendered') {
-    body = DOMPurify.sanitize(marked.parse(text || ''));
+    body = renderedHtml;
   } else if (mode === 'markdown') {
     body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(text || '')}</pre>`;
   } else if (mode === 'html') {
-    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(DOMPurify.sanitize(marked.parse(text || '')))}</pre>`;
+    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(renderedHtml)}</pre>`;
   } else if (mode === 'json') {
     body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:12px;color:#1a1d2e">${escapeHtml(JSON.stringify(node, null, 2))}</pre>`;
   }
@@ -5217,9 +5361,37 @@ document.getElementById('btn-popout').addEventListener('click', () => {
     td,th{padding:6px 10px;border:1px solid #c8cce0} th{background:#dde0ee}
     blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}
     .mode-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;background:#e0e3f0;color:#4a5080;padding:2px 7px;border-radius:4px;margin-bottom:14px}
+    .copy-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+    .copy-btn{padding:5px 12px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:system-ui,sans-serif;color:#4a5080;transition:all .12s}
+    .copy-btn:hover{background:#d0d4e8}
+    .copy-btn.copied{background:#00c49a;color:#fff;border-color:#00c49a}
   </style></head><body>
-    <div class="mode-badge">${mode}</div>
-    ${body}
+    <div class="mode-badge">${mode}</div>${mode === 'rendered' ? `
+    <div class="copy-bar">
+      <button class="copy-btn" onclick="copyAsSeen()">Copy as seen</button>
+      <button class="copy-btn" onclick="copyHtmlCode()">Copy as HTML code</button>
+      <button class="copy-btn" onclick="copyMarkdown()">Copy as MD</button>
+      <button class="copy-btn" onclick="copyPlainText()">Copy as plain text</button>
+    </div>` : ''}
+    <div id="content">${body}</div>
+    ${mode === 'rendered' ? `<script type="text/plain" id="copy-md-data">${escapeHtml(text || '')}<\/script><script>
+      function getContentEl(){return document.getElementById('content')}
+      function btn(i){return document.querySelector('.copy-bar .copy-btn:nth-child('+i+')')}
+      function copied(i,t){btn(i).textContent='Copied!';setTimeout(function(){btn(i).textContent=t},1500)}
+      function copyAsSeen(){
+        var html=getContentEl().innerHTML;
+        navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([getContentEl().textContent],{type:'text/plain'})})]).then(function(){copied(1,'Copy as seen')})
+      }
+      function copyHtmlCode(){
+        navigator.clipboard.writeText(getContentEl().innerHTML).then(function(){copied(2,'Copy as HTML code')})
+      }
+      function copyMarkdown(){
+        navigator.clipboard.writeText(document.getElementById('copy-md-data').textContent).then(function(){copied(3,'Copy as MD')})
+      }
+      function copyPlainText(){
+        navigator.clipboard.writeText(getContentEl().textContent).then(function(){copied(4,'Copy as plain text')})
+      }
+    <\/script>` : ''}
   </body></html>`);
   w.document.close();
 });
@@ -5408,6 +5580,7 @@ document.getElementById('btn-popout-branch').addEventListener('click', () => {
     const role = getNodeRole(n);
     const text = getNodeText(n);
     const s = styles[role] || styles.other;
+    const md = escapeHtml(text || '');
     let msgBody = '';
     if (mode === 'rendered') {
       msgBody = `<div class="msg-body">${DOMPurify.sanitize(marked.parse(text || ''))}</div>`;
@@ -5418,11 +5591,13 @@ document.getElementById('btn-popout-branch').addEventListener('click', () => {
     } else if (mode === 'json') {
       msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:12px;font-family:monospace">${escapeHtml(JSON.stringify(n, null, 2))}</pre>`;
     }
-    return `<div style="margin-bottom:8px;padding:14px 16px;border-radius:8px;background:${s.bg};border-left:3px solid ${s.border};">
+    return `<div class="msg-wrap"${mode === 'rendered' ? ` data-md="${md.replace(/"/g, '&quot;')}"` : ''} style="margin-bottom:8px;padding:14px 16px;border-radius:8px;background:${s.bg};border-left:3px solid ${s.border};">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${s.label};margin-bottom:8px;letter-spacing:.07em">${role}</div>
       ${msgBody}
     </div>`;
   }).join('');
+
+  const fullMd = visibleNodes.map(n => `[${getNodeRole(n).toUpperCase()}]\n${getNodeText(n)}`).join('\n\n---\n\n');
 
   const w = window.open('', '_blank', 'width=860,height=700');
   w.document.write(`<!DOCTYPE html><html><head><title>${conv?.title || 'Branch'}</title>
@@ -5444,23 +5619,68 @@ document.getElementById('btn-popout-branch').addEventListener('click', () => {
     .msg-body th{background:#dde0ee;font-weight:600}
     .copy-btn{float:right;margin-top:-2px;padding:2px 8px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:inherit;color:#4a5080}
     .copy-btn:hover{background:#d0d4e8}
+    .copy-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+    .copy-bar .copy-btn{float:none;padding:5px 12px;font-size:11px}
+    .copy-btn.copied{background:#00c49a;color:#fff;border-color:#00c49a}
   </style></head>
   <body>
     <h1>${conv?.title || 'Branch Conversation'}</h1>
     <div class="meta">${visibleNodes.length} message${visibleNodes.length !== 1 ? 's' : ''} · view: ${mode}${q ? ` · filtered: "${escapeHtml(q)}"` : ''}</div>
-    ${htmlParts}
+    ${mode === 'rendered' ? `
+    <div class="copy-bar">
+      <button class="copy-btn" onclick="copyAsSeen()">Copy as seen</button>
+      <button class="copy-btn" onclick="copyHtmlCode()">Copy as HTML code</button>
+      <button class="copy-btn" onclick="copyMarkdown()">Copy as MD</button>
+      <button class="copy-btn" onclick="copyPlainText()">Copy as plain text</button>
+    </div>` : ''}
+    <div id="content">${htmlParts}</div>
+    ${mode === 'rendered' ? `<script type="text/plain" id="copy-md-data">${escapeHtml(fullMd)}<\/script><script>
+      function getContentEl(){return document.getElementById('content')}
+      function btn(i){return document.querySelector('.copy-bar .copy-btn:nth-child('+i+')')}
+      function copied(i,t){btn(i).textContent='Copied!';setTimeout(function(){btn(i).textContent=t},1500)}
+      function copyAsSeen(){
+        var html=getContentEl().innerHTML;
+        navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([getContentEl().textContent],{type:'text/plain'})})]).then(function(){copied(1,'Copy as seen')})
+      }
+      function copyHtmlCode(){
+        navigator.clipboard.writeText(getContentEl().innerHTML).then(function(){copied(2,'Copy as HTML code')})
+      }
+      function copyMarkdown(){
+        navigator.clipboard.writeText(document.getElementById('copy-md-data').textContent).then(function(){copied(3,'Copy as MD')})
+      }
+      function copyPlainText(){
+        navigator.clipboard.writeText(getContentEl().textContent).then(function(){copied(4,'Copy as plain text')})
+      }
+    <\/script>` : ''}
     <script>
-      document.querySelectorAll('.msg-body').forEach((body) => {
-        const btn = document.createElement('button');
-        btn.className = 'copy-btn'; btn.textContent = 'Copy';
-        btn.onclick = () => {
-          navigator.clipboard.writeText(body.innerText).then(() => {
-            btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = 'Copy', 1500);
-          });
-        };
-        body.parentElement.querySelector('[style*="text-transform"]').after(btn);
-      });
+      if (document.querySelector('.msg-body')) {
+        document.querySelectorAll('.msg-body').forEach(function(body) {
+          var wrap = body.closest('.msg-wrap');
+          var md = wrap ? wrap.getAttribute('data-md') : '';
+          var sel = document.createElement('select');
+          sel.className = 'copy-btn';
+          sel.style.cssText = 'float:right;margin-top:-2px;padding:2px 6px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:inherit;color:#4a5080';
+          sel.innerHTML = '<option value="">Copy\u2026</option><option value="seen">As seen</option><option value="html">HTML</option><option value="md">MD</option><option value="text">Plain text</option>';
+          sel.onchange = function() {
+            var val = this.value;
+            if (!val) return;
+            this.value = '';
+            var html = body.innerHTML;
+            var txt = body.textContent;
+            function done() { sel.style.cssText = sel.style.cssText.replace('background:#e0e3f0','background:#00c49a;color:#fff'); setTimeout(function(){sel.style.cssText = sel.style.cssText.replace('background:#00c49a;color:#fff','background:#e0e3f0');},1500); }
+            if (val === 'seen') {
+              navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})})]).then(done);
+            } else if (val === 'html') {
+              navigator.clipboard.writeText(html).then(done);
+            } else if (val === 'md') {
+              navigator.clipboard.writeText(md || txt).then(done);
+            } else if (val === 'text') {
+              navigator.clipboard.writeText(txt).then(done);
+            }
+          };
+          wrap.querySelector('[style*="text-transform"]').after(sel);
+        });
+      }
     <\/script>
   </body></html>`);
   w.document.close();
@@ -5520,6 +5740,7 @@ document.getElementById('btn-unload-all').addEventListener('click', () => {
   state.selectedNodeId = null;
   state.searchQuery = '';
   state.searchMatches.clear();
+  state.searchCollapsedConvs.clear();
   state._branchPath = null;
   state.nodePositions.clear();
   state.initialPositions.clear();
@@ -6057,7 +6278,34 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.3.0', date: '2026-06-17', latest: true,
+    version: 'v7.6.1', date: '2026-06-19', latest: true,
+    items: [
+      { type: 'fix', text: '<strong>Fix JavaScript syntax error in node popout</strong> — missing <code></body></html></code> closing caused the entire script to break after the popout handler, disabling theme switching and other functionality.' },
+    ]
+  },
+  {
+    version: 'v7.6.0', date: '2026-06-19', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Richer copy options in popouts</strong> — popouts (single message and branch) now offer four copy methods in rendered mode: "Copy as seen" (formatted HTML via ClipboardItem text/html for Word/WYSIWYG), "Copy as HTML code" (raw HTML source), "Copy as MD" (original markdown), and "Copy as plain text" (unformatted text). Each message in the branch popout also gets a per-message dropdown with these four options.' },
+    ]
+  },
+  {
+    version: 'v7.5.0', date: '2026-06-19', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Grouped search results</strong> — when searching in "All" scope, results are now grouped by conversation with a collapsible header showing the conversation title and match count. Click to expand/collapse each group.' },
+      { type: 'new', text: '<strong>Search debounce setting</strong> — configurable delay (50-800ms) before search runs after you stop typing, with an on/off toggle. Slider and number input synced together.' },
+      { type: 'change', text: '<strong>Tooltip delay setting</strong> — now has a paired number input alongside the slider for precise entry.' },
+      { type: 'change', text: '<strong>Settings modal now scrollable</strong> — body scrolls when content exceeds modal height.' },
+    ]
+  },
+  {
+    version: 'v7.4.0', date: '2026-06-19', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Grouped search results</strong> — when searching in "All" scope, results are now grouped by conversation with a collapsible header showing the conversation title and match count. Click to expand/collapse each group.' },
+    ]
+  },
+  {
+    version: 'v7.3.0', date: '2026-06-17', latest: false,
     items: [
       { type: 'new', text: '<strong>Grok (Backend Export) format</strong> — detects and converts the xAI backend JSON format (<code>conversations[]</code> with <code>parent_response_id</code> branching, MongoDB <code>$date.$numberLong</code> timestamps, and <code>agent_thinking_traces</code> stitched into message content). Tree structure is fully preserved including regenerated branches.' },
     ]
@@ -6248,7 +6496,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.3.0 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.6.1 loaded. Drop a JSON file to get started.');
 </script>
 </body>
 </html>
