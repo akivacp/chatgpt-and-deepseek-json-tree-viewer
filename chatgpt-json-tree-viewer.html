@@ -6,7 +6,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.6.1</title>
+<title>ChatGPT JSON Tree Viewer v7.6.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -1041,6 +1041,136 @@ body {
 }
 .branch-search input:focus { outline: none; border-color: var(--accent-teal); }
 
+
+/* ===== MOBILE HAMBURGER MENU ===== */
+#mob-hamburger { display: none; flex-shrink: 0; padding: 6px 10px; }
+#mob-menu {
+  display: none; position: fixed; top: 48px; left: 0; right: 0;
+  z-index: 500; flex-direction: column;
+}
+#mob-menu.open { display: flex; }
+#mob-menu-inner {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px; padding: 8px;
+}
+.mob-menu-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 14px 8px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-md); color: var(--text-secondary);
+  font-size: 12px; font-family: var(--font-ui); cursor: pointer;
+  transition: all var(--transition); -webkit-tap-highlight-color: transparent;
+}
+.mob-menu-btn:hover, .mob-menu-btn:active { background: var(--bg-hover); color: var(--text-primary); }
+.mob-menu-btn svg { width: 20px; height: 20px; }
+.mob-menu-theme-row {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+  padding: 12px 8px 6px; border-top: 1px solid var(--border-color); margin-top: 4px;
+}
+.mob-menu-theme-label { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+.mob-theme-dots { display: flex; gap: 10px; align-items: center; }
+.mob-theme-dots .theme-dot { width: 22px; height: 22px; }
+#mob-menu-backdrop {
+  position: fixed; inset: 0; top: 0; z-index: -1;
+  background: rgba(0,0,0,0.4);
+}
+
+/* ===== MOBILE BOTTOM NAV ===== */
+#mobile-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  height: 56px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  flex-direction: row;
+}
+.mob-nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; border: none; background: transparent; color: var(--text-muted);
+  font-size: 10px; font-family: var(--font-ui); cursor: pointer;
+  padding: 6px 0; transition: color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.mob-nav-btn svg { width: 20px; height: 20px; }
+.mob-nav-btn.active { color: var(--accent-teal); }
+.mob-nav-btn.active svg { stroke: var(--accent-teal); }
+
+/* ===== MOBILE MEDIA QUERY ===== */
+@media (max-width: 768px) {
+  /* Show bottom nav */
+  #mobile-nav { display: flex; }
+
+  /* Topbar: compact, single row — extras go in hamburger menu */
+  #topbar { padding: 0 8px; gap: 4px; overflow: hidden; flex-wrap: nowrap; }
+  /* Hide secondary topbar buttons — they live in the hamburger menu instead */
+  #btn-export-all, #btn-unload-all, #btn-close-conv, #reset-btn-wrap,
+  #btn-settings, #btn-help, #format-badge, #topbar-conv-title,
+  a[href*="github"], #theme-picker { display: none !important; }
+  /* Show the hamburger */
+  #mob-hamburger { display: flex; }
+  /* Logo: compact */
+  .logo-version { display: none; }
+  #logo { font-size: 13px; flex-shrink: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  /* Load File: keep text */
+  .topbar-btn.primary { padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
+
+  /* Reserve space for bottom nav */
+  #app { padding-bottom: 56px; }
+
+  /* Main area: stack panels as absolute overlays */
+  #main { position: relative; overflow: hidden; }
+  .resize-handle { display: none !important; }
+
+  #sidebar-left,
+  #graph-area,
+  #panel-right {
+    position: absolute !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    display: none !important;
+    border: none !important;
+  }
+  /* Override collapsed state on mobile */
+  #sidebar-left.collapsed { display: none !important; }
+  #panel-right.collapsed { display: none !important; }
+
+  /* Show the active mobile panel */
+  #sidebar-left.mob-panel-active { display: flex !important; }
+  #graph-area.mob-panel-active { display: block !important; }
+  #panel-right.mob-panel-active { display: flex !important; }
+
+  /* Touch-friendly conv items */
+  .conv-item { padding: 10px 12px; }
+  .conv-item-title { font-size: 14px; }
+
+  /* Bigger action buttons in right panel */
+  .action-btn { width: 36px; height: 36px; }
+  .panel-tab { padding: 12px 8px; font-size: 13px; }
+
+  /* Graph controls: bigger tap targets */
+  .graph-ctrl-btn { width: 40px; height: 40px; font-size: 18px; }
+  #graph-controls { bottom: 12px; left: 12px; gap: 6px; }
+
+  /* Hide minimap on mobile (too small to be useful) */
+  #minimap { display: none !important; }
+
+  /* Content scroll: allow native momentum scrolling */
+  .content-scroll { -webkit-overflow-scrolling: touch; }
+
+  /* Make sidebar search input bigger */
+  #sidebar-search { font-size: 16px; padding: 10px 10px 10px 34px; }
+
+  /* Larger branch search */
+  #branch-search-input { font-size: 16px; padding: 8px 8px 8px 28px; }
+
+  /* Format badge */
+  #format-badge { font-size: 10px; padding: 2px 6px; }
+}
 </style>
 </head>
 <body data-theme="dark">
@@ -1058,7 +1188,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.6.1</span>
+      <span class="logo-version">v7.6.2</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1160,6 +1290,54 @@ body {
         <button class="ctp-reset" id="ctp-reset-btn">↺ Reset to current theme defaults</button>
       </div>
     </div>
+    <!-- MOBILE HAMBURGER (hidden on desktop) -->
+    <button id="mob-hamburger" class="topbar-btn" title="Menu" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- MOBILE MENU DRAWER -->
+  <div id="mob-menu" aria-hidden="true">
+    <div id="mob-menu-inner">
+      <!-- All topbar actions, laid out as a grid for easy tapping -->
+      <button class="mob-menu-btn" onclick="document.getElementById('file-input').click();closeMobMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Load File
+      </button>
+      <button class="mob-menu-btn" id="mob-export-all">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export All
+      </button>
+      <button class="mob-menu-btn" id="mob-unload-all">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        Unload All
+      </button>
+      <button class="mob-menu-btn" id="mob-reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.49"/></svg>
+        Reset Layout
+      </button>
+      <button class="mob-menu-btn" id="mob-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </button>
+      <button class="mob-menu-btn" id="mob-help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Help
+      </button>
+      <!-- Theme picker row -->
+      <div class="mob-menu-theme-row">
+        <span class="mob-menu-theme-label">Theme:</span>
+        <div class="mob-theme-dots">
+          <div class="theme-dot t-dark" data-theme="dark" title="Dark"></div>
+          <div class="theme-dot t-light" data-theme="light" title="Light"></div>
+          <div class="theme-dot t-blue" data-theme="blue" title="Blue"></div>
+          <div class="theme-dot t-green" data-theme="green" title="Green"></div>
+          <div class="theme-dot t-purple" data-theme="purple" title="Purple"></div>
+          <div class="theme-dot t-custom" data-theme="custom" title="Custom" id="mob-btn-custom-theme"></div>
+        </div>
+      </div>
+    </div>
+    <div id="mob-menu-backdrop"></div>
   </div>
 
   <!-- MAIN -->
@@ -1602,7 +1780,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.6.1 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.6.2 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1624,6 +1802,22 @@ body {
 
 <!-- NOTIFICATION -->
 <div id="notif"></div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav id="mobile-nav">
+  <button class="mob-nav-btn active" data-mob-panel="sidebar-left" title="Conversations">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <span>Chats</span>
+  </button>
+  <button class="mob-nav-btn" data-mob-panel="graph-area" title="Graph">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="2"/><line x1="5" y1="7" x2="5" y2="17"/><line x1="7" y1="5" x2="17" y2="5"/><line x1="7" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="17" y2="12"/><line x1="12" y1="14" x2="12" y2="17"/></svg>
+    <span>Graph</span>
+  </button>
+  <button class="mob-nav-btn" data-mob-panel="panel-right" title="Message">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
+    <span>Message</span>
+  </button>
+</nav>
 
 <script>
 // ============================================================
@@ -3917,7 +4111,7 @@ function updateTopbarTitle(title) {
   if (title) {
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    document.title = 'ChatGPT JSON Tree Viewer v7.6.1';
+    document.title = 'ChatGPT JSON Tree Viewer v7.6.2';
   }
 }
 
@@ -4343,7 +4537,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.6.1</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.6.2</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -6278,7 +6472,16 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.6.1', date: '2026-06-19', latest: true,
+    version: 'v7.6.2', date: '2026-06-21', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Mobile-friendly layout</strong> — single-column view replaces the three-panel desktop layout. A bottom navigation bar (Chats / Graph / Message) switches between panels one at a time. Selecting a conversation auto-jumps to the Graph; tapping a node auto-jumps to Message.' },
+      { type: 'new', text: '<strong>Hamburger menu</strong> — all topbar actions (Export All, Unload All, Reset, Settings, Help) and the theme picker are accessible via a ☰ button that slides open a tap-friendly grid below the topbar.' },
+      { type: 'new', text: '<strong>Touch gestures on graph</strong> — pinch-to-zoom and two-finger pan work on the D3 graph via native touch support.' },
+      { type: 'change', text: '<strong>Minimap hidden on mobile</strong> — too small to be useful at phone resolution; use the Fit button in the graph controls instead.' },
+    ]
+  },
+  {
+    version: 'v7.6.1', date: '2026-06-19', latest: false,
     items: [
       { type: 'fix', text: '<strong>Fix JavaScript syntax error in node popout</strong> — missing <code></body></html></code> closing caused the entire script to break after the popout handler, disabling theme switching and other functionality.' },
     ]
@@ -6496,7 +6699,136 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.6.1 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.6.2 loaded. Drop a JSON file to get started.');
+
+// ============================================================
+// MOBILE HAMBURGER MENU
+// ============================================================
+function closeMobMenu() {
+  const m = document.getElementById('mob-menu');
+  if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden','true'); }
+}
+(function() {
+  const hamburger = document.getElementById('mob-hamburger');
+  const menu = document.getElementById('mob-menu');
+  const backdrop = document.getElementById('mob-menu-backdrop');
+
+  hamburger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle('open');
+    menu.setAttribute('aria-hidden', String(!isOpen));
+  });
+
+  backdrop?.addEventListener('click', closeMobMenu);
+
+  // Wire mob-menu buttons to their desktop counterparts
+  const wire = (mobId, desktopId, close = true) => {
+    document.getElementById(mobId)?.addEventListener('click', () => {
+      document.getElementById(desktopId)?.click();
+      if (close) closeMobMenu();
+    });
+  };
+  wire('mob-export-all', 'btn-export-all');
+  wire('mob-unload-all', 'btn-unload-all');
+  wire('mob-reset', 'btn-reset-layout');
+  wire('mob-settings', 'btn-settings');
+  wire('mob-help', 'btn-help');
+
+  // Wire mob theme dots to the same theme-switching logic
+  document.querySelectorAll('#mob-menu .theme-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      // Mirror what the desktop theme dots do
+      const theme = dot.dataset.theme;
+      document.body.setAttribute('data-theme', theme);
+      localStorage.setItem('mv-theme', theme);
+      document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === theme));
+      closeMobMenu();
+    });
+  });
+})();
+
+// ============================================================
+// MOBILE PANEL SWITCHER
+// ============================================================
+(function() {
+  const PANELS = ['sidebar-left', 'graph-area', 'panel-right'];
+  const mq = window.matchMedia('(max-width: 768px)');
+
+  function isMobile() { return mq.matches; }
+
+  function switchToPanel(panelId) {
+    if (!isMobile()) return;
+    PANELS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('mob-panel-active', id === panelId);
+    });
+    document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mobPanel === panelId);
+    });
+    // Refit graph after showing it (D3 needs the element visible)
+    if (panelId === 'graph-area') {
+      setTimeout(() => { if (typeof fitGraph === 'function') fitGraph(); }, 50);
+    }
+  }
+
+  function initMobile() {
+    if (!isMobile()) return;
+    // Default: show conversations panel
+    switchToPanel('sidebar-left');
+    // Wire up bottom nav
+    document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchToPanel(btn.dataset.mobPanel));
+    });
+  }
+
+  // Auto-switch to Graph when a conversation is selected
+  const origSelectConv = window.selectConv;
+  if (typeof origSelectConv === 'function') {
+    window.selectConv = function(...args) {
+      origSelectConv.apply(this, args);
+      if (isMobile()) switchToPanel('graph-area');
+    };
+  }
+  // Auto-switch to Message panel when a node is selected
+  const origSelectNode = window.selectNode;
+  if (typeof origSelectNode === 'function') {
+    window.selectNode = function(...args) {
+      origSelectNode.apply(this, args);
+      if (isMobile()) switchToPanel('panel-right');
+    };
+  }
+
+  // Patch conv list clicks: switch to graph after conv selection
+  document.addEventListener('click', (e) => {
+    if (!isMobile()) return;
+    const convItem = e.target.closest('.conv-item');
+    if (convItem) {
+      // Delay to let existing handler run first
+      setTimeout(() => switchToPanel('graph-area'), 80);
+    }
+  }, true);
+
+  // Patch node clicks in graph: switch to message panel
+  document.getElementById('graph-svg')?.addEventListener('click', (e) => {
+    if (!isMobile()) return;
+    const circle = e.target.closest('.node-circle');
+    if (circle) {
+      setTimeout(() => switchToPanel('panel-right'), 80);
+    }
+  });
+
+  // Also handle search result clicks → go to graph
+  document.addEventListener('click', (e) => {
+    if (!isMobile()) return;
+    if (e.target.closest('.search-msg-item') || e.target.closest('.search-conv-group-header')) {
+      setTimeout(() => switchToPanel('graph-area'), 80);
+    }
+  });
+
+  // Initialize on load
+  initMobile();
+  mq.addEventListener('change', initMobile);
+})();
 </script>
 </body>
 </html>
