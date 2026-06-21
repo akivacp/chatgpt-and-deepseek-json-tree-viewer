@@ -1,3 +1,7 @@
+This is **vibe coded software**.
+
+---
+
 # 🌳 ChatGPT JSON Tree Viewer
 
 **Ever wanted to actually *see* your AI conversations — not just scroll through them?**
