@@ -6,7 +6,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.6.2</title>
+<title>ChatGPT JSON Tree Viewer v7.6.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -1188,7 +1188,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.6.2</span>
+      <span class="logo-version">v7.6.4</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1780,7 +1780,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.6.2 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.6.4 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1905,9 +1905,17 @@ function detectFormat(data) {
   if (data.conversation && data.responses) return 'grok';
   if (data.info?.id && Array.isArray(data.messages)) return 'opencode';
   if (data.messages && (data.messages[0]?.role || data.messages[0]?.contentChunks)) return 'claude';
-  // GLM/Zhipu AI: single object or array
-  if (data.chat?.history?.messages) return 'glm';
-  if (Array.isArray(data) && data.length && data[0]?.chat?.history?.messages) return 'glm-array';
+  // Qwen / chat-export: chat.history.messages with chat_type on each message
+  if (data.chat?.history?.messages) {
+    const firstVal = Object.values(data.chat.history.messages)[0];
+    if (firstVal?.chat_type !== undefined) return 'qwen';
+    return 'glm';
+  }
+  if (Array.isArray(data) && data.length && data[0]?.chat?.history?.messages) {
+    const firstVal = Object.values(data[0].chat.history.messages)[0];
+    if (firstVal?.chat_type !== undefined) return 'qwen-array';
+    return 'glm-array';
+  }
   return 'unknown';
 }
 
@@ -1929,6 +1937,8 @@ function convertToUnified(raw) {
     case 'mistral-array': return raw.map(convertMistral);
     case 'glm': return [convertGLM(raw)];
     case 'glm-array': return raw.map(convertGLM);
+    case 'qwen': return [convertQwen(raw)];
+    case 'qwen-array': return raw.map(convertQwen);
     case 'opencode': return [convertOpenCode(raw)];
     default: return [tryGenericConvert(raw)];
   }
@@ -2313,6 +2323,78 @@ function convertGLM(data) {
     update_time: conv.updated_at || conv.timestamp || null,
     mapping,
     _format: 'glm',
+  };
+}
+
+function convertQwen(data) {
+  // Qwen chat export: chat.history.messages keyed by id with parentId/childrenIds.
+  // Assistant answers live in content_list[] phases (thinking_summary / answer).
+  const conv = Array.isArray(data) ? data[0] : data;
+  const messages = conv?.chat?.history?.messages || {};
+  const mapping = { root: { id: 'root', parent: null, children: [], message: null } };
+
+  Object.entries(messages).forEach(([id, msg]) => {
+    let text = '';
+    if (typeof msg.content === 'string' && msg.content) text = msg.content;
+    if (Array.isArray(msg.content_list)) {
+      const parts = [];
+      msg.content_list.forEach(c => {
+        if (c.phase === 'thinking_summary') {
+          const titles = c.extra?.summary_title?.content;
+          const thoughts = c.extra?.summary_thought?.content;
+          if (Array.isArray(titles) && titles.length) {
+            titles.forEach(t => { if (t) parts.push('> _Thinking:_ ' + t); });
+            if (Array.isArray(thoughts)) thoughts.forEach(t => { if (t) parts.push('> ' + t); });
+          } else if (c.content) {
+            parts.push('> _Thinking:_ ' + c.content);
+          }
+        } else if (c.phase === 'answer') {
+          if (c.content) parts.push(c.content);
+        } else if (c.content) {
+          parts.push(c.content);
+        }
+      });
+      if (parts.length) text = (text ? text + '\n\n' : '') + parts.join('\n\n');
+    }
+    if (!text && msg.error) {
+      const details = typeof msg.error.details === 'string' ? msg.error.details : '';
+      text = details ? `> _Error [${msg.error.code || 'error'}]: ${details}_` : `> _Error [${msg.error.code || 'error'}]_`;
+    }
+    mapping[id] = {
+      id,
+      parent: msg.parentId || null,
+      children: Array.isArray(msg.childrenIds) ? msg.childrenIds : [],
+      message: {
+        id,
+        author: { role: (msg.role || 'unknown').toLowerCase() },
+        content: { text },
+        create_time: msg.timestamp || null,
+        metadata: { model: msg.model || (Array.isArray(msg.models) && msg.models[0]) || msg.modelName },
+      }
+    };
+  });
+
+  // Wire up: resolve parents, keep only existing children, sync both directions
+  Object.keys(mapping).forEach(id => {
+    const node = mapping[id];
+    if (id === 'root') return;
+    node.children = (node.children || []).filter(c => mapping[c]);
+  });
+  Object.keys(mapping).forEach(id => {
+    const node = mapping[id];
+    if (id === 'root') return;
+    const resolved = node.parent && mapping[node.parent] ? node.parent : 'root';
+    node.parent = resolved;
+    if (!mapping[resolved].children.includes(id)) mapping[resolved].children.push(id);
+  });
+
+  return {
+    conversation_id: conv.id || genId(),
+    title: conv.title || 'Qwen Chat',
+    create_time: conv.created_at || null,
+    update_time: conv.updated_at || null,
+    mapping,
+    _format: 'qwen',
   };
 }
 
@@ -4111,7 +4193,7 @@ function updateTopbarTitle(title) {
   if (title) {
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    document.title = 'ChatGPT JSON Tree Viewer v7.6.2';
+    document.title = 'ChatGPT JSON Tree Viewer v7.6.4';
   }
 }
 
@@ -4135,6 +4217,8 @@ function setFormatBadge(fmt) {
     'mistral-array':      ['Mistral AI',       '#8b5cf6'],
     'glm':                ['GLM/Zhipu AI',     '#0099ff'],
     'glm-array':          ['GLM/Zhipu AI',     '#0099ff'],
+    'qwen':               ['Qwen Chat',        '#6366f1'],
+    'qwen-array':         ['Qwen Chat',        '#6366f1'],
   };
   const [label, color] = map[fmt] || [fmt, '#6b7280'];
   badge.textContent = label;
@@ -4537,7 +4621,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.6.2</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.6.4</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4550,6 +4634,8 @@ const helpTopics = [
       <tr><td><strong>DeepSeek (conversation)</strong></td><td>Messages with raw_html</td><td><code>messages[].raw_html</code></td></tr>
       <tr><td><strong>Grok / xAI</strong></td><td>Conversation + responses</td><td><code>conversation</code> + <code>responses[]</code></td></tr>
       <tr><td><strong>Mistral AI</strong></td><td>chat_messages array</td><td><code>chat_messages[]</code> + <code>account</code> or <code>uuid</code></td></tr>
+      <tr><td><strong>GLM / Zhipu AI</strong></td><td>Single or array with <code>chat.history.messages</code></td><td><code>chat.history.messages[].parentId</code></td></tr>
+      <tr><td><strong>Qwen Chat</strong></td><td>Single or array with <code>chat.history.messages</code></td><td><code>chat.history.messages[].chat_type</code> + <code>content_list[]</code> phases — branching preserved via <code>parentId</code>/<code>childrenIds</code></td></tr>
     </table>
     <p>All formats are automatically converted to a unified internal structure before rendering. The original data is preserved in <code>_original_data</code> for debugging.</p>
     <div class="tip"><strong>Tip:</strong> You can load multiple files at once — each becomes a separate conversation entry in the sidebar.</div>
@@ -4761,7 +4847,7 @@ const helpTopics = [
         Markdown → <code>.md</code> with <code>---</code> separators<br>
         HTML → raw rendered HTML per message<br>
         JSON → structured <code>.json</code> array</li>
-      <li><strong>Pop-out</strong> — opens the full thread in a new browser tab with role-colored shading, timestamps, and per-message Copy buttons</li>
+      <li><strong>Pop-out</strong> — opens the full thread in a new browser tab with role-colored shading, timestamps, per-message Copy controls, and a settings bar at the top: theme (Main app / Light / Dark / System), per-message copy mode (dropdown, rendered, HTML, MD, or plain text only), timestamp toggle, and optional checkboxes for bulk-copying selected messages</li>
       <li><strong>GPT↓</strong> — downloads the current conversation as an OpenAI-compatible <code>conversations.json</code> file (single conversation)</li>
       <li><strong>H</strong> — toggles search highlighting (synced with the Selected Node panel)</li>
     </ul>
@@ -4822,7 +4908,7 @@ const helpTopics = [
           <li><strong>JSON</strong> → <code>.json</code> array of <code>{id, role, content, create_time, model}</code> objects</li>
         </ul>
       </li>
-      <li><strong>Pop-out</strong> — opens in a new tab with role-colored shading, depth/timestamp headers, and per-message Copy buttons</li>
+      <li><strong>Pop-out</strong> — opens in a new tab with role-colored shading, depth/timestamp headers, and per-message Copy buttons. A settings bar at the top controls the popout theme (Main app / Light / Dark / System), the per-message copy mode (full dropdown, or a single one-click Rendered / HTML / MD / Plain text copy button), timestamp visibility, and checkboxes for bulk-copying the selected messages</li>
       <li><strong>GPT↓</strong> — downloads the current conversation as a single-item OpenAI <code>conversations.json</code> array</li>
     </ul>
     <h3>Project Export (Top Bar)</h3>
@@ -4957,6 +5043,8 @@ const helpTopics = [
     <p>Top-level <code>conversations[]</code> array where each entry has a <code>conversation</code> object and a <code>responses[]</code> array. Uses <code>parent_response_id</code> for tree structure (preserves branching). Timestamps use MongoDB <code>$date.$numberLong</code> format. Role from <code>sender: "human"/"ASSISTANT"</code>. Agent thinking traces from <code>agent_thinking_traces[]</code> are stitched into message content.</p>
     <h3>Mistral AI</h3>
     <p>Has a <code>chat_messages[]</code> array (or <code>messages[]</code>) plus <code>account</code> or <code>uuid</code>. Content is extracted from <code>content[]</code> array items where <code>type === "text"</code>. UUIDs and timestamps are preserved.</p>
+    <h3>Qwen Chat</h3>
+    <p>Exports with a <code>chat.history.messages</code> object keyed by message ID. Each message carries <code>chat_type</code>, <code>parentId</code>, and <code>childrenIds</code>, so regenerated answers appear as real branches. User text lives in <code>content</code>; assistant replies live in <code>content_list[]</code> phases — the <code>answer</code> phase provides the reply text and the <code>thinking_summary</code> phase is rendered as <em>Thinking</em> blockquotes from its <code>summary_title</code>/<code>summary_thought</code> metadata. Model comes from <code>model</code>, <code>models[]</code>, or <code>modelName</code>.</p>
     <h3>Unified Internal Format</h3>
     <p>All formats are converted to:</p>
     <ul>
@@ -5522,72 +5610,277 @@ document.getElementById('btn-export').addEventListener('click', () => {
   exportText(text, `message-${state.selectedNodeId.slice(0,8)}`);
 });
 
+// ============================================================
+// POPOUT WINDOWS (shared)
+// ============================================================
+const POPOUT_ROLE_STYLES = {
+  user:      { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(96,165,250,0.6)',  label: '#3b82f6' },
+  assistant: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(74,222,128,0.6)',  label: '#22c55e' },
+  system:    { bg: 'rgba(107,114,128,0.08)', border: 'rgba(156,163,175,0.5)', label: '#9ca3af' },
+  other:     { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(192,132,252,0.6)', label: '#a855f7' },
+};
+
+function getParentPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const keys = ['--bg-primary','--bg-secondary','--bg-tertiary','--border-color','--text-primary','--text-secondary','--text-muted','--accent-teal'];
+  const p = {};
+  keys.forEach(k => { const v = cs.getPropertyValue(k).trim(); if (v) p[k] = v; });
+  return p;
+}
+
+// opt: { title, meta, mode, multi, messages:[{role, ts, md, body}], fullMd }
+function openPopoutPage(opt) {
+  const { title, meta, mode, multi, messages, fullMd } = opt;
+  const pal = getParentPalette();
+  const w = window.open('', '_blank', 'width=860,height=700');
+  if (!w) return;
+
+  const htmlParts = messages.map((m, i) => {
+    const s = POPOUT_ROLE_STYLES[m.role] || POPOUT_ROLE_STYLES.other;
+    const ts = m.ts ? `<span class="msg-date">${escapeHtml(m.ts)}</span>` : '';
+    const chk = multi ? `<label class="chk-wrap" title="Select for bulk copy"><input type="checkbox" class="msg-check" data-i="${i}"></label>` : '';
+    return `<div class="msg-wrap" data-i="${i}" style="background:${s.bg};border-left-color:${s.border}">
+      <div class="msg-head">
+        ${chk}
+        <span class="msg-role" style="color:${s.label}">${m.role}</span>
+        ${ts}
+        <span class="msg-copy"></span>
+      </div>
+      ${m.body}
+    </div>`;
+  }).join('');
+
+  const payload = JSON.stringify({ msgs: messages.map(m => ({ role: m.role, md: m.md || '', ts: m.ts || '' })), fullMd: fullMd || messages.map(m => '[' + m.role.toUpperCase() + ']\n' + (m.md || '')).join('\n\n---\n\n') }).replace(/</g, '\\u003c');
+  const themeScheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+  w.document.write(`<!DOCTYPE html><html data-theme="main" style="--m-bg:${pal['--bg-primary'] || '#f5f6fc'};--m-panel:${pal['--bg-secondary'] || '#eef0f8'};--m-panel2:${pal['--bg-tertiary'] || '#e8eaf2'};--m-border:${pal['--border-color'] || '#c8cce0'};--m-text:${pal['--text-primary'] || '#1a1d2e'};--m-text2:${pal['--text-secondary'] || '#2a2d3e'};--m-muted:${pal['--text-muted'] || '#6b7280'};--m-accent:${pal['--accent-teal'] || '#00c49a'};--m-scheme:${themeScheme}"><head>
+<meta charset="UTF-8">
+<title>${escapeHtml(title)}</title>
+<style>
+  :root{
+    --bg:#f5f6fc;--panel:#eef0f8;--panel2:#e8eaf2;--border:#c8cce0;
+    --text:#1a1d2e;--text2:#2a2d3e;--muted:#6b7280;--accent:#00c49a;
+    color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d0f14;--panel:#141720;--panel2:#1a1e2a;--border:#2a2f42;
+    --text:#e8eaf0;--text2:#c0c6dc;--muted:#9096b0;--accent:#00d4aa;
+    color-scheme:dark;
+  }
+  :root[data-theme="main"]{
+    --bg:var(--m-bg);--panel:var(--m-panel);--panel2:var(--m-panel2);--border:var(--m-border);
+    --text:var(--m-text);--text2:var(--m-text2);--muted:var(--m-muted);--accent:var(--m-accent);
+    color-scheme:var(--m-scheme);
+  }
+  @media (prefers-color-scheme: dark){
+    :root[data-theme="system"]{
+      --bg:#0d0f14;--panel:#141720;--panel2:#1a1e2a;--border:#2a2f42;
+      --text:#e8eaf0;--text2:#c0c6dc;--muted:#9096b0;--accent:#00d4aa;
+      color-scheme:dark;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;padding:32px;max-width:820px;margin:0 auto;line-height:1.7;background:var(--bg);color:var(--text);transition:background .15s,color .15s}
+  h1{font-size:17px;font-weight:600;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid var(--border);color:var(--text)}
+  .meta{font-size:11px;color:var(--muted);margin-bottom:18px}
+  .settings-bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text)}
+  .settings-bar label{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+  .settings-bar select{background:var(--panel2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 6px;font-size:12px;font-family:inherit;cursor:pointer}
+  .settings-bar select:hover,.msg-copy select:hover{background:var(--panel)}
+  .settings-bar input[type="checkbox"]{accent-color:var(--accent);cursor:pointer}
+  .divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+  .bulk-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .copy-btn{padding:4px 10px;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;color:var(--muted);transition:background .12s}
+  .copy-btn:hover{background:var(--panel)}
+  .copy-btn.copied{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .copy-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .msg-wrap{margin-bottom:8px;padding:14px 16px;border-radius:8px;border-left:3px solid}
+  .msg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-height:20px}
+  .msg-role{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+  .msg-date{font-size:10px;font-family:monospace;color:var(--muted);opacity:.85}
+  body.hide-ts .msg-date{display:none}
+  .chk-wrap{display:none;align-items:center;margin-right:2px}
+  body.show-checks .chk-wrap{display:flex}
+  .msg-check{accent-color:var(--accent);cursor:pointer;width:14px;height:14px}
+  .msg-copy{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .msg-copy select{padding:2px 6px;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit;color:var(--muted)}
+  .msg-copy .copy-btn{padding:2px 8px;font-size:11px}
+  .msg-body p{margin-bottom:10px;color:var(--text2)} .msg-body p:last-child{margin-bottom:0}
+  .msg-body h1,.msg-body h2,.msg-body h3{font-weight:600;margin:14px 0 6px;color:var(--text)}
+  .msg-body ul,.msg-body ol{margin:6px 0 6px 18px;color:var(--text2)} .msg-body li{margin-bottom:3px}
+  .msg-body pre{background:var(--panel2);padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0;color:var(--text)}
+  pre.msg-body{white-space:pre-wrap;font-size:13px;font-family:monospace;background:var(--panel2);padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0;color:var(--text)}
+  .msg-body code{font-family:monospace;font-size:12.5px}
+  .msg-body pre code{background:none;padding:0}
+  .msg-body :not(pre)>code{background:var(--panel2);padding:2px 5px;border-radius:3px;font-size:12px}
+  .msg-body blockquote{border-left:3px solid var(--accent);padding-left:12px;color:var(--muted);font-style:italic;margin:8px 0}
+  .msg-body table{border-collapse:collapse;width:100%;margin:8px 0}
+  .msg-body td,.msg-body th{padding:6px 10px;border:1px solid var(--border);font-size:13px;color:var(--text2)}
+  .msg-body th{background:var(--panel2);font-weight:600}
+  .msg-body a{color:var(--accent)}
+</style></head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="meta">${escapeHtml(meta)}</div>
+  <div class="settings-bar">
+    <label>Theme <select id="theme-sel"><option value="main">Main (app)</option><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label>
+    ${mode === 'rendered' ? `<label>Copy <select id="copy-sel"><option value="dropdown">Dropdown (all options)</option><option value="seen">Rendered only</option><option value="html">HTML only</option><option value="md">MD only</option><option value="text">Plain text only</option></select></label>` : ''}
+    <label><input type="checkbox" id="ts-tgl" checked> Timestamps</label>
+    ${mode === 'rendered' && multi ? `<label><input type="checkbox" id="chk-tgl"> Select messages</label>` : ''}
+  </div>
+  ${mode === 'rendered' && multi ? `
+  <hr class="divider">
+  <div class="bulk-bar" id="bulk-bar" hidden>
+    <button class="copy-btn" id="bulk-copy">Copy selected (0)</button>
+    <button class="copy-btn" id="bulk-all">Select all</button>
+    <button class="copy-btn" id="bulk-none">Clear</button>
+  </div>` : ''}
+  <hr class="divider">
+  ${mode === 'rendered' ? `
+  <div class="copy-bar">
+    <button class="copy-btn" id="copy-seen">Copy as seen</button>
+    <button class="copy-btn" id="copy-html">Copy as HTML code</button>
+    <button class="copy-btn" id="copy-md">Copy as MD</button>
+    <button class="copy-btn" id="copy-text">Copy as plain text</button>
+  </div>` : ''}
+  <div id="content">${htmlParts}</div>
+  <script>var DATA=${payload};<\/script>
+  <script>
+    (function(){
+      var THEME_KEY='pjv-pop-theme',COPY_KEY='pjv-pop-copy',TS_KEY='pjv-pop-ts',CHK_KEY='pjv-pop-chk';
+      function save(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+      function load(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+      var themeSel=document.getElementById('theme-sel');
+      function setTheme(t){document.documentElement.setAttribute('data-theme',t);save(THEME_KEY,t)}
+      themeSel.value=load(THEME_KEY,'main');setTheme(themeSel.value);
+      themeSel.onchange=function(){setTheme(this.value)};
+      var tsTgl=document.getElementById('ts-tgl');
+      tsTgl.checked=load(TS_KEY,'1')==='1';
+      document.body.classList.toggle('hide-ts',!tsTgl.checked);
+      tsTgl.onchange=function(){document.body.classList.toggle('hide-ts',!this.checked);save(TS_KEY,this.checked?'1':'0')};
+      var copySel=document.getElementById('copy-sel');
+      var chkTgl=document.getElementById('chk-tgl');
+      var bulkBar=document.getElementById('bulk-bar');
+      function copyMsg(i,kind,btn){
+        var wrap=document.querySelectorAll('.msg-wrap')[i];
+        var body=wrap.querySelector('.msg-body');
+        var html=body.innerHTML,txt=body.textContent;
+        function done(){if(btn){var old=btn.textContent;btn.textContent='Copied!';btn.classList.add('copied');setTimeout(function(){btn.textContent=old;btn.classList.remove('copied')},1200)}}
+        if(kind==='seen'){navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})})]).then(done)}
+        else if(kind==='html'){navigator.clipboard.writeText(html).then(done)}
+        else if(kind==='md'){navigator.clipboard.writeText(DATA.msgs[i].md||txt).then(done)}
+        else{navigator.clipboard.writeText(txt).then(done)}
+      }
+      function renderCopyControls(){
+        if(!copySel)return;
+        var wraps=document.querySelectorAll('.msg-wrap');
+        var mode=copySel.value;
+        wraps.forEach(function(wrap,i){
+          var slot=wrap.querySelector('.msg-copy');slot.innerHTML='';
+          if(mode==='dropdown'){
+            var sel=document.createElement('select');
+            sel.innerHTML='<option value="">Copy\u2026</option><option value="seen">As seen</option><option value="html">HTML</option><option value="md">MD</option><option value="text">Plain text</option>';
+            sel.onchange=function(){var v=sel.value;if(!v)return;sel.value='';copyMsg(i,v,sel)};
+            slot.appendChild(sel);
+          }else{
+            var b=document.createElement('button');
+            b.className='copy-btn';
+            b.textContent=mode==='seen'?'Copy':(mode==='html'?'Copy HTML':mode==='md'?'Copy MD':'Copy text');
+            b.onclick=function(){copyMsg(i,mode,b)};
+            slot.appendChild(b);
+          }
+        });
+      }
+      copySel.value=load(COPY_KEY,'dropdown');
+      copySel.onchange=function(){save(COPY_KEY,this.value);renderCopyControls()};
+      if(chkTgl&&bulkBar){
+        function updateBulk(){document.getElementById('bulk-copy').textContent='Copy selected ('+document.querySelectorAll('.msg-check:checked').length+')'}
+        function applyChkState(){
+          var show=chkTgl.checked;
+          document.body.classList.toggle('show-checks',show);
+          bulkBar.hidden=!show;
+          if(show)updateBulk();
+        }
+        chkTgl.checked=load(CHK_KEY,'0')==='1';
+        applyChkState();
+        chkTgl.onchange=function(){save(CHK_KEY,this.checked?'1':'0');applyChkState()};
+        document.getElementById('bulk-all').onclick=function(){document.querySelectorAll('.msg-check').forEach(function(c){c.checked=true});updateBulk()};
+        document.getElementById('bulk-none').onclick=function(){document.querySelectorAll('.msg-check').forEach(function(c){c.checked=false});updateBulk()};
+        document.addEventListener('change',function(e){if(e.target&&e.target.classList&&e.target.classList.contains('msg-check'))updateBulk()});
+        document.getElementById('bulk-copy').onclick=function(){
+          var idxs=[];
+          document.querySelectorAll('.msg-check:checked').forEach(function(c){idxs.push(parseInt(c.getAttribute('data-i')))});
+          if(!idxs.length)return;
+          var mode=copySel.value==='dropdown'?'seen':copySel.value;
+          var htmlParts=[],textParts=[],mdParts=[];
+          idxs.forEach(function(i){
+            var wrap=document.querySelectorAll('.msg-wrap')[i];
+            var body=wrap.querySelector('.msg-body');
+            htmlParts.push('<div style="margin:0 0 14px;border-left:3px solid #aaa;padding-left:10px">'+body.innerHTML+'</div>');
+            textParts.push(body.textContent);
+            mdParts.push('['+(DATA.msgs[i].role||'message').toUpperCase()+']\\n'+(DATA.msgs[i].md||body.textContent));
+          });
+          var sep='\\n\\n---\\n\\n';
+          var btn=document.getElementById('bulk-copy');
+          function done(){var old=btn.textContent;btn.textContent='Copied!';btn.classList.add('copied');setTimeout(function(){btn.textContent=old;btn.classList.remove('copied')},1200)}
+          if(mode==='seen'){
+            var html='<div style="font-family:system-ui,sans-serif;line-height:1.7">'+htmlParts.join('')+'</div>';
+            navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([textParts.join(sep)],{type:'text/plain'})})]).then(done);
+          }else if(mode==='html'){navigator.clipboard.writeText(htmlParts.join('\\n')).then(done)}
+          else if(mode==='md'){navigator.clipboard.writeText(mdParts.join(sep)).then(done)}
+          else{navigator.clipboard.writeText(textParts.join(sep)).then(done)}
+        };
+      }
+      function copyTop(kind){
+        var content=document.getElementById('content');
+        var html=content.innerHTML,txt=content.textContent;
+        var map={seen:['copy-seen','Copy as seen'],html:['copy-html','Copy as HTML code'],md:['copy-md','Copy as MD'],text:['copy-text','Copy as plain text']};
+        var b=document.getElementById(map[kind][0]),label=map[kind][1];
+        function done(){b.textContent='Copied!';b.classList.add('copied');setTimeout(function(){b.textContent=label;b.classList.remove('copied')},1200)}
+        if(kind==='seen'){navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})})]).then(done)}
+        else if(kind==='html'){navigator.clipboard.writeText(html).then(done)}
+        else if(kind==='md'){navigator.clipboard.writeText(DATA.fullMd||txt).then(done)}
+        else{navigator.clipboard.writeText(txt).then(done)}
+      }
+      document.getElementById('copy-seen').onclick=function(){copyTop('seen')};
+      document.getElementById('copy-html').onclick=function(){copyTop('html')};
+      document.getElementById('copy-md').onclick=function(){copyTop('md')};
+      document.getElementById('copy-text').onclick=function(){copyTop('text')};
+      renderCopyControls();
+    })();
+  <\/script>
+</body></html>`);
+  w.document.close();
+}
+
 document.getElementById('btn-popout').addEventListener('click', () => {
   const mode = state.viewMode;
   const nodeId = state.selectedNodeId;
   const conv = getActiveConv();
   const node = conv?.data?.mapping?.[nodeId];
   const text = node ? getNodeText(node) : '';
-  const w = window.open('', '_blank', 'width=800,height=600');
-  let body = '';
-  let title = node ? (getNodeRole(node) + ' message') : 'Message';
+  const title = node ? (getNodeRole(node) + ' message') : 'Message';
+  const ts = node?.message?.create_time ? formatNodeDate(node.message.create_time) : '';
 
   const renderedHtml = DOMPurify.sanitize(marked.parse(text || ''));
-
+  let body = '';
   if (mode === 'rendered') {
     body = renderedHtml;
   } else if (mode === 'markdown') {
-    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(text || '')}</pre>`;
+    body = `<pre class="msg-body">${escapeHtml(text || '')}</pre>`;
   } else if (mode === 'html') {
-    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px;color:#1a1d2e">${escapeHtml(renderedHtml)}</pre>`;
+    body = `<pre class="msg-body">${escapeHtml(renderedHtml)}</pre>`;
   } else if (mode === 'json') {
-    body = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:12px;color:#1a1d2e">${escapeHtml(JSON.stringify(node, null, 2))}</pre>`;
+    body = `<pre class="msg-body">${escapeHtml(JSON.stringify(node, null, 2))}</pre>`;
   }
 
-  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:system-ui,sans-serif;padding:24px;max-width:800px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f5f6fc}
-    pre{background:#f0f2f8;padding:12px;border-radius:6px;overflow-x:auto}
-    code{font-family:monospace;font-size:13px}
-    h1,h2,h3{font-weight:600;margin:14px 0 6px}
-    ul,ol{margin:6px 0 6px 18px} li{margin-bottom:3px}
-    table{border-collapse:collapse;width:100%;margin:8px 0}
-    td,th{padding:6px 10px;border:1px solid #c8cce0} th{background:#dde0ee}
-    blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}
-    .mode-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;background:#e0e3f0;color:#4a5080;padding:2px 7px;border-radius:4px;margin-bottom:14px}
-    .copy-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-    .copy-btn{padding:5px 12px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:system-ui,sans-serif;color:#4a5080;transition:all .12s}
-    .copy-btn:hover{background:#d0d4e8}
-    .copy-btn.copied{background:#00c49a;color:#fff;border-color:#00c49a}
-  </style></head><body>
-    <div class="mode-badge">${mode}</div>${mode === 'rendered' ? `
-    <div class="copy-bar">
-      <button class="copy-btn" onclick="copyAsSeen()">Copy as seen</button>
-      <button class="copy-btn" onclick="copyHtmlCode()">Copy as HTML code</button>
-      <button class="copy-btn" onclick="copyMarkdown()">Copy as MD</button>
-      <button class="copy-btn" onclick="copyPlainText()">Copy as plain text</button>
-    </div>` : ''}
-    <div id="content">${body}</div>
-    ${mode === 'rendered' ? `<script type="text/plain" id="copy-md-data">${escapeHtml(text || '')}<\/script><script>
-      function getContentEl(){return document.getElementById('content')}
-      function btn(i){return document.querySelector('.copy-bar .copy-btn:nth-child('+i+')')}
-      function copied(i,t){btn(i).textContent='Copied!';setTimeout(function(){btn(i).textContent=t},1500)}
-      function copyAsSeen(){
-        var html=getContentEl().innerHTML;
-        navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([getContentEl().textContent],{type:'text/plain'})})]).then(function(){copied(1,'Copy as seen')})
-      }
-      function copyHtmlCode(){
-        navigator.clipboard.writeText(getContentEl().innerHTML).then(function(){copied(2,'Copy as HTML code')})
-      }
-      function copyMarkdown(){
-        navigator.clipboard.writeText(document.getElementById('copy-md-data').textContent).then(function(){copied(3,'Copy as MD')})
-      }
-      function copyPlainText(){
-        navigator.clipboard.writeText(getContentEl().textContent).then(function(){copied(4,'Copy as plain text')})
-      }
-    <\/script>` : ''}
-  </body></html>`);
-  w.document.close();
+  openPopoutPage({
+    title,
+    meta: `view: ${mode}${ts ? ' · ' + ts : ''}`,
+    mode,
+    multi: false,
+    messages: [{ role: title.split(' ')[0], ts, md: text || '', body }],
+  });
 });
 
 document.getElementById('btn-pdf').addEventListener('click', () => {
@@ -5763,121 +6056,33 @@ document.getElementById('btn-popout-branch').addEventListener('click', () => {
     return true;
   });
 
-  const styles = {
-    user:      { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(96,165,250,0.6)',  label: '#3b82f6' },
-    assistant: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(74,222,128,0.6)',  label: '#22c55e' },
-    system:    { bg: 'rgba(107,114,128,0.08)', border: 'rgba(156,163,175,0.5)', label: '#9ca3af' },
-    other:     { bg: 'rgba(168,85,247,0.08)',  border: 'rgba(192,132,252,0.6)', label: '#a855f7' },
-  };
-
-  const htmlParts = visibleNodes.map(n => {
+  const messages = visibleNodes.map(n => {
     const role = getNodeRole(n);
     const text = getNodeText(n);
-    const s = styles[role] || styles.other;
-    const md = escapeHtml(text || '');
-    let msgBody = '';
+    const ts = n.message?.create_time ? formatNodeDate(n.message.create_time) : '';
+    let body = '';
     if (mode === 'rendered') {
-      msgBody = `<div class="msg-body">${DOMPurify.sanitize(marked.parse(text || ''))}</div>`;
+      body = `<div class="msg-body">${DOMPurify.sanitize(marked.parse(text || ''))}</div>`;
     } else if (mode === 'markdown') {
-      msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:13px;font-family:monospace">${escapeHtml(text || '')}</pre>`;
+      body = `<pre class="msg-body">${escapeHtml(text || '')}</pre>`;
     } else if (mode === 'html') {
-      msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:13px;font-family:monospace">${escapeHtml(DOMPurify.sanitize(marked.parse(text || '')))}</pre>`;
+      body = `<pre class="msg-body">${escapeHtml(DOMPurify.sanitize(marked.parse(text || '')))}</pre>`;
     } else if (mode === 'json') {
-      msgBody = `<pre class="msg-body" style="white-space:pre-wrap;font-size:12px;font-family:monospace">${escapeHtml(JSON.stringify(n, null, 2))}</pre>`;
+      body = `<pre class="msg-body">${escapeHtml(JSON.stringify(n, null, 2))}</pre>`;
     }
-    return `<div class="msg-wrap"${mode === 'rendered' ? ` data-md="${md.replace(/"/g, '&quot;')}"` : ''} style="margin-bottom:8px;padding:14px 16px;border-radius:8px;background:${s.bg};border-left:3px solid ${s.border};">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${s.label};margin-bottom:8px;letter-spacing:.07em">${role}</div>
-      ${msgBody}
-    </div>`;
-  }).join('');
+    return { role, ts, md: text || '', body };
+  });
 
   const fullMd = visibleNodes.map(n => `[${getNodeRole(n).toUpperCase()}]\n${getNodeText(n)}`).join('\n\n---\n\n');
 
-  const w = window.open('', '_blank', 'width=860,height=700');
-  w.document.write(`<!DOCTYPE html><html><head><title>${conv?.title || 'Branch'}</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:system-ui,sans-serif;padding:32px;max-width:820px;margin:0 auto;line-height:1.7;color:#1a1d2e;background:#f0f2f8}
-    h1{font-size:17px;font-weight:600;margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid #d0d4e8;color:#111}
-    .meta{font-size:11px;color:#9096b0;margin-bottom:20px}
-    .msg-body p{margin-bottom:10px;color:#2a2d3e} .msg-body p:last-child{margin-bottom:0}
-    .msg-body h1,.msg-body h2,.msg-body h3{font-weight:600;margin:14px 0 6px;color:#111}
-    .msg-body ul,.msg-body ol{margin:6px 0 6px 18px;color:#2a2d3e} .msg-body li{margin-bottom:3px}
-    .msg-body pre{background:#dde0ee;padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0}
-    .msg-body code{font-family:monospace;font-size:12.5px}
-    .msg-body pre code{background:none;padding:0}
-    .msg-body :not(pre)>code{background:#dde0ee;padding:2px 5px;border-radius:3px;font-size:12px}
-    .msg-body blockquote{border-left:3px solid #00c49a;padding-left:12px;color:#6b7280;font-style:italic;margin:8px 0}
-    .msg-body table{border-collapse:collapse;width:100%;margin:8px 0}
-    .msg-body td,.msg-body th{padding:6px 10px;border:1px solid #c8cce0;font-size:13px}
-    .msg-body th{background:#dde0ee;font-weight:600}
-    .copy-btn{float:right;margin-top:-2px;padding:2px 8px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:inherit;color:#4a5080}
-    .copy-btn:hover{background:#d0d4e8}
-    .copy-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-    .copy-bar .copy-btn{float:none;padding:5px 12px;font-size:11px}
-    .copy-btn.copied{background:#00c49a;color:#fff;border-color:#00c49a}
-  </style></head>
-  <body>
-    <h1>${conv?.title || 'Branch Conversation'}</h1>
-    <div class="meta">${visibleNodes.length} message${visibleNodes.length !== 1 ? 's' : ''} · view: ${mode}${q ? ` · filtered: "${escapeHtml(q)}"` : ''}</div>
-    ${mode === 'rendered' ? `
-    <div class="copy-bar">
-      <button class="copy-btn" onclick="copyAsSeen()">Copy as seen</button>
-      <button class="copy-btn" onclick="copyHtmlCode()">Copy as HTML code</button>
-      <button class="copy-btn" onclick="copyMarkdown()">Copy as MD</button>
-      <button class="copy-btn" onclick="copyPlainText()">Copy as plain text</button>
-    </div>` : ''}
-    <div id="content">${htmlParts}</div>
-    ${mode === 'rendered' ? `<script type="text/plain" id="copy-md-data">${escapeHtml(fullMd)}<\/script><script>
-      function getContentEl(){return document.getElementById('content')}
-      function btn(i){return document.querySelector('.copy-bar .copy-btn:nth-child('+i+')')}
-      function copied(i,t){btn(i).textContent='Copied!';setTimeout(function(){btn(i).textContent=t},1500)}
-      function copyAsSeen(){
-        var html=getContentEl().innerHTML;
-        navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([getContentEl().textContent],{type:'text/plain'})})]).then(function(){copied(1,'Copy as seen')})
-      }
-      function copyHtmlCode(){
-        navigator.clipboard.writeText(getContentEl().innerHTML).then(function(){copied(2,'Copy as HTML code')})
-      }
-      function copyMarkdown(){
-        navigator.clipboard.writeText(document.getElementById('copy-md-data').textContent).then(function(){copied(3,'Copy as MD')})
-      }
-      function copyPlainText(){
-        navigator.clipboard.writeText(getContentEl().textContent).then(function(){copied(4,'Copy as plain text')})
-      }
-    <\/script>` : ''}
-    <script>
-      if (document.querySelector('.msg-body')) {
-        document.querySelectorAll('.msg-body').forEach(function(body) {
-          var wrap = body.closest('.msg-wrap');
-          var md = wrap ? wrap.getAttribute('data-md') : '';
-          var sel = document.createElement('select');
-          sel.className = 'copy-btn';
-          sel.style.cssText = 'float:right;margin-top:-2px;padding:2px 6px;font-size:11px;background:#e0e3f0;border:1px solid #c0c4d8;border-radius:4px;cursor:pointer;font-family:inherit;color:#4a5080';
-          sel.innerHTML = '<option value="">Copy\u2026</option><option value="seen">As seen</option><option value="html">HTML</option><option value="md">MD</option><option value="text">Plain text</option>';
-          sel.onchange = function() {
-            var val = this.value;
-            if (!val) return;
-            this.value = '';
-            var html = body.innerHTML;
-            var txt = body.textContent;
-            function done() { sel.style.cssText = sel.style.cssText.replace('background:#e0e3f0','background:#00c49a;color:#fff'); setTimeout(function(){sel.style.cssText = sel.style.cssText.replace('background:#00c49a;color:#fff','background:#e0e3f0');},1500); }
-            if (val === 'seen') {
-              navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([txt],{type:'text/plain'})})]).then(done);
-            } else if (val === 'html') {
-              navigator.clipboard.writeText(html).then(done);
-            } else if (val === 'md') {
-              navigator.clipboard.writeText(md || txt).then(done);
-            } else if (val === 'text') {
-              navigator.clipboard.writeText(txt).then(done);
-            }
-          };
-          wrap.querySelector('[style*="text-transform"]').after(sel);
-        });
-      }
-    <\/script>
-  </body></html>`);
-  w.document.close();
+  openPopoutPage({
+    title: conv?.title || 'Branch Conversation',
+    meta: `${visibleNodes.length} message${visibleNodes.length !== 1 ? 's' : ''} · view: ${mode}${q ? ` · filtered: "${q}"` : ''}`,
+    mode,
+    multi: true,
+    messages,
+    fullMd,
+  });
 });
 
 document.getElementById('btn-export-chatgpt').addEventListener('click', () => {
@@ -6472,7 +6677,22 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.6.2', date: '2026-06-21', latest: true,
+    version: 'v7.6.4', date: '2026-08-11', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Popout settings bar</strong> — both popouts (Selected Node and Branch) now have a settings bar at the top with a theme selector (Main app / Light / Dark / System), a per-message copy mode selector (full dropdown, or one-click Rendered / HTML / MD / Plain text only), and a timestamp show/hide toggle. Choices persist between popouts.' },
+      { type: 'new', text: '<strong>Timestamps in popouts</strong> — each message now shows its <code>YYYY-MM-DD HH:MM</code> timestamp next to the role label, toggleable from the settings bar.' },
+      { type: 'new', text: '<strong>Bulk copy from branch popout</strong> — a "Select messages" toggle in the settings bar reveals a checkbox per message plus Select all / Clear / Copy selected (N) controls, so you can copy multiple messages at once in your chosen format.' },
+      { type: 'change', text: '<strong>Popout matches the main app theme by default</strong> — popouts follow the parent window\'s colors (including custom themes) instead of always opening in light mode.' },
+    ]
+  },
+  {
+    version: 'v7.6.3', date: '2026-08-11', latest: false,
+    items: [
+      { type: 'new', text: '<strong>Qwen Chat format support</strong> — detects and converts Qwen chat exports (<code>chat.history.messages</code> with <code>chat_type</code>). Branching is preserved via <code>parentId</code>/<code>childrenIds</code>. Assistant replies are extracted from <code>content_list[]</code> phases (<code>answer</code> text + <code>thinking_summary</code> rendered as Thinking blockquotes). Previously these files were misdetected as GLM and showed empty assistant messages.' },
+    ]
+  },
+  {
+    version: 'v7.6.2', date: '2026-06-21', latest: false,
     items: [
       { type: 'new', text: '<strong>Mobile-friendly layout</strong> — single-column view replaces the three-panel desktop layout. A bottom navigation bar (Chats / Graph / Message) switches between panels one at a time. Selecting a conversation auto-jumps to the Graph; tapping a node auto-jumps to Message.' },
       { type: 'new', text: '<strong>Hamburger menu</strong> — all topbar actions (Export All, Unload All, Reset, Settings, Help) and the theme picker are accessible via a ☰ button that slides open a tap-friendly grid below the topbar.' },
@@ -6699,7 +6919,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.6.2 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.6.4 loaded. Drop a JSON file to get started.');
 
 // ============================================================
 // MOBILE HAMBURGER MENU
