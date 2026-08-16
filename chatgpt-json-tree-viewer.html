@@ -6,7 +6,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.6.4</title>
+<title>ChatGPT JSON Tree Viewer v7.6.5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
@@ -1188,7 +1188,7 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.6.4</span>
+      <span class="logo-version">v7.6.5</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -1780,7 +1780,7 @@ body {
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.6.4 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.6.5 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -1916,6 +1916,12 @@ function detectFormat(data) {
     if (firstVal?.chat_type !== undefined) return 'qwen-array';
     return 'glm-array';
   }
+  // Qwen export wrapper: { success, request_id, data: [ ...conversations ] }
+  if (data.success !== undefined && Array.isArray(data.data) && data.data[0]?.chat?.history?.messages) {
+    const firstVal = Object.values(data.data[0].chat.history.messages)[0];
+    if (firstVal?.chat_type !== undefined) return 'qwen-wrapper';
+    return 'glm-wrapper';
+  }
   return 'unknown';
 }
 
@@ -1939,6 +1945,8 @@ function convertToUnified(raw) {
     case 'glm-array': return raw.map(convertGLM);
     case 'qwen': return [convertQwen(raw)];
     case 'qwen-array': return raw.map(convertQwen);
+    case 'qwen-wrapper': return convertQwenExport(raw);
+    case 'glm-wrapper': return convertGLMExport(raw);
     case 'opencode': return [convertOpenCode(raw)];
     default: return [tryGenericConvert(raw)];
   }
@@ -2396,6 +2404,18 @@ function convertQwen(data) {
     mapping,
     _format: 'qwen',
   };
+}
+
+function convertQwenExport(raw) {
+  // Qwen export wrapper: { success, request_id, data: [ ...conversations ] }
+  const convs = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+  return convs.map(convertQwen);
+}
+
+function convertGLMExport(raw) {
+  // GLM export wrapper: { success, request_id, data: [ ...conversations ] }
+  const convs = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+  return convs.map(convertGLM);
 }
 
 function tryGenericConvert(data) {
@@ -4193,7 +4213,7 @@ function updateTopbarTitle(title) {
   if (title) {
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    document.title = 'ChatGPT JSON Tree Viewer v7.6.4';
+    document.title = 'ChatGPT JSON Tree Viewer v7.6.5';
   }
 }
 
@@ -4288,43 +4308,75 @@ function convToOpenAIFormat(conv) {
       title: conv?.title || 'Untitled',
       create_time: Date.now() / 1000,
       update_time: Date.now() / 1000,
-      mapping: { root: { id: 'root', parent: null, children: [], message: null } },
+      mapping: {},
       moderation_results: [],
       current_node: null,
+      plugin_ids: null,
       conversation_id: conv?.id || genId(),
+      conversation_template_id: null,
+      gizmo_id: null,
+      is_archived: false,
+      safe_urls: [],
+      id: conv?.id || genId(),
     };
   }
+  // Real ChatGPT exports store timestamps as Unix seconds (float).
+  // Convert milliseconds → seconds if the value looks like ms.
+  const toSeconds = (t) => {
+    if (typeof t !== 'number' || isNaN(t)) return null;
+    return t > 1e11 ? t / 1000 : t;
+  };
+
   const mapping = {};
+  // Real exports contain no synthetic nodes — skip pseudo-nodes (message: null, e.g. 'root').
   Object.entries(conv.data.mapping).forEach(([id, node]) => {
     const msg = node.message;
+    if (!msg) return;
+    const role = msg.author?.role || 'unknown';
+    const createTime = toSeconds(msg.create_time);
+    // Nodes that pointed at a skipped pseudo-node get parent: null (like the first message).
+    const parent = (node.parent && node.parent !== 'root' && conv.data.mapping[node.parent]?.message) ? node.parent : null;
+    const children = (node.children || []).filter(c => conv.data.mapping[c]?.message);
     mapping[id] = {
       id,
-      parent: node.parent,
-      children: node.children || [],
-      message: msg ? {
+      message: {
         id: msg.id || id,
-        author: { role: msg.author?.role || 'unknown', name: null, metadata: {} },
-        create_time: msg.create_time || null,
-        update_time: msg.create_time || null,
+        author: { role, name: null, metadata: {} },
+        create_time: createTime,
+        update_time: (role === 'user' || role === 'system') ? null : createTime,
         content: {
           content_type: 'text',
-          parts: [getNodeText(node) || msg.content?.text || msg.content?.parts?.join('\n') || '']
+          parts: [getNodeText(node) || msg.content?.text || (Array.isArray(msg.content?.parts) ? msg.content.parts.join('\n') : '') || '']
         },
         status: 'finished_successfully',
-        end_turn: true,
+        end_turn: (role === 'user' || role === 'system') ? null : true,
         weight: 1.0,
         metadata: msg.metadata || {},
         recipient: 'all',
-      } : null,
+      },
+      parent,
+      children,
     };
   });
+
+  // current_node = last node of the main (first-child) thread, as in real exports
+  let current = null;
+  const firstId = Object.keys(mapping).find(id => !mapping[id].parent);
+  if (firstId) {
+    current = firstId;
+    let guard = 0;
+    while (mapping[current]?.children?.length && guard++ < 1e6) {
+      current = mapping[current].children[0];
+    }
+  }
+
   return {
     title: conv.title || 'Exported Conversation',
-    create_time: conv.data.create_time || Date.now() / 1000,
-    update_time: conv.data.update_time || Date.now() / 1000,
+    create_time: toSeconds(conv.data.create_time) || Date.now() / 1000,
+    update_time: toSeconds(conv.data.update_time) || Date.now() / 1000,
     mapping,
     moderation_results: [],
-    current_node: null,
+    current_node: current,
     plugin_ids: null,
     conversation_id: conv.data.conversation_id || conv.id,
     conversation_template_id: null,
@@ -4621,7 +4673,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.6.4</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.6.5</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -6677,7 +6729,14 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.6.4', date: '2026-08-11', latest: true,
+    version: 'v7.6.5', date: '2026-08-16', latest: true,
+    items: [
+      { type: 'new', text: '<strong>Qwen export wrapper support</strong> — detects Qwen chat exports wrapped in <code>{ success, request_id, data: [...] }</code> and imports every conversation inside. Previously these files fell through to the generic converter and appeared as an empty "Unknown Format" conversation.' },
+      { type: 'fix', text: '<strong>ChatGPT export now byte-exact with OpenAI format</strong> — the export omits the synthetic <code>root</code> node (real exports have none), sets <code>current_node</code> to the last message of the main thread, uses canonical field order (<code>id, message, parent, children</code>), normalizes millisecond timestamps to Unix seconds, and sets <code>end_turn</code>/<code>update_time</code> correctly per role (null for user/system, true/value for assistant).' },
+    ]
+  },
+  {
+    version: 'v7.6.4', date: '2026-08-11', latest: false,
     items: [
       { type: 'new', text: '<strong>Popout settings bar</strong> — both popouts (Selected Node and Branch) now have a settings bar at the top with a theme selector (Main app / Light / Dark / System), a per-message copy mode selector (full dropdown, or one-click Rendered / HTML / MD / Plain text only), and a timestamp show/hide toggle. Choices persist between popouts.' },
       { type: 'new', text: '<strong>Timestamps in popouts</strong> — each message now shows its <code>YYYY-MM-DD HH:MM</code> timestamp next to the role label, toggleable from the settings bar.' },
@@ -6919,7 +6978,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.6.4 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.6.5 loaded. Drop a JSON file to get started.');
 
 // ============================================================
 // MOBILE HAMBURGER MENU
