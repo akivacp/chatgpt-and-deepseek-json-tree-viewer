@@ -6,12 +6,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChatGPT JSON Tree Viewer v7.7.0</title>
+<title>ChatGPT JSON Tree Viewer v7.8.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
 <style>
 :root {
   --bg-primary: #0d0f14;
@@ -279,6 +280,32 @@ body {
 .reset-opt:hover { background: var(--bg-hover); color: var(--text-primary); }
 .reset-opt svg { width: 13px; height: 13px; flex-shrink: 0; }
 .reset-opt span { color: var(--text-muted); font-size: 11px; margin-left: auto; padding-left: 8px; }
+
+/* Tools dropdown */
+.tools-wrap { position: relative; flex-shrink: 0; }
+.tools-wrap .topbar-btn.tools-main {
+  border-radius: var(--radius-sm);
+}
+.tools-wrap .tools-caret { display: inline-flex; margin-left: 2px; }
+.tools-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--bg-secondary); border: 1px solid var(--border-light);
+  border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 5000; min-width: 200px; padding: 4px;
+  flex-direction: column; gap: 2px;
+}
+.tools-dropdown.open { display: flex; }
+.tools-opt {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  background: transparent; border: none;
+  color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; font-family: var(--font-ui);
+  text-align: left; width: 100%; white-space: nowrap;
+  transition: all var(--transition);
+}
+.tools-opt:hover { background: var(--bg-hover); color: var(--text-primary); }
+.tools-opt svg { width: 13px; height: 13px; flex-shrink: 0; }
 
 /* Theme buttons */
 #theme-picker { display: flex; gap: 4px; align-items: center; position: relative; }
@@ -558,7 +585,9 @@ body {
   border: 2px dashed var(--border-light);
   border-radius: var(--radius-lg);
   color: var(--text-muted); font-size: 13px;
+  pointer-events: auto; cursor: pointer; transition: all var(--transition);
 }
+.drop-zone-indicator:hover { border-color: var(--accent-teal); color: var(--text-secondary); }
 
 /* ===== RIGHT PANEL ===== */
 #panel-tabs {
@@ -1191,13 +1220,13 @@ body {
         <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.5"/>
       </svg>
       ChatGPT JSON Tree Viewer
-      <span class="logo-version">v7.7.0</span>
+      <span class="logo-version">v7.8.0</span>
     </div>
     <button class="topbar-btn primary" onclick="document.getElementById('file-input').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Load File
     </button>
-    <input type="file" id="file-input" accept=".json,.md,.markdown,.txt" multiple>
+    <input type="file" id="file-input" accept=".json,.md,.markdown,.txt,.db,.sqlite,.sqlite3" multiple>
     <span id="format-badge"></span>
     <button class="topbar-btn" id="btn-close-conv" title="Close current conversation" style="display:none;color:var(--accent-red);border-color:rgba(239,68,68,0.4);">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1234,10 +1263,23 @@ body {
         </button>
       </div>
     </div>
-    <button class="topbar-btn" id="btn-settings" title="Settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      Settings
-    </button>
+    <div class="tools-wrap" id="tools-wrap">
+      <button class="topbar-btn tools-main" id="btn-tools" title="Tools">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        Tools
+        <svg class="tools-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="tools-dropdown" id="tools-dropdown">
+        <button class="tools-opt" id="btn-settings" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </button>
+        <button class="tools-opt" id="btn-convert-db" title="Convert an opencode .db to conversations.json">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V5a2 2 0 00-2-2h-3"/><path d="M3 16v3a2 2 0 002 2h3"/><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M15 11h3a2 2 0 012 2v6"/></svg>
+          Convert db
+        </button>
+      </div>
+    </div>
     <button class="topbar-btn" id="btn-help" title="Help">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Help
@@ -1322,6 +1364,10 @@ body {
       <button class="mob-menu-btn" id="mob-settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         Settings
+      </button>
+      <button class="mob-menu-btn" id="mob-convert-db">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V5a2 2 0 00-2-2h-3"/><path d="M3 16v3a2 2 0 002 2h3"/><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M15 11h3a2 2 0 012 2v6"/></svg>
+        Convert db
       </button>
       <button class="mob-menu-btn" id="mob-help">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1785,11 +1831,89 @@ body {
   </div>
 </div>
 
+<!-- CONVERT DB MODAL -->
+<div class="modal-backdrop" id="modal-convert-db">
+  <div class="modal-box" style="max-width:700px">
+    <div class="modal-header">
+      <h2>Convert opencode .db &rarr; conversations.json</h2>
+      <button class="modal-close" onclick="closeModal('modal-convert-db')">&#10005;</button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto;display:block;padding:18px 20px">
+      <div class="cvt-card">
+        <div class="cvt-label">Select the opencode database</div>
+        <div class="cvt-row">
+        <input type="text" id="cvt-db-path" spellcheck="false" placeholder="C:\Users\you\.local\share\opencode\opencode.db" readonly>
+        <button class="topbar-btn" id="cvt-browse">Browse&hellip;</button>
+      </div>
+      <div class="cvt-note" id="cvt-db-name"></div>
+      <div class="cvt-note muted cvt-guide">
+        <div class="cvt-guide-title">Paste one of these into the file dialog&rsquo;s address bar (or Explorer) to jump straight there:</div>
+        <div class="cvt-os"><span>Windows</span> <code>C:\Users\&lt;you&gt;\.local\share\opencode\opencode.db</code></div>
+        <div class="cvt-os"><span>macOS</span> <code>~/.local/share/opencode/opencode.db</code> <em>(press Cmd+Shift+G and paste)</em></div>
+        <div class="cvt-os"><span>Linux</span> <code>~/.local/share/opencode/opencode.db</code> <em>(paste into the path bar)</em></div>
+        <div class="cvt-guide-note">The box above is pre-filled with the full Windows path for <em>your</em> account. The <code>~</code> shortcut is only expanded by macOS/Linux dialogs and terminals - not by Windows Explorer, so Windows users should use the full path.</div>
+      </div>
+      <div class="cvt-note muted">
+        Close opencode first so recent sessions are checkpointed into the .db file (SQLite WAL merges on clean exit), otherwise recent sessions may be missing.
+      </div>
+      </div>
+      <div class="cvt-card">
+        <label class="cvt-check"><input type="checkbox" id="cvt-include-tools" checked> Include tool calls (commands + output) in assistant text</label>
+      </div>
+      <div class="cvt-card">
+        <div class="cvt-row" style="margin-bottom:12px">
+          <button class="topbar-btn primary" id="cvt-convert">Convert to conversations.json</button>
+          <button class="topbar-btn" id="cvt-download" style="display:none">Download .json&hellip;</button>
+        </div>
+        <div class="cvt-status" id="cvt-status"></div>
+        <div class="cvt-stats" id="cvt-stats" style="display:none">
+          <div class="cvt-stat"><span class="n" id="cvt-st-convs">0</span><span class="l">Conversations</span></div>
+          <div class="cvt-stat"><span class="n" id="cvt-st-msgs">0</span><span class="l">Messages</span></div>
+          <div class="cvt-stat"><span class="n" id="cvt-st-size">0</span><span class="l">Size</span></div>
+        </div>
+        <details class="cvt-preview-wrap">
+          <summary>Preview (first conversation)</summary>
+          <pre id="cvt-preview">Select a database and convert to see a preview.</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.cvt-card{background:var(--panel);border:1px solid var(--border-color);border-radius:var(--radius-md);padding:14px;margin-bottom:12px}
+.cvt-label{font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.cvt-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cvt-row .topbar-btn{flex-shrink:0}
+.cvt-row .topbar-btn.primary{background:var(--accent-teal);color:#000;border-color:var(--accent-teal);font-weight:600}
+#cvt-db-path{flex:1;min-width:0;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);padding:8px 10px;font-family:var(--font-mono);font-size:12px}
+.cvt-note{font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6}
+.cvt-note.muted{color:var(--text-muted)}
+.cvt-guide{border:1px dashed var(--border-color);border-radius:var(--radius-sm);padding:10px 12px;margin-top:12px}
+.cvt-guide-title{font-size:11px;color:var(--text-secondary);margin-bottom:8px}
+.cvt-os{display:flex;align-items:baseline;gap:8px;margin:4px 0;font-size:11px}
+.cvt-os span{min-width:52px;font-weight:600;color:var(--text-secondary)}
+.cvt-os code{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:4px;padding:2px 6px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);user-select:all;cursor:copy;white-space:nowrap}
+.cvt-os em{font-style:normal;color:var(--text-muted)}
+.cvt-guide-note{margin-top:8px;font-size:11px;color:var(--text-muted)}
+
+.cvt-check{font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;cursor:pointer}
+.cvt-check input{accent-color:var(--accent-teal)}
+.cvt-status{font-size:12px;min-height:18px;color:var(--text-secondary);margin:8px 0}
+.cvt-status.ok{color:#3ddc84}.cvt-status.warn{color:#ffb020}.cvt-status.err{color:#ff5c5c}
+.cvt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.cvt-stat{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.cvt-stat .n{display:block;font-size:20px;font-weight:700;color:var(--text-primary)}
+.cvt-stat .l{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
+.cvt-preview-wrap{margin-top:4px}
+.cvt-preview-wrap summary{cursor:pointer;color:var(--text-muted);font-size:12px}
+#cvt-preview{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:12px;overflow:auto;max-height:300px;font-size:12px;line-height:1.5;margin-top:8px;white-space:pre}
+</style>
+
 <!-- HELP MODAL -->
 <div class="modal-backdrop" id="modal-help">
   <div class="modal-box" style="max-width:900px;width:94vw;height:82vh;">
     <div class="modal-header">
-      <h2>ChatGPT JSON Tree Viewer v7.7.0 — Help</h2>
+      <h2>ChatGPT JSON Tree Viewer v7.8.0 — Help</h2>
       <button class="modal-close" onclick="closeModal('modal-help')">✕</button>
     </div>
     <div class="modal-body" style="flex-direction:column;overflow:hidden;">
@@ -3799,6 +3923,11 @@ function loadFile(file) {
 }
 
 function _doLoadFile(file) {
+  // opencode SQLite database files (.db) are binary, not JSON text.
+  if (/\.(db|sqlite|sqlite3)$/i.test(file.name)) {
+    loadOpenCodeDB(file);
+    return;
+  }
   const reader = new FileReader();
   reader.onload = e => {
     try {
@@ -3837,58 +3966,7 @@ function _doLoadFile(file) {
       }
       converted = convertToUnified(raw);
       }
-      // Build a map of all known IDs → existing conv across all pools
-      const existingMap = new Map([
-        ...state.conversations.map(c => [c.id, { pool: 'conversations', conv: c }]),
-        ...state.hiddenConversations.map(c => [c.id, { pool: 'hidden', conv: c }]),
-        ...state.deletedConversations.map(c => [c.id, { pool: 'deleted', conv: c }]),
-      ]);
-      let added = 0, skipped = 0, updated = 0;
-      converted.forEach(data => {
-        const id = data.conversation_id || genId();
-        if (existingMap.has(id)) {
-          // Compare node counts — update if incoming has more nodes
-          const existing = existingMap.get(id).conv;
-          const existingNodes = Object.keys(existing.data?.mapping || {}).length;
-          const incomingNodes = Object.keys(data.mapping || {}).length;
-          if (incomingNodes > existingNodes) {
-            // Replace in whichever pool it lives in
-            const pool = existingMap.get(id).pool;
-            const arr = pool === 'conversations' ? state.conversations
-                      : pool === 'hidden' ? state.hiddenConversations
-                      : state.deletedConversations;
-            const idx = arr.findIndex(c => c.id === id);
-            if (idx !== -1) {
-              const originalData = JSON.parse(JSON.stringify(data));
-              arr[idx] = { id, title: data.title || 'Untitled', data, format: data._format, _originalData: originalData };
-            }
-            updated++;
-          } else {
-            skipped++;
-          }
-          return;
-        }
-        existingMap.set(id, { pool: 'conversations' }); // prevent dupes within same file
-        const originalData = JSON.parse(JSON.stringify(data));
-        state.conversations.push({
-          id, title: data.title || 'Untitled',
-          data, format: data._format,
-          _originalData: originalData,
-        });
-        added++;
-      });
-      if (converted.length) setFormatBadge(converted[0]._format);
-      document.getElementById('btn-close-conv').style.display = '';
-      renderConvList();
-      if (!state.activeConvId && state.conversations.length) {
-        loadConversation(state.conversations[state.conversations.length - 1].id);
-      }
-      const parts = [];
-      if (added)   parts.push(`${added} new`);
-      if (updated) parts.push(`${updated} updated`);
-      if (skipped) parts.push(`${skipped} skipped`);
-      const summary = parts.join(', ') || '0 new';
-      showNotif(`${summary} — from ${file.name}`, added || updated ? 'success' : '');
+      _finishLoad(converted, file);
     } catch(err) {
       const warnThresh = (state.settings.largeFileWarn || 0) * 1024 * 1024;
       const isBig = warnThresh > 0 && file.size > warnThresh;
@@ -3905,6 +3983,214 @@ function _doLoadFile(file) {
     }
   };
   reader.readAsText(file);
+}
+
+// Shared ingest: dedupe/merge a converted array into the conversation store.
+function _finishLoad(converted, file) {
+  const existingMap = new Map([
+    ...state.conversations.map(c => [c.id, { pool: 'conversations', conv: c }]),
+    ...state.hiddenConversations.map(c => [c.id, { pool: 'hidden', conv: c }]),
+    ...state.deletedConversations.map(c => [c.id, { pool: 'deleted', conv: c }]),
+  ]);
+  let added = 0, skipped = 0, updated = 0;
+  converted.forEach(data => {
+    const id = data.conversation_id || genId();
+    if (existingMap.has(id)) {
+      const existing = existingMap.get(id).conv;
+      const existingNodes = Object.keys(existing.data?.mapping || {}).length;
+      const incomingNodes = Object.keys(data.mapping || {}).length;
+      if (incomingNodes > existingNodes) {
+        const pool = existingMap.get(id).pool;
+        const arr = pool === 'conversations' ? state.conversations
+                  : pool === 'hidden' ? state.hiddenConversations
+                  : state.deletedConversations;
+        const idx = arr.findIndex(c => c.id === id);
+        if (idx !== -1) {
+          const originalData = JSON.parse(JSON.stringify(data));
+          arr[idx] = { id, title: data.title || 'Untitled', data, format: data._format, _originalData: originalData };
+        }
+        updated++;
+      } else {
+        skipped++;
+      }
+      return;
+    }
+    existingMap.set(id, { pool: 'conversations' });
+    const originalData = JSON.parse(JSON.stringify(data));
+    state.conversations.push({
+      id, title: data.title || 'Untitled',
+      data, format: data._format,
+      _originalData: originalData,
+    });
+    added++;
+  });
+  if (converted.length) setFormatBadge(converted[0]._format);
+  document.getElementById('btn-close-conv').style.display = '';
+  renderConvList();
+  if (!state.activeConvId && state.conversations.length) {
+    loadConversation(state.conversations[state.conversations.length - 1].id);
+  }
+  const parts = [];
+  if (added)   parts.push(`${added} new`);
+  if (updated) parts.push(`${updated} updated`);
+  if (skipped) parts.push(`${skipped} skipped`);
+  const summary = parts.join(', ') || '0 new';
+  showNotif(`${summary} — from ${file.name}`, added || updated ? 'success' : '');
+}
+
+// --------------------------------------------
+// opencode SQLite database (.db) importer
+// --------------------------------------------
+let _sqlReady = null;      // memoized promise of sql.js module
+const _SQL_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/';
+function _loadSQL() {
+  if (!_sqlReady) {
+    if (!window.initSqlJs) throw new Error('sql.js library failed to load (check internet connection).');
+    _sqlReady = window.initSqlJs({ locateFile: f => _SQL_CDN + f });
+  }
+  return _sqlReady;
+}
+
+function loadOpenCodeDB(file) {
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const mod = await _loadSQL();
+      const db = new mod.Database(new Uint8Array(e.target.result));
+      const convs = buildConversationsFromDB(db);
+      db.close();
+      _finishLoad(convs, file);
+    } catch (err) {
+      showNotif('Error parsing opencode database: ' + err.message, 'error');
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _dbQ(db, sql) {
+  const r = db.exec(sql);
+  if (!r.length) return [];
+  return r[0].values.map(row => Object.fromEntries(r[0].columns.map((c, i) => [c, row[i]])));
+}
+function _dbToSec(t) { if (t == null) return null; t = Number(t); if (isNaN(t)) return null; return t > 1e11 ? t / 1000 : t; }
+const _DB_USER = new Set(['user', 'human', 'developer']);
+function _dbIsUser(r) { return _DB_USER.has(r); }
+
+function buildConversationsFromDB(db, includeTools = true) {
+  const sessions = _dbQ(db, "SELECT id, title, slug, time_created, time_updated FROM session");
+  const msgs = _dbQ(db, "SELECT id, session_id, time_created, data FROM message");
+  const parts = _dbQ(db, "SELECT id, message_id, session_id, time_created, data FROM part");
+
+  const msgBySession = {}; msgs.forEach(m => (msgBySession[m.session_id] || (msgBySession[m.session_id] = [])).push(m));
+  const partByMsg = {}; parts.forEach(p => (partByMsg[p.message_id] || (partByMsg[p.message_id] = [])).push(p));
+
+  const out = [];
+  for (const sess of sessions) {
+    const list = msgBySession[sess.id];
+    if (!list || !list.length) continue;
+    const c = _dbBuildConversation(sess, list, partByMsg, includeTools);
+    if (c) out.push(c);
+  }
+  return out;
+}
+
+function _dbExtractParts(mid, partByMsg, includeTools = true) {
+  const arr = partByMsg[mid] || [];
+  arr.sort((a, b) => (a.time_created || 0) - (b.time_created || 0));
+  const out = [];
+  for (const p of arr) {
+    let d; try { d = JSON.parse(p.data); } catch { continue; }
+    const t = d && d.type;
+    if (t === 'text') { const txt = d.text || ''; if (txt && txt.trim()) out.push(txt); }
+    else if (t === 'tool' && includeTools) {
+      const st = d.state || {}; const inp = st.input;
+      const cmd = inp && typeof inp === 'object' ? inp.command : '';
+      let call = '[tool:bash]\n$ ' + cmd;
+      if (st.output) call += '\n```\n' + st.output + '\n```';
+      out.push(call);
+    }
+  }
+  return out;
+}
+
+function _dbBuildConversation(sess, msgs, partByMsg, includeTools = true) {
+  const parsed = msgs.slice().sort((a, b) => (a.time_created || 0) - (b.time_created || 0)).map(m => {
+    let md = {}; try { md = JSON.parse(m.data); } catch {}
+    return { id: m.id, role: md.role || 'unknown', time: m.time_created, parts: _dbExtractParts(m.id, partByMsg, includeTools) };
+  });
+  if (!parsed.length) return null;
+
+  const children = {}; const parent = {};
+  parsed.forEach(p => children[p.id] = []);
+  let lastAssist = null, lastUser = null;
+  const assign = (cid, pid) => { if (pid === null) { parent[cid] = null; return; } parent[cid] = pid; children[pid].push(cid); };
+
+  let i = 0, n = parsed.length;
+  while (i < n) {
+    let j = i; while (j < n && !_dbIsUser(parsed[j].role)) j++;
+    const trailing = parsed.slice(i, j);
+    if (j < n) {
+      const um = parsed[j];
+      if (lastAssist) assign(um.id, lastAssist);
+      else if (lastUser) assign(um.id, lastUser);
+      else assign(um.id, null);
+      let k = j + 1; const turn = [];
+      while (k < n && !_dbIsUser(parsed[k].role)) { turn.push(parsed[k]); k++; }
+      let prev = um.id; turn.forEach(a => { assign(a.id, prev); prev = a.id; });
+      if (turn.length) lastAssist = prev;
+      lastUser = um.id;
+      i = k;
+    } else {
+      let prev = lastAssist || lastUser;
+      trailing.forEach(t => { if (prev) assign(t.id, prev); else assign(t.id, null); prev = t.id; });
+      i = j;
+    }
+  }
+
+  const byId = {}; parsed.forEach(p => byId[p.id] = p);
+  const roots = Object.keys(children).filter(id => parent[id] === undefined || parent[id] === null);
+  const mapping = {};
+  Object.keys(children).forEach(nid => {
+    const p = byId[nid];
+    const role = _dbIsUser(p.role) ? 'user' : 'assistant';
+    const arr = p.parts.length ? p.parts : [''];
+    const ts = _dbToSec(p.time);
+    mapping[nid] = {
+      id: nid,
+      message: {
+        id: nid,
+        author: { role, name: null, metadata: {} },
+        create_time: ts,
+        update_time: role === 'user' ? null : ts,
+        content: { content_type: 'text', parts: arr, text: arr.join('\n') },
+        status: 'finished_successfully',
+        end_turn: role === 'user' ? null : true,
+        weight: 1.0,
+        metadata: {},
+        recipient: 'all',
+      },
+      parent: parent[nid] === undefined ? null : parent[nid],
+      children: children[nid] || [],
+    };
+  });
+  const firstId = roots[0] || (Object.keys(children)[0] || null);
+  return {
+    title: sess.title || sess.slug || 'Untitled',
+    create_time: _dbToSec(sess.time_created) || null,
+    update_time: _dbToSec(sess.time_updated) || null,
+    mapping,
+    moderation_results: [],
+    current_node: firstId,
+    plugin_ids: null,
+    conversation_id: sess.id,
+    conversation_template_id: null,
+    gizmo_id: null,
+    is_archived: false,
+    safe_urls: [],
+    id: sess.id,
+    _format: 'opencode',
+  };
 }
 
 function loadConversation(convId, preserveSearch = false) {
@@ -3927,12 +4213,11 @@ function loadConversation(convId, preserveSearch = false) {
   tagLinks();
   setTimeout(() => { updateMinimap(); if (preserveSearch) updateNodeHighlights(); }, 100);
 
-  // Markdown docs are a linear chain with no "active" node by default —
-  // auto-select the first turn so the Selected Node and Branch panels show
-  // content immediately.
-  if (conv?.data?._format === 'markdown') {
-    const firstMsg = Object.values(conv.data.mapping).find(n => n.message);
-    if (firstMsg) setTimeout(() => selectNode(firstMsg.id), 60);
+  // Auto-select the most recent message node so the Selected Node and Branch
+  // panels show content (and the graph highlights it) immediately.
+  const latestId = getLatestMessageNodeId(conv);
+  if (latestId) {
+    setTimeout(() => { selectNode(latestId); scrollToNode(latestId, true); }, 60);
   }
 
   document.getElementById('node-empty').style.display = '';
@@ -3974,6 +4259,19 @@ function getConvLatestTime(conv) {
   // Fall back to conversation-level update/create time
   if (!latest) latest = toMillis(conv.data.update_time || conv.data.create_time);
   return latest;
+}
+
+function getLatestMessageNodeId(conv) {
+  const mapping = conv?.data?.mapping || {};
+  let bestId = null, bestTime = -1, lastId = null;
+  Object.values(mapping).forEach(n => {
+    if (!n || !n.message) return;
+    lastId = n.id;
+    const ms = toMillis(n.message.create_time);
+    if (ms > bestTime) { bestTime = ms; bestId = n.id; }
+  });
+  // No usable timestamps (e.g. Markdown docs): use the last node in thread order
+  return bestId || lastId;
 }
 
 function getConvSortValue(conv, field) {
@@ -4316,7 +4614,7 @@ function updateTopbarTitle(title) {
   if (title) {
     document.title = title + ' — ChatGPT JSON Tree Viewer';
   } else {
-    document.title = 'ChatGPT JSON Tree Viewer v7.7.0';
+    document.title = 'ChatGPT JSON Tree Viewer v7.8.0';
   }
 }
 
@@ -4343,6 +4641,7 @@ function setFormatBadge(fmt) {
     'qwen':               ['Qwen Chat',        '#6366f1'],
     'qwen-array':         ['Qwen Chat',        '#6366f1'],
     'markdown':           ['Markdown',         '#8b5cf6'],
+    'opencode':           ['opencode',         '#eab308'],
   };
   const [label, color] = map[fmt] || [fmt, '#6b7280'];
   badge.textContent = label;
@@ -4777,7 +5076,7 @@ function buildSettings() {
 // Help content
 const helpTopics = [
   { id: 'overview', label: '🗂 Overview', content: `
-    <h2>ChatGPT JSON Tree Viewer v7.7.0</h2>
+    <h2>ChatGPT JSON Tree Viewer v7.8.0</h2>
     <p>A client-side conversation tree visualizer for AI chat exports. Load JSON files from any major AI platform and explore the branching structure of your conversations as an interactive node graph. <strong>All processing happens entirely in your browser</strong> — no data is ever sent to a server.</p>
     <h3>Supported Formats</h3>
     <table>
@@ -4793,6 +5092,7 @@ const helpTopics = [
       <tr><td><strong>GLM / Zhipu AI</strong></td><td>Single or array with <code>chat.history.messages</code></td><td><code>chat.history.messages[].parentId</code></td></tr>
       <tr><td><strong>Qwen Chat</strong></td><td>Single or array with <code>chat.history.messages</code></td><td><code>chat.history.messages[].chat_type</code> + <code>content_list[]</code> phases — branching preserved via <code>parentId</code>/<code>childrenIds</code></td></tr>
       <tr><td><strong>Markdown / Text</strong></td><td><code>.md</code>, <code>.markdown</code>, <code>.txt</code></td><td>Not JSON — rendered directly. Each <code>## User</code> / <code>## Assistant</code> block becomes a <strong>user</strong>/<strong>assistant</strong> node in one top-to-bottom chain</td></tr>
+      <tr><td><strong>opencode</strong></td><td>SQLite database (<code>.db</code>, <code>.sqlite</code>, <code>.sqlite3</code>)</td><td>Reads <code>session</code> / <code>message</code> / <code>part</code> tables via sql.js; each session becomes a conversation with <strong>user</strong>/<strong>assistant</strong> roles</td></tr>
     </table>
     <p>All formats are automatically converted to a unified internal structure before rendering. The original data is preserved in <code>_original_data</code> for debugging.</p>
     <div class="tip"><strong>Tip:</strong> You can load multiple files at once — each becomes a separate conversation entry in the sidebar.</div>
@@ -4801,7 +5101,8 @@ const helpTopics = [
     <h2>Loading & Unloading Conversations</h2>
     <h3>Loading Files</h3>
     <ul>
-      <li>Click <strong>Load File</strong> in the top bar and select one or more <code>.json</code> (or <code>.md</code> / <code>.markdown</code> / <code>.txt</code>) files</li>
+      <li>Click <strong>Load File</strong> in the top bar and select one or more <code>.json</code>, <code>.md</code> / <code>.markdown</code> / <code>.txt</code>, or opencode <code>.db</code> / <code>.sqlite</code> / <code>.sqlite3</code> files</li>
+      <li><strong>opencode database</strong> - pick your <code>opencode.db</code> (typically <code>C:\Users\&lt;you&gt;\.local\share\opencode\opencode.db</code>) to import every session. Close opencode first so recent sessions are checkpointed into the file. Assistant messages include tool calls (<code>[tool:bash]</code> commands and their output) shown as code blocks.</li>
       <li><strong>Drag and drop</strong> one or more JSON or Markdown files directly onto the graph area — a teal dashed overlay appears to confirm the drop zone is active</li>
       <li>You can load files from multiple platforms in the same session; each is listed separately in the sidebar</li>
     </ul>
@@ -5090,7 +5391,13 @@ const helpTopics = [
   `},
   { id: 'settings', label: '⚙ Settings', content: `
     <h2>Settings</h2>
-    <p>Click <strong>Settings</strong> in the top bar to open the settings panel.</p>
+    <p>Click <strong>Tools</strong> in the top bar, then <strong>Settings</strong>, to open the settings panel. Settings live inside the <strong>Tools</strong> dropdown alongside <strong>Convert db</strong>.</p>
+    <h3>Convert db (Tools &rarr; Convert db)</h3>
+    <ul>
+      <li><strong>Convert db</strong> opens a tool that turns an opencode SQLite database (<code>opencode.db</code>, <code>.db</code> / <code>.sqlite</code> / <code>.sqlite3</code>) into an OpenAI-format <code>conversations.json</code> you can save for later use or sharing. Everything runs locally in the browser.</li>
+      <li>Click <strong>Browse&hellip;</strong> to pick the database file, optionally toggle <strong>Include tool calls</strong>, then <strong>Convert to conversations.json</strong> to see stats and a preview before downloading.</li>
+      <li>Close opencode first so recent sessions are checkpointed into the file, otherwise recent sessions may be missing.</li>
+    </ul>
     <h3>Node Visibility</h3>
     <ul>
       <li><strong>Show System Nodes</strong> — when off, gray dashed system prompt nodes are hidden from the graph entirely (their children are still rendered)</li>
@@ -5102,6 +5409,38 @@ const helpTopics = [
       <li><strong>Tooltip Delay</strong> — slider from 500ms to 10,000ms controlling how long you must hover before the tooltip appears. Drag the slider and the value updates live</li>
     </ul>
     <p>All settings are saved to <code>localStorage</code> and persist across page reloads.</p>
+  `},
+  { id: 'convert-db', label: '? Convert db', content: `
+    <h2>Tools &nbsp;&rsaquo;&nbsp; Convert db</h2>
+    <p>The <strong>Convert db</strong> tool (under <strong>Tools</strong> in the top bar) turns an opencode SQLite database into an OpenAI-format <code>conversations.json</code> file you can save to disk. Everything runs locally in your browser - no data is uploaded. This replaces the old standalone <code>opencode-db-to-json.html</code> converter.</p>
+    <h3>When to use it</h3>
+    <ul>
+      <li><strong>Save / share a portable copy</strong> of your opencode history as a standard <code>conversations.json</code> that works with any ChatGPT-style tree viewer.</li>
+      <li><strong>Import into the viewer instead</strong> - you generally don't need to convert first. Just pick the <code>.db</code> file directly with <strong>Load File</strong> or drag-and-drop; the viewer reads sessions straight from the database. Convert db is for when you specifically want a JSON export.</li>
+    </ul>
+    <h3>Steps</h3>
+    <ol>
+      <li>Open <strong>Tools &nbsp;&rsaquo;&nbsp; Convert db</strong>.</li>
+      <li>Click <strong>Browse&hellip;</strong> and select your <code>opencode.db</code>.</li>
+      <li>Optionally untick <strong>Include tool calls</strong> to omit the <code>[tool:bash]</code> commands and outputs from assistant text.</li>
+      <li>Click <strong>Convert to conversations.json</strong> - stats and a preview of the first conversation appear.</li>
+      <li>Click <strong>Download .json&hellip;</strong> to save the file.</li>
+    </ol>
+    <h3>Finding the database quickly</h3>
+    <p>The file dialog doesn't auto-open the opencode folder, so paste one of these into its address bar (or Explorer) to jump straight there:</p>
+    <table>
+      <tr><th>OS</th><th>Path to paste</th><th>How</th></tr>
+      <tr><td><strong>Windows</strong></td><td><code>C:\Users\&lt;you&gt;\.local\share\opencode\opencode.db</code></td><td>Paste into File Explorer's address bar and press Enter</td></tr>
+      <tr><td><strong>macOS</strong></td><td><code>~/.local/share/opencode/opencode.db</code></td><td>In the Open dialog press <kbd>Cmd+Shift+G</kbd>, paste, Enter</td></tr>
+      <tr><td><strong>Linux</strong></td><td><code>~/.local/share/opencode/opencode.db</code></td><td>Paste into the path/Go-to bar (most pickers expand <code>~</code>); otherwise use your full home path</td></tr>
+    </table>
+    <p>On Windows the <code>~</code> shortcut and <code>%USERPROFILE%</code> are <strong>not</strong> expanded by File Explorer, so use the full literal path. The Convert db box is pre-filled with the full Windows path <em>for your account</em> - copy it from there.</p>
+    <div class="tip"><strong>Tip:</strong> Close opencode before converting so recent sessions are checkpointed into the .db file (SQLite WAL changes merge on clean exit), otherwise recent sessions may be missing.</div>
+    <h3>What it produces</h3>
+    <ul>
+      <li>Each session becomes one conversation in the standard OpenAI array format (<code>conversation_id</code>, <code>title</code>, <code>mapping</code>, <code>create_time</code>, <code>update_time</code>).</li>
+      <li>Roles are <strong>user</strong> / <strong>assistant</strong>; tool calls are appended as code blocks when the option is enabled.</li>
+    </ul>
   `},
   { id: 'themes', label: '🎨 Themes', content: `
     <h2>Themes</h2>
@@ -5223,7 +5562,7 @@ const helpTopics = [
       <tr>
         <td><strong>D3.js</strong></td>
         <td>v7.9.0</td>
-        <td>BSD 3-Clause</td>
+        <td>ISC</td>
         <td><a href="https://d3js.org" target="_blank" style="color:var(--accent-teal)">Mike Bostock / Observable</a></td>
       </tr>
       <tr>
@@ -5235,7 +5574,7 @@ const helpTopics = [
       <tr>
         <td><strong>DOMPurify</strong></td>
         <td>v3.0.6</td>
-        <td>Apache 2.0 / MIT</td>
+        <td>MPL-2.0 OR Apache-2.0</td>
         <td><a href="https://github.com/cure53/DOMPurify" target="_blank" style="color:var(--accent-teal)">Cure53</a></td>
       </tr>
       <tr>
@@ -5250,6 +5589,12 @@ const helpTopics = [
         <td>MIT</td>
         <td><a href="https://github.com/parallax/jsPDF" target="_blank" style="color:var(--accent-teal)">James Hall / parallax</a></td>
       </tr>
+      <tr>
+        <td><strong>sql.js</strong></td>
+        <td>v1.10.3</td>
+        <td>MIT</td>
+        <td><a href="https://github.com/sql-js/sql.js" target="_blank" style="color:var(--accent-teal)">sql.js authors (SQLite engine is public domain)</a></td>
+      </tr>
     </table>
     <h3>Fonts</h3>
     <table>
@@ -5260,7 +5605,7 @@ const helpTopics = [
     </table>
     <p style="font-size:12px;color:var(--text-muted)">All fonts are served via Google Fonts CDN. The SIL Open Font License allows free use in any project, commercial or otherwise.</p>
     <h3>All libraries are loaded via CDN</h3>
-    <p>All third-party code is loaded from <code>cdnjs.cloudflare.com</code> and <code>fonts.googleapis.com</code>. No code is bundled or modified. The viewer requires an internet connection on first load for these resources; once cached by the browser, it works offline.</p>
+    <p>All third-party code is loaded from <code>cdnjs.cloudflare.com</code>, <code>cdn.jsdelivr.net</code>, and <code>fonts.googleapis.com</code>. No code is bundled or modified. The viewer requires an internet connection on first load for these resources; once cached by the browser, it works offline.</p>
   `},
   { id: 'changelog', label: '🆕 What\'s New', content: '__changelog__' },
 ];
@@ -5532,6 +5877,11 @@ graphArea.addEventListener('drop', e => {
   document.getElementById('drop-overlay').classList.remove('active');
   const files = Array.from(e.dataTransfer.files).filter(f => /\.(json|md|markdown|txt)$/i.test(f.name));
   handleIncomingFiles(files);
+});
+
+// Clicking the drop-zone placeholder opens the file picker
+document.querySelector('.drop-zone-indicator')?.addEventListener('click', () => {
+  document.getElementById('file-input').click();
 });
 
 // Theme
@@ -6047,15 +6397,16 @@ function exportPDF(forceBranch) {
 
   // Build content
   let title = conv?.title || 'Export';
+  const createdStr = conv ? (formatNodeDate(getConvCreatedTime(conv)) || '') : '';
   let htmlContent = '';
   const roleColors = { user: '#2563eb', assistant: '#16a34a', system: '#6b7280', other: '#9333ea' };
   const roleBgs = { user: 'rgba(37,99,235,0.07)', assistant: 'rgba(22,163,74,0.07)', system: 'rgba(107,114,128,0.08)', other: 'rgba(147,51,234,0.07)' };
   const roleLabels = { user: 'User', assistant: 'Assistant', system: 'System', other: 'Other' };
-  const wrapMsg = (role, body) => {
+  const wrapMsg = (role, body, timeStr) => {
     const color = roleColors[role] || '#6b7280';
     const bg = roleBgs[role] || roleBgs.other;
-    return `<div class="msg" data-role="${role}" data-color="${color}" style="background:${bg};border-left-color:${color}">
-      <div class="msg-role" style="color:${color}">${roleLabels[role] || role}</div>
+    return `<div class="msg" data-role="${role}" data-color="${color}" data-time="${escapeHtml(timeStr || '')}" style="background:${bg};border-left-color:${color}">
+      <div class="msg-role" style="color:${color}">${roleLabels[role] || role}${timeStr ? `<span class="msg-role-time">${timeStr}</span>` : ''}</div>
       <div class="msg-body">${body}</div>
     </div>`;
   };
@@ -6066,9 +6417,9 @@ function exportPDF(forceBranch) {
     const text = node ? getNodeText(node) : '';
     const role = node ? getNodeRole(node) : 'other';
     if (mode === 'rendered') {
-      htmlContent = wrapMsg(role, DOMPurify.sanitize(marked.parse(text || '')));
+      htmlContent = wrapMsg(role, DOMPurify.sanitize(marked.parse(text || '')), formatNodeDate(node?.message?.create_time) || '');
     } else {
-      htmlContent = wrapMsg(role, `<pre>${escapeHtml(mode === 'json' ? JSON.stringify(node, null, 2) : (mode === 'html' ? DOMPurify.sanitize(marked.parse(text || '')) : (text || '')))}</pre>`);
+      htmlContent = wrapMsg(role, `<pre>${escapeHtml(mode === 'json' ? JSON.stringify(node, null, 2) : (mode === 'html' ? DOMPurify.sanitize(marked.parse(text || '')) : (text || '')))}</pre>`, formatNodeDate(node?.message?.create_time) || '');
     }
   } else {
     const path = state._branchPath;
@@ -6089,7 +6440,7 @@ function exportPDF(forceBranch) {
       if (mode === 'rendered') body = DOMPurify.sanitize(marked.parse(text || ''));
       else if (mode === 'json') body = `<pre>${escapeHtml(JSON.stringify(n, null, 2))}</pre>`;
       else body = `<pre>${escapeHtml(text || '')}</pre>`;
-      return wrapMsg(role, body);
+      return wrapMsg(role, body, formatNodeDate(n.message?.create_time) || '');
     }).join('');
   }
 
@@ -6112,11 +6463,13 @@ function exportPDF(forceBranch) {
   .page-num { font-size: 8pt; color: #888; }
   .page-body { flex: 1; overflow: hidden; }
   .page-foot { flex-shrink: 0; font-family: Arial, sans-serif; font-size: 8pt; color: #888; display: flex; justify-content: space-between; padding-top: 6pt; border-top: 1pt solid #ddd; margin-top: 10pt; }
-  .doc-title { font-size: 14pt; font-weight: bold; padding-bottom: 6pt; border-bottom: 1pt solid #ccc; margin-bottom: 4pt; }
-  .doc-subtitle { font-size: 9pt; color: #666; margin-bottom: 14pt; font-family: Arial, sans-serif; }
+  .doc-wrap { background: #f7f7f7; border: 1pt solid #ddd; border-left: 4pt solid #555; border-radius: 4pt; padding: 12pt 14pt; margin-bottom: 12pt; }
+  .doc-title { font-size: 17pt; font-weight: bold; color: #111; margin-bottom: 4pt; }
+  .doc-subtitle { font-size: 9pt; color: #555; font-family: Arial, sans-serif; }
   .block { padding-bottom: 10pt; }
   .msg { padding: 10pt 12pt; border-left: 3pt solid #999; border-radius: 4pt; }
-  .msg-role { font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; font-family: Arial, sans-serif; margin-bottom: 4pt; }
+  .msg-role { font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: .06em; font-family: Arial, sans-serif; margin-bottom: 4pt; display: flex; justify-content: space-between; align-items: baseline; gap: 10pt; }
+  .msg-role-time { font-weight: normal; text-transform: none; letter-spacing: 0; font-size: 8pt; color: #666; white-space: nowrap; }
   .msg-body p { margin-bottom: 6pt; }
   .msg-body p:last-child { margin-bottom: 0; }
   .msg-body h1,.msg-body h2,.msg-body h3 { font-size: 12pt; font-weight: bold; margin: 10pt 0 4pt; }
@@ -6139,7 +6492,7 @@ function exportPDF(forceBranch) {
   <script>
     var DOC_TITLE = ${JSON.stringify(title)};
     var DOC_MODE = ${JSON.stringify(mode)};
-    var DOC_DATE = ${JSON.stringify(new Date().toLocaleDateString())};
+    var DOC_CREATED = ${JSON.stringify(createdStr)};
     var roleLabels = { user: 'User', assistant: 'Assistant', system: 'System', other: 'Other' };
     var roleBgs = { user: 'rgba(37,99,235,0.07)', assistant: 'rgba(22,163,74,0.07)', system: 'rgba(107,114,128,0.08)', other: 'rgba(147,51,234,0.07)' };
     var measure = document.getElementById('measure');
@@ -6194,7 +6547,7 @@ function exportPDF(forceBranch) {
       curUsed += elH;
     }
 
-    function msgPart(role, color, children, withLabel) {
+    function msgPart(role, color, children, withLabel, timeStr) {
       var m = document.createElement('div');
       m.className = 'msg';
       m.style.background = roleBgs[role] || roleBgs.other;
@@ -6203,7 +6556,15 @@ function exportPDF(forceBranch) {
         var l = document.createElement('div');
         l.className = 'msg-role';
         l.style.color = color;
-        l.textContent = (roleLabels[role] || role || 'Message').toUpperCase();
+        var lt = document.createElement('span');
+        lt.textContent = (roleLabels[role] || role || 'Message').toUpperCase();
+        l.appendChild(lt);
+        if (timeStr) {
+          var st = document.createElement('span');
+          st.className = 'msg-role-time';
+          st.textContent = timeStr;
+          l.appendChild(st);
+        }
         m.appendChild(l);
       }
       var b = document.createElement('div');
@@ -6326,6 +6687,7 @@ function exportPDF(forceBranch) {
     function placeMessage(m) {
       var role = m.getAttribute('data-role') || 'other';
       var color = m.getAttribute('data-color') || '#9333ea';
+      var timeStr = m.getAttribute('data-time') || '';
       var mH = h(m);
       if (mH <= pageMaxH()) {
         var w = document.createElement('div');
@@ -6340,7 +6702,7 @@ function exportPDF(forceBranch) {
         var kh = h(k);
         var parts = kh > pageMaxH() ? splitBlock(k, pageMaxH()) : [k];
         parts.forEach(function(part) {
-          place(msgPart(role, color, [part], first), role, color);
+          place(msgPart(role, color, [part], first, timeStr), role, color);
           first = false;
         });
       });
@@ -6348,7 +6710,7 @@ function exportPDF(forceBranch) {
 
     var titleBlock = document.createElement('div');
     titleBlock.className = 'block';
-    titleBlock.innerHTML = '<div class="doc-title">' + DOC_TITLE + '</div><div class="doc-subtitle">View: ' + DOC_MODE + ' &middot; ' + DOC_DATE + '</div>';
+    titleBlock.innerHTML = '<div class="doc-wrap"><div class="doc-title">' + DOC_TITLE + '</div><div class="doc-subtitle">Created: ' + (DOC_CREATED || 'unknown') + (DOC_MODE ? ' &middot; View: ' + DOC_MODE : '') + '</div></div>';
     place(titleBlock, msgs.length ? msgs[0].getAttribute('data-role') || '' : '', msgs.length ? msgs[0].getAttribute('data-color') || '#999' : '#999');
     msgs.forEach(function(m) { placeMessage(m); });
     if (!curBody) newPage('Message', '#999');
@@ -6958,6 +7320,147 @@ document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
   backdrop.addEventListener('click', e => { if (e.target === backdrop) backdrop.classList.remove('visible'); });
 });
 
+// ============================================================
+// TOOLS MENU (Settings + Convert db)
+// ============================================================
+(function(){
+  const wrap = document.getElementById('tools-wrap');
+  const btn = document.getElementById('btn-tools');
+  const dd = document.getElementById('tools-dropdown');
+  if (!wrap || !btn || !dd) return;
+  const closeDD = () => dd.classList.remove('open');
+  btn.addEventListener('click', e => { e.stopPropagation(); dd.classList.toggle('open'); });
+  document.addEventListener('click', e => { if (!e.target.closest('#tools-wrap')) closeDD(); });
+  dd.querySelectorAll('.tools-opt').forEach(o => o.addEventListener('click', closeDD));
+})();
+
+// ============================================================
+// CONVERT DB MODAL
+// ============================================================
+(function(){
+  const $ = id => document.getElementById(id);
+  const cvtPath = $('cvt-db-path'), browseBtn = $('cvt-browse');
+  const fileName = $('cvt-db-name'), statusEl = $('cvt-status');
+  const convertBtn = $('cvt-convert'), saveBtn = $('cvt-download');
+  const statsEl = $('cvt-stats'), previewEl = $('cvt-preview');
+  const optTools = $('cvt-include-tools');
+  const stConvs = $('cvt-st-convs'), stMsgs = $('cvt-st-msgs'), stSize = $('cvt-st-size');
+
+  let dbBytes = null, resultJson = '', suggestedName = 'conversations.json';
+  let fileInput = null;
+
+  // Detect the real Windows username from this HTML file's own path so the
+  // default db path is correct for whoever opens it (no hardcoded username).
+  function detectUser(){
+    try {
+      let raw = location.pathname;
+      raw = decodeURIComponent(raw);
+      const m = raw.match(/\/Users\/([^\/]+)/i);
+      if (m && m[1]) return m[1];
+    } catch(e){}
+    return '';
+  }
+  function fullDefaultDbPath(){
+    const u = detectUser();
+    return u ? 'C:\\Users\\' + u + '\\.local\\share\\opencode\\opencode.db' : '~\\.local\\share\\opencode\\opencode.db';
+  }
+  if (!cvtPath.value) cvtPath.value = fullDefaultDbPath();
+
+  function makeInput(){
+    if (fileInput) return fileInput;
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.db,.sqlite,.sqlite3';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    return fileInput;
+  }
+  function setStatus(txt, cls){ statusEl.textContent = txt; statusEl.className = 'cvt-status' + (cls ? ' ' + cls : ''); }
+  function fmtBytes(b){ if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; }
+
+  browseBtn.addEventListener('click', () => makeInput().click());
+  makeInput().addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    suggestedName = file.name.replace(/\.(db|sqlite|sqlite3)$/i, '') + '-conversations.json';
+    cvtPath.value = file.name;
+    fileName.textContent = 'Loaded ' + file.name + ' (' + fmtBytes(file.size) + ').';
+    dbBytes = new Uint8Array(await file.arrayBuffer());
+    setStatus('');
+    saveBtn.style.display = 'none';
+    statsEl.style.display = 'none';
+    previewEl.textContent = 'Select a database and convert to see a preview.';
+    resultJson = '';
+  });
+
+  convertBtn.addEventListener('click', async () => {
+    if (!dbBytes) { setStatus('Click "Browse&hellip;" to select the .db file first (browsers cannot read a typed disk path).', 'warn'); return; }
+    setStatus('Parsing database&hellip;', '');
+    try {
+      const mod = await _loadSQL();
+      const db = new mod.Database(dbBytes);
+      const convs = buildConversationsFromDB(db, optTools.checked);
+      db.close();
+      resultJson = JSON.stringify(convs);
+      stConvs.textContent = convs.length;
+      let msgCount = 0; convs.forEach(c => msgCount += Object.keys(c.mapping).length);
+      stMsgs.textContent = msgCount;
+      stSize.textContent = fmtBytes(new Blob([resultJson]).size);
+      statsEl.style.display = 'grid';
+      renderConvertPreview(convs);
+      saveBtn.style.display = 'inline-flex';
+      setStatus('Converted ' + convs.length + ' conversations. Ready to download.', 'ok');
+    } catch (err) {
+      setStatus('Error: ' + (err && err.message ? err.message : err), 'err');
+      console.error(err);
+    }
+  });
+
+  function renderConvertPreview(convs){
+    const c = convs[0];
+    if (!c) { previewEl.textContent = '(no conversations)'; return; }
+    const lines = ['title: ' + c.title, 'id: ' + c.conversation_id, 'nodes: ' + Object.keys(c.mapping).length, ''];
+    let roots = Object.keys(c.mapping).filter(k => !c.mapping[k].parent);
+    let cur = roots[0] || c.current_node;
+    let guard = 0;
+    while (cur && guard++ < 1000){
+      const node = c.mapping[cur];
+      if (!node) break;
+      const txt = (node.message.content.parts || [])[0] || '';
+      lines.push('[' + node.message.author.role + '] ' + (String(txt).split('\n')[0] || '').slice(0, 120));
+      if (node.children && node.children.length) cur = node.children[0]; else break;
+    }
+    previewEl.textContent = lines.join('\n');
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    if (!resultJson) return;
+    const blob = new Blob([resultJson], { type: 'application/json' });
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName,
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+        });
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        setStatus('Saved ' + handle.name + '.', 'ok');
+        return;
+      } catch (err) { if (err && err.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = suggestedName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    setStatus('Downloaded ' + suggestedName + '.', 'ok');
+  });
+
+  document.getElementById('btn-convert-db').addEventListener('click', () => openModal('modal-convert-db'));
+})();
+
 // Branch index toggle
 function toggleBranchIndex(force) {
   const body = document.getElementById('branch-index-body');
@@ -7069,7 +7572,18 @@ renderGraph(null);
 // ============================================================
 const changelog = [
   {
-    version: 'v7.7.0', date: '2026-08-27', latest: true,
+    version: 'v7.8.0', date: '2026-09-04', latest: true,
+    items: [
+      { type: 'new', text: '<strong>opencode database import</strong> - the Load File picker and drag-and-drop now accept <code>.db</code> / <code>.sqlite</code> / <code>.sqlite3</code> files and read opencode sessions straight from <code>opencode.db</code> (parsed in-browser via sql.js). Each session becomes a conversation; close opencode before importing so recent sessions are checkpointed into the file.' },
+      { type: 'new', text: '<strong>Tool calls shown</strong> - when importing an opencode database, assistant messages include the <code>[tool:bash]</code> commands and their output as code blocks, alongside the assistant text.' },
+      { type: 'new', text: '<strong>Tools menu</strong> - the top bar now has a <strong>Tools</strong> dropdown containing <strong>Settings</strong> and <strong>Convert db</strong>. On mobile both are available from the hamburger menu.' },
+      { type: 'new', text: '<strong>Tools &rarr; Convert db</strong> - a new in-app tool that converts an opencode SQLite database into an OpenAI-format <code>conversations.json</code> file you can save (with an optional toggle to include or omit tool calls). This replaces the standalone <code>opencode-db-to-json.html</code> converter, which is now redundant.' },
+      { type: 'change', text: '<strong>opencode format badge</strong> - conversations imported from an opencode database are now labeled <strong>opencode</strong> (previously shown as "OpenAI").' },
+      { type: 'new', text: '<strong>Auto-select latest message</strong> - opening a conversation from the list now selects its most recent message automatically: the Selected Node and Branch panels populate immediately and the graph highlights and centers on the newest turn (works for every format; docs without timestamps fall back to the last section).' },
+    ]
+  },
+  {
+    version: 'v7.7.0', date: '2026-08-27', latest: false,
     items: [
       { type: 'new', text: '<strong>Markdown / Text format support</strong> — drop <code>.md</code>, <code>.markdown</code>, or <code>.txt</code> files and they open directly (no JSON parsing). Each <code>## User</code> / <code>## Assistant</code> block becomes a <strong>user</strong>/<strong>assistant</strong> node in a single top-to-bottom chain, and the content renders as formatted Markdown in the right panel. The format badge shows "Markdown".' },
       { type: 'change', text: '<strong>Load File + drag-and-drop now accept Markdown</strong> — the file picker and graph drop zone accept <code>.md</code>/<code>.markdown</code>/<code>.txt</code> alongside <code>.json</code>.' },
@@ -7334,7 +7848,7 @@ const changelog = [
 ];
 
 
-console.log('ChatGPT JSON Tree Viewer v7.7.0 loaded. Drop a JSON file to get started.');
+console.log('ChatGPT JSON Tree Viewer v7.8.0 loaded. Drop a JSON file to get started.');
 
 // ============================================================
 // MOBILE HAMBURGER MENU
@@ -7367,6 +7881,7 @@ function closeMobMenu() {
   wire('mob-unload-all', 'btn-unload-all');
   wire('mob-reset', 'btn-reset-layout');
   wire('mob-settings', 'btn-settings');
+  wire('mob-convert-db', 'btn-convert-db');
   wire('mob-help', 'btn-help');
 
   // Wire mob theme dots to the same theme-switching logic
